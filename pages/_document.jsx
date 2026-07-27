@@ -25,10 +25,10 @@ export default function Document() {
             __html: `
           *{margin:0;padding:0;box-sizing:border-box}
           html{scroll-behavior:smooth;color-scheme:light}
-          body{background:#F4EDE3;color:#2E2620;font-family:'Figtree',sans-serif;font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+          body{background:#FFFFFF;color:#2E2620;font-family:'Figtree',sans-serif;font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
           a{color:inherit;text-decoration:none}
           img{display:block;max-width:100%}
-          ::selection{background:#2E2620;color:#F4EDE3}
+          ::selection{background:#2E2620;color:#FFFFFF}
         `,
           }}
         />

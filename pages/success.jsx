@@ -1,0 +1,48 @@
+import React from 'react';
+import Link from 'next/link';
+import Header from '../components/Header';
+import Marquee from '../components/Marquee';
+import Footer from '../components/Footer';
+import { useCart } from '../lib/useCart';
+import { fbTrack } from '../lib/fbPixel';
+import { T, S } from '../lib/theme';
+
+export default function SuccessPage() {
+  const { clear } = useCart();
+
+  React.useEffect(() => {
+    // checkout.jsx only navigates here after a Bankful charge has already
+    // been approved and fulfilled server-side, so a purchase record being
+    // present is enough on its own — no processor-specific status to check.
+    const raw = sessionStorage.getItem('anese-purchase');
+    sessionStorage.removeItem('anese-purchase');
+    if (!raw) return;
+    clear();
+    try {
+      const purchase = JSON.parse(raw);
+      fbTrack('Purchase', {
+        content_ids: purchase.contentIds,
+        contents: purchase.contents,
+        value: purchase.amount,
+        currency: 'USD',
+      }, purchase.eventId);
+    } catch {
+      // malformed sessionStorage value — nothing to track
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div>
+      <Header cartCount={0} onCartClick={() => {}} />
+      <section style={{ maxWidth: 640, margin: '0 auto', padding: '120px 40px', textAlign: 'center' }}>
+        <p style={S.label}>Thank you</p>
+        <h1 style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(38px,5vw,60px)', margin: '16px 0 20px' }}>Your ritual is <span style={S.it}>on its way.</span></h1>
+        <p style={{ color: T.soft, fontSize: 16, marginBottom: 34 }}>We’ve received your order and sent a confirmation to your email.</p>
+        <Link href="/" style={S.btnOutline}>Return home</Link>
+      </section>
+      <Marquee />
+      <Footer />
+    </div>
+  );
+}

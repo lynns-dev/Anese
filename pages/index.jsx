@@ -73,7 +73,6 @@ export default function HomePage() {
       <section style={heroWrap}>
         <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} overlay scrolled={scrolled} />
         <div style={heroBg}>
-          <div style={heroScrim} />
           <div style={heroContent}>
             <span style={{ ...S.label, display: 'block', marginBottom: 26, color: T.white }}>Walnut grain body scrub</span>
             <h1 style={heroH1}>Skin so soft it's <span style={{ ...S.it, color: T.white }}>basically a flex.</span></h1>
@@ -271,10 +270,6 @@ const heroBg = {
   backgroundImage: 'url(/images/anese-lifestyle-hero.png)', backgroundSize: 'cover', backgroundPosition: 'center 40%',
   display: 'flex', alignItems: 'flex-end',
 };
-const heroScrim = {
-  position: 'absolute', inset: 0,
-  background: 'linear-gradient(100deg, rgba(46,38,32,0.7) 0%, rgba(46,38,32,0.38) 42%, rgba(46,38,32,0.05) 68%)',
-};
 const heroContent = { position: 'relative', maxWidth: T.maxw, width: '100%', margin: '0 auto', padding: '0 32px 72px', color: T.oat };
 const heroH1 = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(40px,6.5vw,78px)', lineHeight: 0.98, marginBottom: 20, color: T.oat, maxWidth: '17ch' };
 const heroSub = { fontSize: 17, color: 'rgba(244,237,227,0.9)', maxWidth: '40ch', marginBottom: 26 };
@@ -286,11 +281,11 @@ const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily:
 const band = { padding: '90px 0' };
 const colGrid = { display: 'grid', marginTop: 50, gap: 24 };
 const lifestyleDuo = { display: 'grid', gap: 24, paddingTop: 90, paddingBottom: 90 };
-const lifestyleCol = { aspectRatio: '16/9', overflow: 'hidden', background: T.blush };
+const lifestyleCol = { aspectRatio: '16/9', overflow: 'hidden', background: T.white };
 const lifestyleImg = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 const pcard = { textAlign: 'center', overflow: 'hidden' };
 const badge = { position: 'absolute', top: 14, left: 14, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: T.clay, padding: '5px 10px', zIndex: 1, borderRadius: 30, fontWeight: 600 };
-const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overflow: 'hidden', width: '100%', background: T.blush };
+const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overflow: 'hidden', width: '100%', background: T.white };
 const pcardText = { padding: '20px 24px 28px' };
 const pnotes = { fontSize: 12, color: T.soft, margin: '6px 0 6px' };
 const benGrid = { display: 'grid', gap: 20, marginTop: 56, textAlign: 'left' };

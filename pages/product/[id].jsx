@@ -171,7 +171,7 @@ export default function ProductPage({ product }) {
             <div style={imgSide}>
               {product.badge && <span style={imageBadge}>{product.badge}</span>}
               {activeImage ? (
-                <img src={activeImage} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 28, boxSizing: 'border-box', display: 'block' }} />
+                <img src={activeImage} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ) : (
                 <ProductVisual id={product.id} width={230} />
               )}
@@ -186,7 +186,7 @@ export default function ProductPage({ product }) {
                     aria-label={`Show image ${i + 1}`}
                     aria-current={activeImage === src}
                   >
-                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8, boxSizing: 'border-box', display: 'block' }} />
+                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </button>
                 ))}
               </div>
@@ -545,13 +545,13 @@ export default function ProductPage({ product }) {
 
 const grid = { display: 'grid', gap: 60, alignItems: 'start' };
 const gallery = { display: 'flex', gap: 14, position: 'sticky', top: 100, alignSelf: 'start' };
-const imgSide = { position: 'relative', background: T.blush, aspectRatio: '4/5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 1, minWidth: 0, boxShadow: T.shadow };
+const imgSide = { position: 'relative', background: T.white, aspectRatio: '4/5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 1, minWidth: 0, boxShadow: T.shadow };
 const imageBadge = {
   position: 'absolute', top: 14, right: 14, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',
   color: '#fff', background: T.clay, padding: '6px 12px', zIndex: 1, fontFamily: T.sans, fontWeight: 600, borderRadius: 30,
 };
 const thumbCol = { display: 'flex', gap: 12, flexShrink: 0 };
-const thumbBtn = { width: 72, height: 72, padding: 0, border: '2px solid', cursor: 'pointer', overflow: 'hidden', background: T.blush, flexShrink: 0, transition: '.25s', boxShadow: T.shadowSm };
+const thumbBtn = { width: 72, height: 72, padding: 0, border: '2px solid', cursor: 'pointer', overflow: 'hidden', background: T.white, flexShrink: 0, transition: '.25s', boxShadow: T.shadowSm };
 const infoCol = {};
 const pdpRating = {
   display: 'flex', alignItems: 'center', gap: 9, fontSize: 14, color: T.soft, marginBottom: 20,
@@ -569,7 +569,7 @@ const upsellCard = {
   display: 'flex', alignItems: 'center', gap: 14, border: `1px solid ${T.line}`, borderRadius: 20,
   padding: '16px', marginTop: 24, background: T.shell,
 };
-const upsellVisual = { width: 54, height: 54, flexShrink: 0, overflow: 'hidden', background: T.blush };
+const upsellVisual = { width: 54, height: 54, flexShrink: 0, overflow: 'hidden', background: T.white };
 const upsellAddBtn = {
   fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase', border: 'none', background: T.ink, color: T.oat,
   padding: '10px 18px', borderRadius: 30, cursor: 'pointer', fontFamily: T.sans, fontWeight: 600,
@@ -595,7 +595,7 @@ const receiptsGrid = { display: 'grid', gap: 18, marginTop: 54 };
 const receiptCard = { overflow: 'hidden', boxShadow: T.shadowSm, background: T.shell };
 
 const ugcTrack = { display: 'flex', gap: 20, overflowX: 'auto', marginTop: 44, paddingBottom: 6 };
-const ugcItem = { aspectRatio: '9/16', objectFit: 'cover', background: T.blush, minWidth: 0, boxShadow: T.shadowSm, flex: '0 0 22%', scrollSnapAlign: 'start' };
+const ugcItem = { aspectRatio: '9/16', objectFit: 'cover', background: T.white, minWidth: 0, boxShadow: T.shadowSm, flex: '0 0 22%', scrollSnapAlign: 'start' };
 
 const revGrid = { display: 'grid', gap: 22, marginTop: 54, textAlign: 'left' };
 const revCard = { background: T.oat, borderRadius: 24, padding: 34 };
@@ -612,7 +612,7 @@ const reviewTextarea = {
 
 const relatedGrid = { display: 'grid', marginTop: 50, border: `1px solid ${T.line}`, overflow: 'hidden' };
 const relatedCard = { textAlign: 'center', display: 'block', textDecoration: 'none', color: 'inherit' };
-const relatedImg = { aspectRatio: '1/1', display: 'block', width: '100%', overflow: 'hidden', background: T.blush };
+const relatedImg = { aspectRatio: '1/1', display: 'block', width: '100%', overflow: 'hidden', background: T.white };
 const relatedText = { padding: '16px 20px 40px' };
 
 const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, overflow: 'hidden', padding: '16px 0', background: T.shell };

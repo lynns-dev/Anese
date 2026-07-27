@@ -47,6 +47,39 @@ import { T, S } from '../lib/theme';
 const EMPTY_ADDRESS = { firstName: '', lastName: '', address: '', apt: '', city: '', state: '', zip: '', phone: '' };
 const EMPTY_CARD = { number: '', expiry: '', cvc: '', name: '' };
 
+// Restores step/contact/shipping progress after a refresh so a shopper who's
+// filled in Step 1 (or further) doesn't have to start over. Deliberately
+// excludes `card` — raw card number/expiry/CVC never touch storage, even
+// sessionStorage, since that'd be typed-in payment data sitting in the
+// browser at rest.
+const CHECKOUT_PROGRESS_KEY = 'anese-checkout-progress';
+
+function loadCheckoutProgress() {
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_PROGRESS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCheckoutProgress(progress) {
+  try {
+    sessionStorage.setItem(CHECKOUT_PROGRESS_KEY, JSON.stringify(progress));
+  } catch {
+    // Storage can throw (private-browsing quota, etc.) — losing the
+    // resume-on-refresh convenience isn't worth failing checkout over.
+  }
+}
+
+function clearCheckoutProgress() {
+  try {
+    sessionStorage.removeItem(CHECKOUT_PROGRESS_KEY);
+  } catch {
+    // Same as above — non-fatal either way.
+  }
+}
+
 // Flat optional add-on for reshipment/refund if a package is lost, damaged,
 // or stolen in transit.
 const SHIPPING_PROTECTION_PRICE = 2.79;
@@ -287,6 +320,7 @@ export default function CheckoutPage() {
   // future step's label.
   const [step, setStep] = React.useState(1);
   const [maxStepReached, setMaxStepReached] = React.useState(1);
+  const [progressRestored, setProgressRestored] = React.useState(false);
 
   // Reported to the live-view heartbeat in pages/_app.jsx (via
   // lib/checkoutStage.js) so admin can see which step visitors are stuck
@@ -314,6 +348,36 @@ export default function CheckoutPage() {
 
   // Discount + UI state
   const [discountCode, setDiscountCode] = React.useState('');
+
+  // Restore step/contact/shipping progress on mount (e.g. after a refresh)
+  // — done in an effect rather than lazy useState initializers so server
+  // and first client render match (sessionStorage doesn't exist during SSR).
+  // Must come after every piece of state it reads/sets is declared above —
+  // effect dependency arrays are evaluated immediately during render, so
+  // referencing a not-yet-declared const here throws a TDZ ReferenceError.
+  React.useEffect(() => {
+    const saved = loadCheckoutProgress();
+    if (saved) {
+      if (saved.email) setEmail(saved.email);
+      if (typeof saved.newsletter === 'boolean') setNewsletter(saved.newsletter);
+      if (saved.shipping) setShipping({ ...EMPTY_ADDRESS, ...saved.shipping });
+      if (typeof saved.shippingProtection === 'boolean') setShippingProtection(saved.shippingProtection);
+      if (saved.discountCode) setDiscountCode(saved.discountCode);
+      if (Number.isInteger(saved.maxStepReached)) setMaxStepReached(saved.maxStepReached);
+      if (Number.isInteger(saved.step)) setStep(saved.step);
+    }
+    setProgressRestored(true);
+  }, []);
+
+  // Persist progress on every relevant change, once the initial restore
+  // above has run (otherwise this would immediately overwrite saved
+  // progress with the pre-restore empty defaults on first render).
+  React.useEffect(() => {
+    if (!progressRestored) return;
+    saveCheckoutProgress({ email, newsletter, shipping, shippingProtection, discountCode, step, maxStepReached });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressRestored, email, newsletter, shipping, shippingProtection, discountCode, step, maxStepReached]);
+
   const [discountMessage, setDiscountMessage] = React.useState('');
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
@@ -508,6 +572,7 @@ export default function CheckoutPage() {
         contentIds: cart.map((i) => i.id),
         contents: cart.map((i) => ({ id: i.id, quantity: i.quantity })),
       }));
+      clearCheckoutProgress();
       await router.push('/success');
       clear();
     } catch (err) {

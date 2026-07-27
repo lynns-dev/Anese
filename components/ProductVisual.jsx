@@ -1,6 +1,6 @@
 import React from 'react';
 
-const fillStyle = { width: '100%', height: '100%', display: 'block', objectFit: 'contain', padding: '10%', boxSizing: 'border-box', transition: 'opacity 0.6s ease' };
+const fillStyle = { width: '100%', height: '100%', display: 'block', objectFit: 'cover', transition: 'opacity 0.6s ease' };
 
 // Renders real product photography when available, falling back to a CSS/SVG
 // stand-in (a ANESE tin, an inverted tin, or a puff) for products without one.

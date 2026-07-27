@@ -15,7 +15,7 @@ export default function Document() {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Hanken+Grotesk:wght@300;400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap"
           rel="stylesheet"
         />
         <style
@@ -23,10 +23,10 @@ export default function Document() {
             __html: `
           *{margin:0;padding:0;box-sizing:border-box}
           html{scroll-behavior:smooth;color-scheme:light}
-          body{background:#FCFBF7;color:#16140F;font-family:'Hanken Grotesk',sans-serif;font-weight:400;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+          body{background:#F4EDE3;color:#2E2620;font-family:'Figtree',sans-serif;font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
           a{color:inherit;text-decoration:none}
           img{display:block;max-width:100%}
-          ::selection{background:#16140F;color:#FCFBF7}
+          ::selection{background:#2E2620;color:#F4EDE3}
         `,
           }}
         />

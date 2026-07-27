@@ -58,7 +58,7 @@ export default function Offer2Page() {
   const { applyDiscount, appliedDiscount } = useCart();
   const reviewsByProduct = useAllReviews();
 
-  const [selectedId, setSelectedId] = React.useState('original');
+  const [selectedId, setSelectedId] = React.useState('that-booty-tho');
   const [claiming, setClaiming] = React.useState(false);
   const [discountApplied, setDiscountApplied] = React.useState(false);
 

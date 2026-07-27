@@ -91,7 +91,7 @@ export default function Offer3Page() {
   const router = useRouter();
   const { clear, applyDiscount, appliedDiscount } = useCart();
 
-  const [selectedId, setSelectedId] = React.useState('original');
+  const [selectedId, setSelectedId] = React.useState('that-booty-tho');
   const [quantity, setQuantity] = React.useState(1);
   const [email, setEmail] = React.useState('');
   const [shipping, setShipping] = React.useState(EMPTY_ADDRESS);

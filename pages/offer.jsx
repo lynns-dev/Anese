@@ -29,7 +29,7 @@ import { T, S } from '../lib/theme';
 // fabricated testimonials on a page meant to persuade real buyers is a
 // different (and worse) thing than a TODO comment in dev docs.
 
-const PRODUCT_ID = 'original';
+const PRODUCT_ID = 'that-booty-tho';
 const DISCOUNT_CODE = 'ANESE15';
 
 // Bright, raised "3D" CTA — a deliberate departure from the site's flat

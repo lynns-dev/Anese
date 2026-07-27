@@ -3,9 +3,7 @@
 // bar keeps showing the old /products/... path, no 3xx response, so ad
 // destination URLs never need to change. Add more entries here as old slugs
 // are confirmed (see lib/products.js for current product ids).
-const OLD_PRODUCT_URL_REWRITES = [
-  { source: '/products/anese-original-scented-puff-powder', destination: '/product/original' },
-];
+const OLD_PRODUCT_URL_REWRITES = [];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

@@ -11,10 +11,7 @@ export default function Marquee({ messages = DEFAULT_MESSAGES }) {
     <div style={wrap}>
       <div className="marquee-track" style={track}>
         {loop.map((m, i) => (
-          <span key={i} style={item}>
-            {m}
-            <span style={dot}>•</span>
-          </span>
+          <span key={i} style={item}>{m}</span>
         ))}
       </div>
       <style jsx>{`
@@ -28,10 +25,9 @@ export default function Marquee({ messages = DEFAULT_MESSAGES }) {
   );
 }
 
-const wrap = { overflow: 'hidden', background: T.ink, borderTop: `1px solid ${T.dline}` };
-const track = { display: 'flex', width: 'max-content', whiteSpace: 'nowrap', padding: '16px 0' };
+const wrap = { overflow: 'hidden', background: T.blush, borderTop: `1px solid ${T.line}` };
+const track = { display: 'flex', width: 'max-content', whiteSpace: 'nowrap', padding: '14px 0' };
 const item = {
-  display: 'inline-flex', alignItems: 'center', color: T.white, fontFamily: T.sans,
-  fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '0 24px',
+  display: 'inline-flex', alignItems: 'center', color: T.ink, fontFamily: T.sans,
+  fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '0 18px',
 };
-const dot = { marginLeft: 24, color: T.soft };

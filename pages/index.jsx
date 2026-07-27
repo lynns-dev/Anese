@@ -72,7 +72,7 @@ export default function HomePage() {
       {/* HERO */}
       <section style={heroWrap}>
         <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} overlay scrolled={scrolled} />
-        <div style={heroBg}>
+        <div className="hero-bg" style={heroBg}>
           <div style={heroContent}>
             <span style={{ ...S.label, display: 'block', marginBottom: 26, color: T.white }}>Walnut grain body scrub</span>
             <h1 style={heroH1}>Skin so soft it's <span style={{ ...S.it, color: T.white }}>basically a flex.</span></h1>
@@ -155,7 +155,7 @@ export default function HomePage() {
       </section>
 
       {/* GALLERY */}
-      <section style={band}>
+      <section id="before-after" style={band}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
           <p style={S.label}>As worn</p>
           <h2 style={{ ...S.h2, marginTop: 12 }}>Real skin, <span style={S.it}>real glow.</span></h2>
@@ -257,6 +257,7 @@ export default function HomePage() {
         @media (max-width: 680px) {
           .col-grid { grid-template-columns: 1fr; }
           .lifestyle-duo { grid-template-columns: 1fr; }
+          .hero-bg { background-position: 18% 30% !important; }
         }
       `}</style>
     </div>

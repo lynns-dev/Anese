@@ -99,7 +99,7 @@ export default function OfferPage() {
       </Head>
 
       <header style={{ textAlign: 'center', padding: '28px 0', borderBottom: `1px solid ${T.line}` }}>
-        <img src="/images/anese-logo-black.png" alt="ANESE" style={{ height: 22, width: 'auto' }} />
+        <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 22, width: 'auto' }} />
       </header>
 
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '0 24px' }}>

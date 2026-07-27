@@ -43,8 +43,8 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
         </div>
         <Link href="/" style={styles.logoLink}>
           <img
-            src={transparent ? '/images/anese-logo-white.png' : '/images/anese-logo-black.png'}
-            alt="ANESE"
+            src={transparent ? '/images/anese-logo-white-transparent.png' : '/images/anese_logo_transparent.png'}
+            alt="anese"
             style={styles.logoImg}
           />
         </Link>

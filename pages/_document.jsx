@@ -4,7 +4,9 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <link rel="icon" href="/images/anese-favicon.png" type="image/png" />
+        <link rel="icon" href="/images/anese-favicon-32.png" sizes="32x32" type="image/png" />
+        <link rel="icon" href="/images/anese-favicon-192.png" sizes="192x192" type="image/png" />
+        <link rel="apple-touch-icon" href="/images/anese-favicon-192.png" />
         {/* Without this, a phone/browser set to dark mode auto-styles
             native, unstyled form controls (the checkout state <select>,
             checkboxes) with dark backgrounds and light text — independent

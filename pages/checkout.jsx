@@ -526,7 +526,7 @@ export default function CheckoutPage() {
     <div>
       <header className="desktop-topbar" style={topbar}>
         <Link href="/" style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64, textDecoration: 'none' }}>
-          <img src="/images/anese-logo-black.png" alt="ANESE" style={{ height: 24, width: 'auto' }} />
+          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 24, width: 'auto' }} />
         </Link>
       </header>
 
@@ -538,7 +538,7 @@ export default function CheckoutPage() {
           same job in less space. */}
       <header className="mobile-topbar" style={mobileTopbar}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="/images/anese-logo-black.png" alt="ANESE" style={{ height: 16, width: 'auto' }} />
+          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 16, width: 'auto' }} />
         </Link>
         <button type="button" onClick={() => setReceiptOpen(true)} style={mobileTotalButton}>
           <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>${grandTotal.toFixed(2)}</span>

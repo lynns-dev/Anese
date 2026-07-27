@@ -473,7 +473,7 @@ export default function CheckoutSquarePage() {
     <div>
       <header style={topbar}>
         <Link href="/" style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64, textDecoration: 'none' }}>
-          <img src="/images/anese-logo-black.png" alt="ANESE" style={{ height: 24, width: 'auto' }} />
+          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 24, width: 'auto' }} />
         </Link>
       </header>
 

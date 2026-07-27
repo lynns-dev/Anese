@@ -1,11 +1,11 @@
 {
-  "name": "ANESE Admin",
-  "short_name": "ANESE Admin",
+  "name": "Anese Admin",
+  "short_name": "Anese Admin",
   "start_url": "/admin",
   "scope": "/admin",
   "display": "standalone",
-  "background_color": "#F4F2EC",
-  "theme_color": "#16140F",
+  "background_color": "#F4EDE3",
+  "theme_color": "#2E2620",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },

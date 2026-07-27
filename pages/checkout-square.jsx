@@ -8,7 +8,6 @@ import {
   createSquareCard, tokenizeSquareCard,
   createApplePayButton, createGooglePayButton, createAfterpayButton, tokenizeWallet,
 } from '../lib/squareClient';
-import { TASSEL_GIFT } from '../lib/products';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
@@ -96,7 +95,7 @@ function InfoIcon(props) {
 
 export default function CheckoutSquarePage() {
   const router = useRouter();
-  const { cart, total, hydrated, clear, add, appliedDiscount, applyDiscount, clearDiscount, codeDiscountAmount, discountedTotal } = useCart();
+  const { cart, total, hydrated, clear, appliedDiscount, applyDiscount, clearDiscount, codeDiscountAmount, discountedTotal } = useCart();
 
   // Contact + delivery
   const [email, setEmail] = React.useState('');
@@ -130,13 +129,6 @@ export default function CheckoutSquarePage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const errorRef = React.useRef(null);
-  const [tasselSeconds, setTasselSeconds] = React.useState(5 * 60);
-
-  React.useEffect(() => {
-    const t = setInterval(() => setTasselSeconds((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, []);
-
   // The error message renders once, near the "Place order" button at the
   // bottom of the form — fine for card errors (the shopper is already right
   // there), but Apple Pay/Google Pay/Afterpay live mid-page in the Payment
@@ -184,12 +176,6 @@ export default function CheckoutSquarePage() {
     // Fire once per checkout page load, not on every cart mutation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
-
-  const hasTassel = cart.some((i) => i.id === TASSEL_GIFT.id);
-  const tasselExpired = tasselSeconds <= 0;
-  const tasselMins = Math.floor(tasselSeconds / 60);
-  const tasselSecs = String(tasselSeconds % 60).padStart(2, '0');
-  const handleAddTassel = () => add({ ...TASSEL_GIFT, price: 0, originalPrice: TASSEL_GIFT.price }, 1);
 
   // Mounts Square's own card-entry form into #square-card-container once on
   // load — this is deliberately the plainest possible version of Square's
@@ -645,42 +631,6 @@ export default function CheckoutSquarePage() {
             )}
           </section>
 
-          {/* Moved to sit right above the submit button, not at the top of
-              the form — a free-gift upsell competing for attention before
-              a shopper has even started filling in their info was more
-              distracting than persuasive; here it's the last thing they
-              see before placing the order. */}
-          {!tasselExpired && (
-            <section style={{ marginTop: 24 }}>
-              <div style={tasselCard}>
-                <p style={{ ...S.label, marginBottom: 10 }}>Get the Anese Scented Tassel for free</p>
-                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                  <div style={tasselImgWrap}>
-                    <ProductVisual id={TASSEL_GIFT.id} images={TASSEL_GIFT.images} alt={TASSEL_GIFT.name} width={48} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: T.sans, fontSize: 15, color: T.ink }}>{TASSEL_GIFT.name}</div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 3 }}>
-                      <span style={{ fontSize: 13, color: T.soft, textDecoration: 'line-through' }}>
-                        ${TASSEL_GIFT.price.toFixed(2)}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>$0.00</span>
-                    </div>
-                  </div>
-                  {hasTassel ? (
-                    <span style={{ fontSize: 12, color: T.ink, whiteSpace: 'nowrap' }}>✓ Added</span>
-                  ) : (
-                    <button type="button" onClick={handleAddTassel} style={S.btnOutline}>Add to cart</button>
-                  )}
-                </div>
-                {!hasTassel && (
-                  <p style={tasselTimer}>
-                    Offer expires in {tasselMins}:{tasselSecs} — place your order before time runs out.
-                  </p>
-                )}
-              </div>
-            </section>
-          )}
 
           {error && <p ref={errorRef} style={errorText}>{error}</p>}
 
@@ -873,12 +823,6 @@ const orDividerText = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'up
 // No background/border here — Apple Pay and Google Pay each style their
 // own attached button (their own colors, logo, corner radius).
 const walletButtonContainer = { width: '100%', minHeight: 44 };
-const tasselCard = { border: `1px solid ${T.line}`, background: T.white, padding: 16 };
-const tasselImgWrap = {
-  width: 48, height: 48, flexShrink: 0, overflow: 'hidden', background: T.white,
-  border: `1px solid ${T.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
-const tasselTimer = { fontSize: 11, color: '#a13d2b', marginTop: 10, marginBottom: 0 };
 const protectionCard = {
   display: 'flex', alignItems: 'center', gap: 14, padding: 14,
   border: `1px solid ${T.line}`, borderRadius: 8, background: T.white,

@@ -2,10 +2,10 @@ import React from 'react';
 import Link from 'next/link';
 import { T, S } from '../lib/theme';
 import ProductVisual from './ProductVisual';
-import { getProductById } from '../lib/products';
+import { getProductById, FREE_GIFT, FREE_GIFT_THRESHOLD } from '../lib/products';
 
 const FREE_SHIP_AT = 50;
-const FREE_GIFT_AT = 70;
+const FREE_GIFT_AT = FREE_GIFT_THRESHOLD;
 
 export default function CartDrawer({
   cart, open, onClose, remove, setQty, total, add,
@@ -41,16 +41,12 @@ export default function CartDrawer({
   const discountTotal = subtotal - total;
   const freeShipping = total >= FREE_SHIP_AT;
 
+  // Free shipping and the free gift unlock together at the same threshold,
+  // so this is a single-stage progress bar (no separate marker needed).
   const progressPct = Math.min(100, (total / FREE_GIFT_AT) * 100);
-  const shipMarkerPct = (FREE_SHIP_AT / FREE_GIFT_AT) * 100;
-  let progressMessage;
-  if (total >= FREE_GIFT_AT) {
-    progressMessage = 'You’ve unlocked free shipping and a free scented tassel gift.';
-  } else if (freeShipping) {
-    progressMessage = `Free shipping unlocked — add $${(FREE_GIFT_AT - total).toFixed(2)} more for a free scented tassel gift.`;
-  } else {
-    progressMessage = `Add $${(FREE_SHIP_AT - total).toFixed(2)} more for free shipping.`;
-  }
+  const progressMessage = freeShipping
+    ? `You've unlocked free shipping and a free ${FREE_GIFT.name}.`
+    : `Add $${(FREE_GIFT_AT - total).toFixed(2)} more for free shipping and a free ${FREE_GIFT.name}.`;
 
   return (
     <>
@@ -79,7 +75,6 @@ export default function CartDrawer({
             <p style={{ fontSize: 12, color: T.ink, marginBottom: 8 }}>{progressMessage}</p>
             <div style={progressTrack}>
               <div style={{ ...progressFill, width: `${progressPct}%` }} />
-              <div style={{ ...progressMarker, left: `${shipMarkerPct}%` }} />
             </div>
           </div>
         )}
@@ -97,15 +92,26 @@ export default function CartDrawer({
                   {item.plan === 'subscribe' && (
                     <div style={subscribeNote}>Subscribe &amp; save · every 2 months</div>
                   )}
-                  <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>${item.price} · {item.size}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-                    <button onClick={() => setQty(item.id, item.quantity - 1)} style={qtyBtn}>−</button>
-                    <span style={{ fontSize: 13 }}>{item.quantity}</span>
-                    <button onClick={() => setQty(item.id, item.quantity + 1)} style={qtyBtn}>+</button>
-                  </div>
+                  {item.id === FREE_GIFT.id ? (
+                    <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>
+                      <span style={{ textDecoration: 'line-through', marginRight: 6 }}>${item.originalPrice}</span>
+                      Free — added automatically at $50
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>${item.price} · {item.size}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+                        <button onClick={() => setQty(item.id, item.quantity - 1)} style={qtyBtn}>−</button>
+                        <span style={{ fontSize: 13 }}>{item.quantity}</span>
+                        <button onClick={() => setQty(item.id, item.quantity + 1)} style={qtyBtn}>+</button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-              <button onClick={() => remove(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, alignSelf: 'flex-start' }}>Remove</button>
+              {item.id !== FREE_GIFT.id && (
+                <button onClick={() => remove(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, alignSelf: 'flex-start' }}>Remove</button>
+              )}
             </div>
           ))}
 
@@ -200,7 +206,6 @@ const subscribeNote = { fontSize: 11, color: T.soft, marginTop: 3, letterSpacing
 
 const progressTrack = { position: 'relative', height: 4, background: T.paper, marginTop: 2 };
 const progressFill = { position: 'absolute', top: 0, left: 0, bottom: 0, background: T.ink, transition: 'width .3s ease' };
-const progressMarker = { position: 'absolute', top: -3, bottom: -3, width: 2, background: T.white, boxShadow: `0 0 0 1px ${T.ink}` };
 
 const upsellSection = { background: T.paper, padding: '18px 16px', marginTop: 12 };
 const upsellCard = { display: 'flex', alignItems: 'center', gap: 14 };

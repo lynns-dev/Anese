@@ -11,14 +11,13 @@ import { getSessionId } from '../lib/session';
 import { setCheckoutStep } from '../lib/checkoutStage';
 import { T, S } from '../lib/theme';
 
-// Backup checkout page on QuickBooks Payments, at a stable URL separate
-// from the live /checkout (pages/checkout.jsx, also QuickBooks right now)
-// — not linked from anywhere on the site, kept in sync with checkout.jsx's
-// non-payment sections by hand. Reads QB_ENVIRONMENT straight from the
-// server via getServerSideProps below rather than the separately-
-// configured NEXT_PUBLIC_QB_ENVIRONMENT checkout.jsx uses, so this page's
-// client-side tokenization can never drift out of sync with the server's
-// own environment across Vercel's Preview/Production env-var scoping.
+// Backup checkout page on QuickBooks Payments, at a stable URL — not
+// linked from anywhere on the live site (components/CartDrawer.jsx points
+// at /checkout, which is now pages/checkout.jsx, charging through Square
+// instead). Kept as a ready-to-restore fallback: to rotate back to
+// QuickBooks, swap which file lives at pages/checkout.jsx the same way this
+// page was moved out of it. Keep this page's non-payment sections in sync
+// with checkout.jsx by hand when either one changes.
 //
 // Rebuilt as a 3-step flow (Shipping -> Payment -> Review), modeled on
 // Apple's own checkout (large touch-friendly fields/buttons, a final
@@ -48,6 +47,39 @@ import { T, S } from '../lib/theme';
 
 const EMPTY_ADDRESS = { firstName: '', lastName: '', address: '', apt: '', city: '', state: '', zip: '', phone: '' };
 const EMPTY_CARD = { number: '', expiry: '', cvc: '', name: '' };
+
+// Restores step/contact/shipping progress after a refresh so a shopper who's
+// filled in Step 1 (or further) doesn't have to start over. Deliberately
+// excludes `card` — raw card number/expiry/CVC never touch storage, even
+// sessionStorage, since that'd be typed-in payment data sitting in the
+// browser at rest.
+const CHECKOUT_PROGRESS_KEY = 'anese-checkout-progress';
+
+function loadCheckoutProgress() {
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_PROGRESS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCheckoutProgress(progress) {
+  try {
+    sessionStorage.setItem(CHECKOUT_PROGRESS_KEY, JSON.stringify(progress));
+  } catch {
+    // Storage can throw (private-browsing quota, etc.) — losing the
+    // resume-on-refresh convenience isn't worth failing checkout over.
+  }
+}
+
+function clearCheckoutProgress() {
+  try {
+    sessionStorage.removeItem(CHECKOUT_PROGRESS_KEY);
+  } catch {
+    // Same as above — non-fatal either way.
+  }
+}
 
 // Flat optional add-on for reshipment/refund if a package is lost, damaged,
 // or stolen in transit.
@@ -269,11 +301,7 @@ function StepIndicator({ step, maxStepReached, onJump }) {
   );
 }
 
-export async function getServerSideProps() {
-  return { props: { qbEnvironment: process.env.QB_ENVIRONMENT === 'production' ? 'production' : 'sandbox' } };
-}
-
-export default function CheckoutPage({ qbEnvironment }) {
+export default function CheckoutQbBackupPage() {
   const router = useRouter();
   const { cart, total, hydrated, clear, appliedDiscount, applyDiscount, clearDiscount, codeDiscountAmount, discountedTotal } = useCart();
 
@@ -293,10 +321,13 @@ export default function CheckoutPage({ qbEnvironment }) {
   // future step's label.
   const [step, setStep] = React.useState(1);
   const [maxStepReached, setMaxStepReached] = React.useState(1);
+  const [progressRestored, setProgressRestored] = React.useState(false);
 
   // Reported to the live-view heartbeat in pages/_app.jsx (via
   // lib/checkoutStage.js) so admin can see which step visitors are stuck
-  // on, not just that they're "at checkout" generically.
+  // on, not just that they're "at checkout" generically. Cleared on
+  // unmount so a visitor who navigates away doesn't linger as mid-checkout
+  // until their next heartbeat happens to overwrite it.
   React.useEffect(() => {
     setCheckoutStep(step);
     return () => setCheckoutStep(null);
@@ -318,11 +349,42 @@ export default function CheckoutPage({ qbEnvironment }) {
 
   // Discount + UI state
   const [discountCode, setDiscountCode] = React.useState('');
+
+  // Restore step/contact/shipping progress on mount (e.g. after a refresh)
+  // — done in an effect rather than lazy useState initializers so server
+  // and first client render match (sessionStorage doesn't exist during SSR).
+  // Must come after every piece of state it reads/sets is declared above —
+  // effect dependency arrays are evaluated immediately during render, so
+  // referencing a not-yet-declared const here throws a TDZ ReferenceError.
+  React.useEffect(() => {
+    const saved = loadCheckoutProgress();
+    if (saved) {
+      if (saved.email) setEmail(saved.email);
+      if (typeof saved.newsletter === 'boolean') setNewsletter(saved.newsletter);
+      if (saved.shipping) setShipping({ ...EMPTY_ADDRESS, ...saved.shipping });
+      if (typeof saved.shippingProtection === 'boolean') setShippingProtection(saved.shippingProtection);
+      if (saved.discountCode) setDiscountCode(saved.discountCode);
+      if (Number.isInteger(saved.maxStepReached)) setMaxStepReached(saved.maxStepReached);
+      if (Number.isInteger(saved.step)) setStep(saved.step);
+    }
+    setProgressRestored(true);
+  }, []);
+
+  // Persist progress on every relevant change, once the initial restore
+  // above has run (otherwise this would immediately overwrite saved
+  // progress with the pre-restore empty defaults on first render).
+  React.useEffect(() => {
+    if (!progressRestored) return;
+    saveCheckoutProgress({ email, newsletter, shipping, shippingProtection, discountCode, step, maxStepReached });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressRestored, email, newsletter, shipping, shippingProtection, discountCode, step, maxStepReached]);
+
   const [discountMessage, setDiscountMessage] = React.useState('');
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const errorRef = React.useRef(null);
+
   // Scrolled into view on every change so an error is never left off-screen.
   React.useEffect(() => {
     if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -464,7 +526,7 @@ export default function CheckoutPage({ qbEnvironment }) {
           postalCode: shipping.zip,
           country: 'US',
         },
-        qbEnvironment
+        process.env.NEXT_PUBLIC_QB_ENVIRONMENT || 'sandbox'
       );
 
       const purchaseEventId = generateEventId();
@@ -499,6 +561,7 @@ export default function CheckoutPage({ qbEnvironment }) {
         contentIds: cart.map((i) => i.id),
         contents: cart.map((i) => ({ id: i.id, quantity: i.quantity })),
       }));
+      clearCheckoutProgress();
       await router.push('/success');
       clear();
     } catch (err) {
@@ -845,7 +908,6 @@ export default function CheckoutPage({ qbEnvironment }) {
                     <div style={{ color: T.soft, fontSize: 13, marginTop: 8 }}>Billing address same as shipping</div>
                   </div>
                 </div>
-
 
                 <div style={{ marginTop: 20 }}>
                   <p style={fieldGroupLabel}>Your total</p>

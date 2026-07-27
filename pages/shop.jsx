@@ -48,7 +48,9 @@ export default function ShopPage() {
                   </div>
                 )}
                 <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, margin: '8px 0 10px' }}>{p.tagline}</div>
-                <div style={{ fontSize: 13, marginBottom: 14 }}>${p.price} · {p.size}</div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: T.ink, marginBottom: 14 }}>
+                  ${p.price} <span style={{ fontSize: 13, fontWeight: 400, color: T.soft }}>· {p.size}</span>
+                </div>
                 <button style={{ ...S.btnFill, width: '100%', justifyContent: 'center' }} onClick={() => c.add(p)}>Add to cart</button>
               </div>
             </div>

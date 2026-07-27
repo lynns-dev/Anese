@@ -38,13 +38,14 @@ const FUNNEL_RANGE_LABELS = {
   '7d': 'Funnel — last 7 days',
   '30d': 'Funnel — last 30 days',
 };
-// checkout_* are the live 3-step checkout's individual steps (see
-// lib/checkoutStage.js). The plain 'checkout' stage still exists (sent by
-// checkout-square.jsx, the single-page backup with no steps of its own,
-// and as checkout.jsx/checkout-qb.jsx's brief pre-hydration fallback) but
-// is deliberately left out of this list — it's not currently reachable by
-// real traffic, and including it would add a near-always-empty column to
-// the summary row/bar below. A visitor in that stage still shows up
+// checkout_* are the 3-step QuickBooks backup's (checkout-qb.jsx)
+// individual steps (see lib/checkoutStage.js). The plain 'checkout' stage
+// still exists (sent by the live /checkout, a single-page Square form with
+// no steps of its own, and as checkout-qb.jsx's brief pre-hydration
+// fallback) but is deliberately left out of this list — checkout_* isn't
+// currently reachable by real traffic (checkout-qb.jsx isn't linked
+// anywhere), and including it would add a near-always-empty column to the
+// summary row/bar below. A visitor in that stage still shows up
 // correctly in the "who's here right now" list further down, which falls
 // back to the raw stage string for anything not in this map.
 const STAGE_LABELS = {

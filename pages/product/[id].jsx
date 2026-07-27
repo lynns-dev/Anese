@@ -685,7 +685,7 @@ const pdpRating = {
 const pdpTitle = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(40px,5vw,60px)', lineHeight: 0.98, marginBottom: 16 };
 const pdpDesc = { fontSize: 17, color: T.soft, maxWidth: '42ch', marginBottom: 24, lineHeight: 1.6 };
 const pdpPrice = { fontFamily: T.serif, fontWeight: 400, fontSize: 30, marginBottom: 20 };
-const qtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.line}`, borderRadius: 50, background: T.shell, height: 56 };
+const qtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.line}`, background: T.shell, height: 56 };
 const qtyBtn = { width: 44, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: T.ink };
 const qtyValue = { width: 30, textAlign: 'center', fontSize: 14, fontWeight: 500 };
 const badgeRow = { fontSize: 13, color: T.soft, marginTop: 4, marginBottom: 8 };
@@ -697,7 +697,7 @@ const upsellCard = {
 const upsellVisual = { width: 54, height: 54, flexShrink: 0, overflow: 'hidden', background: T.white };
 const upsellAddBtn = {
   fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase', border: 'none', background: T.ink, color: T.oat,
-  padding: '10px 18px', borderRadius: 30, cursor: 'pointer', fontFamily: T.sans, fontWeight: 600,
+  padding: '10px 18px', cursor: 'pointer', fontFamily: T.sans, fontWeight: 600,
 };
 
 const band = { padding: '90px 0' };
@@ -754,7 +754,7 @@ const stickyBarInner = {
   maxWidth: T.maxw, margin: '0 auto',
   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
 };
-const stickyQtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.dline}`, borderRadius: 50, height: 40 };
+const stickyQtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.dline}`, height: 40 };
 const stickyQtyBtn = { width: 32, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: T.oat };
 const stickyAddBtn = {
   ...S.btnFill, background: T.oat, color: T.ink, height: 40, padding: '0 22px',

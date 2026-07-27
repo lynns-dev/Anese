@@ -117,7 +117,9 @@ export default function HomePage() {
                 <div style={pcardText}>
                   <Link href={`/product/${p.id}`} style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 19 }}>{p.name}</Link>
                   <div style={pnotes}>{p.tagline}</div>
-                  <div style={{ fontSize: 13 }}>${p.price} · {p.size}</div>
+                  <div style={{ fontSize: 20, fontWeight: 600, color: T.ink }}>
+                    ${p.price} <span style={{ fontSize: 13, fontWeight: 400, color: T.soft }}>· {p.size}</span>
+                  </div>
                   <button style={{ ...S.btnFill, width: '100%', marginTop: 18 }} onClick={() => c.add(p)}>Add to cart</button>
                 </div>
               </div>

@@ -59,12 +59,12 @@ function Tracking() {
   React.useEffect(() => {
     const currentStage = () => {
       if (router.pathname === '/success') return 'purchased';
-      // checkout.jsx/checkout-qb.jsx report their own step (see
-      // lib/checkoutStage.js); fall back to the generic 'checkout' stage
-      // for the brief window before that effect has run, or for
-      // checkout-square.jsx, which is a single-page form with no steps.
-      if (router.pathname === '/checkout' || router.pathname === '/checkout-qb') return getCheckoutStage() || 'checkout';
-      if (router.pathname === '/checkout-square') return 'checkout';
+      // checkout-qb.jsx (the 3-step QuickBooks backup) reports its own step
+      // (see lib/checkoutStage.js); fall back to the generic 'checkout'
+      // stage for the brief window before that effect has run, or for the
+      // live /checkout (Square), which is a single-page form with no steps.
+      if (router.pathname === '/checkout-qb') return getCheckoutStage() || 'checkout';
+      if (router.pathname === '/checkout') return 'checkout';
       if (cart.open) return 'cart_open';
       return 'browsing';
     };

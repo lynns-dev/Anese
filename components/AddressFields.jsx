@@ -8,11 +8,10 @@ export const US_STATES = [
   'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
 ];
 
-// Shared shipping/billing address form used by checkout.jsx,
-// checkout-square.jsx, and offer3.jsx — previously duplicated near-
-// identically in each file; pulled out here so the Address-field
-// autocomplete below only needs to be built (and fixed, if it ever needs
-// fixing) once.
+// Shared shipping/billing address form used by checkout.jsx, checkout-qb.jsx,
+// and offer3.jsx — previously duplicated near-identically in each file;
+// pulled out here so the Address-field autocomplete below only needs to be
+// built (and fixed, if it ever needs fixing) once.
 //
 // Autocomplete: typing 4+ characters into the Address field debounces a
 // lookup (lib/addressAutocomplete.js, Mapbox's Geocoding API) and shows a dropdown of

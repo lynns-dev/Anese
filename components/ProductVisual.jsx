@@ -6,8 +6,11 @@ const fillStyle = { width: '100%', height: '100%', display: 'block', objectFit: 
 // stand-in (a ANESE tin, an inverted tin, or a puff) for products without one.
 // Accepts an `images` array; when a second image exists, swaps to it on
 // hover (used on collection/grid cards, not the single-image PDP gallery,
-// which reads the full array itself for its thumbnail strip).
-export default function ProductVisual({ id = 'original', width = 150, images, alt }) {
+// which reads the full array itself for its thumbnail strip). Pass
+// staticImage to disable the hover-swap and always show images[0] — used
+// for cart/checkout line-item thumbnails, where the image should never
+// change out from under the shopper on a stray mouseover.
+export default function ProductVisual({ id = 'original', width = 150, images, alt, staticImage = false }) {
   const [showSecond, setShowSecond] = React.useState(false);
   const [image, image2] = images || [];
 
@@ -15,11 +18,11 @@ export default function ProductVisual({ id = 'original', width = 150, images, al
     return (
       <div
         style={{ position: 'relative', width: '100%', height: '100%' }}
-        onMouseEnter={() => image2 && setShowSecond(true)}
-        onMouseLeave={() => image2 && setShowSecond(false)}
+        onMouseEnter={() => !staticImage && image2 && setShowSecond(true)}
+        onMouseLeave={() => !staticImage && image2 && setShowSecond(false)}
       >
         <img src={image} alt={alt || id} style={{ ...fillStyle, opacity: showSecond ? 0 : 1 }} />
-        {image2 && (
+        {!staticImage && image2 && (
           <img
             src={image2}
             alt={alt || id}

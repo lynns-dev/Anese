@@ -171,6 +171,11 @@ export default function ProductPage({ product }) {
 
   const upsell = PRODUCTS.find((p) => p.id !== product.id && p.category === product.category);
   const related = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
+  // The benefits/timeline/how-to/FAQ marketing copy below is written
+  // specifically for the booty scrub — showing it on a non-scrub product
+  // (e.g. the silk bag) would read as broken ("Butt · thighs · hips" under
+  // a bag, shower instructions for something you don't wash with).
+  const isScrub = product.category === 'scrub';
   const toggleSection = (key) => setOpenSection((cur) => (cur === key ? null : key));
   const toggleFaq = (i) => setOpenFaq((cur) => (cur === i ? null : i));
 
@@ -290,7 +295,9 @@ export default function ProductPage({ product }) {
               <button style={{ ...S.btnFill, flex: 1 }} onClick={handleAdd}>Add to cart</button>
             </div>
 
-            <p style={badgeRow}>Free shipping over $50 · Butt · thighs · hips · Use 2–3x a week · Cruelty-free</p>
+            <p style={badgeRow}>
+              Free shipping over $50{isScrub ? ' · Butt · thighs · hips · Use 2–3x a week' : ''} · Cruelty-free
+            </p>
 
             {upsell && (
               <div style={upsellCard}>
@@ -308,17 +315,19 @@ export default function ProductPage({ product }) {
             )}
 
             <div style={{ marginTop: 24 }}>
-              <AccordionRow title="How to use" open={openSection === 'how-to-use'} onToggle={() => toggleSection('how-to-use')}>
-                {HOW_TO_USE.map(([h, p], i) => (
-                  <div key={i} style={{ marginBottom: i < HOW_TO_USE.length - 1 ? 18 : 0, display: 'flex', gap: 14 }}>
-                    <span style={{ fontFamily: T.serif, fontStyle: 'italic', color: T.ink, fontSize: 20, flex: '0 0 22px' }}>{i + 1}</span>
-                    <div>
-                      <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 18, marginBottom: 4 }}>{h}</div>
-                      <p style={{ fontSize: 13, color: T.soft, margin: 0 }}>{p}</p>
+              {isScrub && (
+                <AccordionRow title="How to use" open={openSection === 'how-to-use'} onToggle={() => toggleSection('how-to-use')}>
+                  {HOW_TO_USE.map(([h, p], i) => (
+                    <div key={i} style={{ marginBottom: i < HOW_TO_USE.length - 1 ? 18 : 0, display: 'flex', gap: 14 }}>
+                      <span style={{ fontFamily: T.serif, fontStyle: 'italic', color: T.ink, fontSize: 20, flex: '0 0 22px' }}>{i + 1}</span>
+                      <div>
+                        <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 18, marginBottom: 4 }}>{h}</div>
+                        <p style={{ fontSize: 13, color: T.soft, margin: 0 }}>{p}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </AccordionRow>
+                  ))}
+                </AccordionRow>
+              )}
               {product.ingredients && (
                 <AccordionRow title="Ingredients" open={openSection === 'ingredients'} onToggle={() => toggleSection('ingredients')}>
                   <p style={{ fontSize: 14, color: T.soft, margin: 0 }}>{product.ingredients}</p>
@@ -340,101 +349,105 @@ export default function ProductPage({ product }) {
         </div>
       </div>
 
-      {/* BENEFITS */}
-      <section style={{ ...band, borderTop: `1px solid ${T.line}` }}>
-        <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={S.label}>Why you'll love it</p>
-          <h2 style={{ ...S.h2, marginTop: 14 }}>Skin that <span style={S.it}>actually glows.</span></h2>
-          <div className="benefit-grid" style={benefitGrid}>
-            {BENEFITS.map(([h, p], i) => (
-              <div key={i} style={benefitCard}>
-                <div style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
-                <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, marginBottom: 8, lineHeight: 1.05 }}>{h}</div>
-                <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{p}</p>
+      {isScrub && (
+        <>
+          {/* BENEFITS */}
+          <section style={{ ...band, borderTop: `1px solid ${T.line}` }}>
+            <div style={{ ...S.wrap, textAlign: 'center' }}>
+              <p style={S.label}>Why you'll love it</p>
+              <h2 style={{ ...S.h2, marginTop: 14 }}>Skin that <span style={S.it}>actually glows.</span></h2>
+              <div className="benefit-grid" style={benefitGrid}>
+                {BENEFITS.map(([h, p], i) => (
+                  <div key={i} style={benefitCard}>
+                    <div style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
+                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, marginBottom: 8, lineHeight: 1.05 }}>{h}</div>
+                    <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{p}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TIMELINE */}
-      <section style={{ ...band, background: T.blush }}>
-        <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={S.label}>What to expect</p>
-          <h2 style={{ ...S.h2, marginTop: 14 }}>The glow-up timeline.</h2>
-          <div className="timeline-grid" style={timelineGrid}>
-            {TIMELINE.map(([when, h, p], i) => (
-              <div key={i} style={timelineCard}>
-                <div style={S.label}>{when}</div>
-                <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 27, margin: '14px 0 6px' }}>{h}</div>
-                <p style={{ fontSize: 14, color: T.soft, margin: 0 }}>{p}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* RECEIPTS */}
-      {RECEIPTS.length > 0 && (
-        <section style={band}>
-          <div style={{ ...S.wrap, textAlign: 'center' }}>
-            <p style={S.label}>The receipts</p>
-            <h2 style={{ ...S.h2, marginTop: 14 }}>Real people. <span style={S.it}>Real glow-ups.</span></h2>
-            <p style={{ fontSize: 17, color: T.soft, maxWidth: '48ch', margin: '18px auto 0' }}>
-              We're not here to gatekeep results.
-              <br />
-              <small style={{ fontSize: 13, fontStyle: 'italic' }}>Individual results vary — but the hype is real.</small>
-            </p>
-            <div className="receipts-grid" style={receiptsGrid}>
-              {RECEIPTS.map((src, i) => (
-                <div key={i} style={receiptCard}><img src={src} alt="Before and after" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover' }} /></div>
-              ))}
             </div>
-          </div>
-        </section>
-      )}
+          </section>
 
-      {/* UGC VIDEOS */}
-      {UGC_VIDEOS.length > 0 && (
-        <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
-          <div style={{ ...S.wrap, textAlign: 'center' }}>
-            <p style={S.label}>As seen and used</p>
-            <h2 style={{ ...S.h2, marginTop: 14 }}>Real people, <span style={S.it}>real routines.</span></h2>
-            <div className="ugc-track" style={ugcTrack}>
-              {UGC_VIDEOS.map((src, i) => (
-                <video
-                  key={i}
-                  className="ugc-item"
-                  style={ugcItem}
-                  src={src}
-                  muted
-                  loop
-                  playsInline
-                  autoPlay
-                  controls
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* HOW TO */}
-      <section style={{ ...band, background: T.ink, color: T.oat }}>
-        <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={{ ...S.label, color: T.white }}>The ritual</p>
-          <h2 style={{ ...S.h2, marginTop: 14, color: T.oat }}>How to <span style={{ ...S.it, color: T.white }}>scrub it.</span></h2>
-          <div className="how-grid" style={howGrid}>
-            {HOW_TO_USE.map(([h, p], i) => (
-              <div key={i} style={howCard}>
-                <div style={{ fontFamily: T.serif, fontSize: 44, color: T.white, lineHeight: 0.8 }}>{i + 1}</div>
-                <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, margin: '14px 0 6px' }}>{h}</div>
-                <p style={{ fontSize: 14, color: 'rgba(244,237,227,0.78)', margin: 0 }}>{p}</p>
+          {/* TIMELINE */}
+          <section style={{ ...band, background: T.blush }}>
+            <div style={{ ...S.wrap, textAlign: 'center' }}>
+              <p style={S.label}>What to expect</p>
+              <h2 style={{ ...S.h2, marginTop: 14 }}>The glow-up timeline.</h2>
+              <div className="timeline-grid" style={timelineGrid}>
+                {TIMELINE.map(([when, h, p], i) => (
+                  <div key={i} style={timelineCard}>
+                    <div style={S.label}>{when}</div>
+                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 27, margin: '14px 0 6px' }}>{h}</div>
+                    <p style={{ fontSize: 14, color: T.soft, margin: 0 }}>{p}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
+          </section>
+
+          {/* RECEIPTS */}
+          {RECEIPTS.length > 0 && (
+            <section style={band}>
+              <div style={{ ...S.wrap, textAlign: 'center' }}>
+                <p style={S.label}>The receipts</p>
+                <h2 style={{ ...S.h2, marginTop: 14 }}>Real people. <span style={S.it}>Real glow-ups.</span></h2>
+                <p style={{ fontSize: 17, color: T.soft, maxWidth: '48ch', margin: '18px auto 0' }}>
+                  We're not here to gatekeep results.
+                  <br />
+                  <small style={{ fontSize: 13, fontStyle: 'italic' }}>Individual results vary — but the hype is real.</small>
+                </p>
+                <div className="receipts-grid" style={receiptsGrid}>
+                  {RECEIPTS.map((src, i) => (
+                    <div key={i} style={receiptCard}><img src={src} alt="Before and after" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover' }} /></div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* UGC VIDEOS */}
+          {UGC_VIDEOS.length > 0 && (
+            <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
+              <div style={{ ...S.wrap, textAlign: 'center' }}>
+                <p style={S.label}>As seen and used</p>
+                <h2 style={{ ...S.h2, marginTop: 14 }}>Real people, <span style={S.it}>real routines.</span></h2>
+                <div className="ugc-track" style={ugcTrack}>
+                  {UGC_VIDEOS.map((src, i) => (
+                    <video
+                      key={i}
+                      className="ugc-item"
+                      style={ugcItem}
+                      src={src}
+                      muted
+                      loop
+                      playsInline
+                      autoPlay
+                      controls
+                    />
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* HOW TO */}
+          <section style={{ ...band, background: T.ink, color: T.oat }}>
+            <div style={{ ...S.wrap, textAlign: 'center' }}>
+              <p style={{ ...S.label, color: T.white }}>The ritual</p>
+              <h2 style={{ ...S.h2, marginTop: 14, color: T.oat }}>How to <span style={{ ...S.it, color: T.white }}>scrub it.</span></h2>
+              <div className="how-grid" style={howGrid}>
+                {HOW_TO_USE.map(([h, p], i) => (
+                  <div key={i} style={howCard}>
+                    <div style={{ fontFamily: T.serif, fontSize: 44, color: T.white, lineHeight: 0.8 }}>{i + 1}</div>
+                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, margin: '14px 0 6px' }}>{h}</div>
+                    <p style={{ fontSize: 14, color: 'rgba(244,237,227,0.78)', margin: 0 }}>{p}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* REVIEWS */}
       <section id="reviews" style={{ ...band, background: T.shell }}>
@@ -503,19 +516,21 @@ export default function ProductPage({ product }) {
       </section>
 
       {/* FAQ */}
-      <section style={{ ...band, background: T.shell }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 32px', textAlign: 'center' }}>
-          <p style={S.label}>Good to know</p>
-          <h2 style={{ ...S.h2, marginTop: 14 }}>The real questions.</h2>
-          <div style={{ marginTop: 30, textAlign: 'left' }}>
-            {FAQS.map(([q, a], i) => (
-              <AccordionRow key={i} title={q} open={openFaq === i} onToggle={() => toggleFaq(i)}>
-                <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{a}</p>
-              </AccordionRow>
-            ))}
+      {isScrub && (
+        <section style={{ ...band, background: T.shell }}>
+          <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 32px', textAlign: 'center' }}>
+            <p style={S.label}>Good to know</p>
+            <h2 style={{ ...S.h2, marginTop: 14 }}>The real questions.</h2>
+            <div style={{ marginTop: 30, textAlign: 'left' }}>
+              {FAQS.map(([q, a], i) => (
+                <AccordionRow key={i} title={q} open={openFaq === i} onToggle={() => toggleFaq(i)}>
+                  <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{a}</p>
+                </AccordionRow>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* RELATED */}
       {related.length > 0 && (
@@ -540,11 +555,17 @@ export default function ProductPage({ product }) {
 
       {/* CLOSING */}
       <section style={closing}>
-        <p style={{ ...S.label, color: T.oat }}>One tub away</p>
+        <p style={{ ...S.label, color: T.oat }}>{isScrub ? 'One tub away' : 'One click away'}</p>
         <h2 style={{ ...S.h2, marginTop: 16, color: '#fff', fontSize: 'clamp(44px,7vw,76px)' }}>
-          Your booty called. <span style={{ ...S.it, color: T.white }}>It wants the scrub.</span>
+          {isScrub ? (
+            <>Your booty called. <span style={{ ...S.it, color: T.white }}>It wants the scrub.</span></>
+          ) : (
+            <>Ready when <span style={{ ...S.it, color: T.white }}>you are.</span></>
+          )}
         </h2>
-        <p style={{ fontSize: 18, margin: '16px 0 34px', color: 'rgba(255,255,255,0.9)' }}>Soft, smooth, glowing, confident.</p>
+        <p style={{ fontSize: 18, margin: '16px 0 34px', color: 'rgba(255,255,255,0.9)' }}>
+          {isScrub ? 'Soft, smooth, glowing, confident.' : product.description}
+        </p>
         <button onClick={handleAdd} style={{ ...S.btnFill, padding: '0 52px' }}>Add to cart — ${unitPrice}</button>
         <p style={{ marginTop: 18, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>
           Free shipping over $50

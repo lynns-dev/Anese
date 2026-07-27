@@ -94,7 +94,7 @@ export default function HomePage() {
 
       {/* TICKER */}
       <div style={ticker}>
-        <div style={tickerTrack}>
+        <div className="ticker-track" style={tickerTrack}>
           {['softer', 'smoother', 'glowier', 'touchable', 'confident', 'softer', 'smoother', 'glowier', 'touchable', 'confident'].map((w, i) => (
             <React.Fragment key={i}>
               <span>{w}</span><em style={{ color: T.clay, fontStyle: 'italic', margin: '0 22px' }}>✶</em>
@@ -236,6 +236,11 @@ export default function HomePage() {
       <CartDrawer {...c} onClose={() => c.setOpen(false)} />
 
       <style jsx>{`
+        .ticker-track { animation: anese-ticker 22s linear infinite; }
+        @keyframes anese-ticker {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
         .col-grid { grid-template-columns: repeat(4, 1fr); }
         .lifestyle-duo { grid-template-columns: 1fr 1fr; }
         .ben-grid { grid-template-columns: repeat(3, 1fr); }
@@ -277,7 +282,7 @@ const hrate = { display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, col
 const heroBtn = { ...S.btnFill, background: T.oat, color: T.ink };
 const heroLink = { ...S.link, color: T.oat, borderBottom: 'none' };
 const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, overflow: 'hidden', padding: '16px 0', background: T.shell };
-const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink, paddingLeft: '100%' };
+const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink };
 const band = { padding: '90px 0' };
 const colGrid = { display: 'grid', marginTop: 50, gap: 24 };
 const lifestyleDuo = { display: 'grid', gap: 24, paddingTop: 90, paddingBottom: 90 };

@@ -260,7 +260,7 @@ export default function ProductPage({ product }) {
 
       {/* TICKER */}
       <div style={ticker}>
-        <div style={tickerTrack}>
+        <div className="ticker-track" style={tickerTrack}>
           {['softer', 'smoother', 'glowier', 'touchable', 'confident', 'softer', 'smoother', 'glowier', 'touchable', 'confident'].map((w, i) => (
             <React.Fragment key={i}>
               <span>{w}</span><em style={{ color: T.clay, fontStyle: 'italic', margin: '0 22px' }}>✶</em>
@@ -504,6 +504,11 @@ export default function ProductPage({ product }) {
       </div>
 
       <style jsx>{`
+        .ticker-track { animation: anese-ticker 22s linear infinite; }
+        @keyframes anese-ticker {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
         .pdp-grid { grid-template-columns: 1fr 1fr; }
         .benefit-grid { grid-template-columns: repeat(3, 1fr); }
         .timeline-grid { grid-template-columns: repeat(3, 1fr); }
@@ -611,7 +616,7 @@ const relatedImg = { aspectRatio: '1/1', display: 'block', width: '100%', overfl
 const relatedText = { padding: '16px 20px 40px' };
 
 const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, overflow: 'hidden', padding: '16px 0', background: T.shell };
-const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink, paddingLeft: '100%' };
+const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink };
 
 const closing = { background: T.clay, color: T.oat, textAlign: 'center', padding: '120px 32px' };
 

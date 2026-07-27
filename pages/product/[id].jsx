@@ -88,6 +88,33 @@ export default function ProductPage({ product }) {
   const [openFaq, setOpenFaq] = React.useState(null);
   const images = React.useMemo(() => product?.images || [], [product]);
   const [activeImage, setActiveImage] = React.useState(images[0] || '');
+
+  // Mobile-only image slider (arrows + swipe/scroll-snap) — separate from
+  // the desktop sticky gallery + thumbnail rail above, which stays as-is.
+  // Index-based rather than reusing activeImage since the two views are
+  // never on screen at once (CSS hides one or the other per breakpoint).
+  const [slideIndex, setSlideIndex] = React.useState(0);
+  const sliderTrackRef = React.useRef(null);
+
+  React.useEffect(() => {
+    setSlideIndex(0);
+  }, [images]);
+
+  const goToSlide = (i) => {
+    const clamped = Math.max(0, Math.min(images.length - 1, i));
+    setSlideIndex(clamped);
+    const track = sliderTrackRef.current;
+    if (track) track.scrollTo({ left: clamped * track.clientWidth, behavior: 'smooth' });
+  };
+
+  // Keeps slideIndex in sync when the shopper swipes/scrolls the track
+  // directly instead of using the arrow buttons.
+  const handleSliderScroll = () => {
+    const track = sliderTrackRef.current;
+    if (!track || track.clientWidth === 0) return;
+    const i = Math.round(track.scrollLeft / track.clientWidth);
+    setSlideIndex((cur) => (cur === i ? cur : i));
+  };
   const [reviewData, setReviewData] = React.useState({ reviews: [], average: 0, count: 0 });
   const [reviewForm, setReviewForm] = React.useState({ rating: 5, text: '', author: '' });
   const [reviewSubmitting, setReviewSubmitting] = React.useState(false);
@@ -167,7 +194,7 @@ export default function ProductPage({ product }) {
       {/* HERO */}
       <section style={{ maxWidth: T.maxw, margin: '0 auto', padding: '0 32px 60px' }}>
         <div className="pdp-grid" style={grid}>
-          <div className="pdp-gallery" style={gallery}>
+          <div className="pdp-gallery gallery-desktop" style={gallery}>
             <div style={imgSide}>
               {product.badge && <span style={imageBadge}>{product.badge}</span>}
               {activeImage ? (
@@ -191,6 +218,50 @@ export default function ProductPage({ product }) {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Mobile-only: horizontal swipe/scroll-snap slider with arrows,
+              instead of reusing the desktop's sticky gallery + thumbnails
+              (sticky positioning was making the image float on top with
+              page content scrolling underneath it on small screens). */}
+          <div className="gallery-mobile">
+            <div className="mobile-slide-wrap">
+              {product.badge && <span style={imageBadge}>{product.badge}</span>}
+              <div className="mobile-slider-track" ref={sliderTrackRef} onScroll={handleSliderScroll}>
+                {(images.length > 0 ? images : [null]).map((src, i) => (
+                  <div key={src || i} className="mobile-slide">
+                    {src ? (
+                      <img src={src} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <ProductVisual id={product.id} width={230} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {images.length > 1 && (
+                <>
+                  <button
+                    className="slider-arrow slider-arrow-prev"
+                    onClick={() => goToSlide(slideIndex - 1)}
+                    aria-label="Previous image"
+                    disabled={slideIndex === 0}
+                  >‹</button>
+                  <button
+                    className="slider-arrow slider-arrow-next"
+                    onClick={() => goToSlide(slideIndex + 1)}
+                    aria-label="Next image"
+                    disabled={slideIndex === images.length - 1}
+                  >›</button>
+                  <div className="slider-dots">
+                    {images.map((src, i) => (
+                      <span key={src} className={`slider-dot${i === slideIndex ? ' active' : ''}`} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div style={infoCol}>
@@ -520,6 +591,10 @@ export default function ProductPage({ product }) {
         .thumb-col { flex-direction: column; }
         .sticky-bar-inner { padding: 0 32px; }
         .ugc-track { scroll-snap-type: x mandatory; }
+
+        .gallery-desktop { position: sticky; top: 100px; }
+        .gallery-mobile { display: none; }
+
         @media (max-width: 880px) {
           .benefit-grid { grid-template-columns: 1fr; }
           .timeline-grid { grid-template-columns: 1fr; }
@@ -530,13 +605,42 @@ export default function ProductPage({ product }) {
         }
         @media (max-width: 680px) {
           .pdp-grid { grid-template-columns: 1fr; }
-          .pdp-gallery { flex-direction: column; }
-          .thumb-col { flex-direction: row; }
           .related-grid { grid-template-columns: 1fr; }
           .related-item { border-left: none; }
           .related-item:nth-child(n + 2) { border-left: none; border-top: 1px solid ${T.line}; }
           .sticky-bar-inner { padding: 0 16px; gap: 12px; }
           .sticky-bar-actions { gap: 10px; }
+
+          .gallery-desktop { display: none !important; }
+          .gallery-mobile { display: block; }
+
+          .mobile-slide-wrap { position: relative; width: 100%; }
+          .mobile-slider-track {
+            display: flex; overflow-x: auto; width: 100%;
+            scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
+          .mobile-slider-track::-webkit-scrollbar { display: none; }
+          .mobile-slide {
+            flex: 0 0 100%; width: 100%; aspect-ratio: 4/5;
+            scroll-snap-align: start; background: ${T.white};
+          }
+          .slider-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 34px; height: 34px; border-radius: 50%; border: none;
+            background: rgba(255,255,255,0.9); color: ${T.ink};
+            font-size: 18px; line-height: 1; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 2;
+          }
+          .slider-arrow:disabled { opacity: 0.3; cursor: default; }
+          .slider-arrow-prev { left: 10px; }
+          .slider-arrow-next { right: 10px; }
+          .slider-dots {
+            position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 6px; z-index: 2;
+          }
+          .slider-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(46,38,32,0.25); }
+          .slider-dot.active { background: ${T.ink}; }
         }
       `}</style>
     </div>
@@ -544,7 +648,7 @@ export default function ProductPage({ product }) {
 }
 
 const grid = { display: 'grid', gap: 60, alignItems: 'start' };
-const gallery = { display: 'flex', gap: 14, position: 'sticky', top: 100, alignSelf: 'start' };
+const gallery = { display: 'flex', gap: 14, alignSelf: 'start' };
 const imgSide = { position: 'relative', background: T.white, aspectRatio: '4/5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 1, minWidth: 0, boxShadow: T.shadow };
 const imageBadge = {
   position: 'absolute', top: 14, right: 14, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',

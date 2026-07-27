@@ -128,6 +128,16 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* LIFESTYLE DUO */}
+      <section className="lifestyle-duo" style={lifestyleDuo}>
+        <div style={lifestyleCol}>
+          <img src="/images/anese-lifestyle-1.png" alt="Anese lifestyle" style={lifestyleImg} />
+        </div>
+        <div style={lifestyleCol}>
+          <img src="/images/anese-lifestyle-3.png" alt="Anese lifestyle" style={lifestyleImg} />
+        </div>
+      </section>
+
       {/* BENEFITS */}
       <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
@@ -227,6 +237,7 @@ export default function HomePage() {
 
       <style jsx>{`
         .col-grid { grid-template-columns: repeat(4, 1fr); }
+        .lifestyle-duo { grid-template-columns: 1fr 1fr; }
         .ben-grid { grid-template-columns: repeat(3, 1fr); }
         .gal-grid { grid-template-columns: repeat(4, 1fr); }
         .rev-grid { grid-template-columns: repeat(3, 1fr); }
@@ -241,6 +252,7 @@ export default function HomePage() {
         }
         @media (max-width: 680px) {
           .col-grid { grid-template-columns: 1fr; }
+          .lifestyle-duo { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
@@ -268,6 +280,9 @@ const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.
 const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink, paddingLeft: '100%' };
 const band = { padding: '90px 0' };
 const colGrid = { display: 'grid', marginTop: 50, gap: 24 };
+const lifestyleDuo = { display: 'grid', gap: 2 };
+const lifestyleCol = { aspectRatio: '4/5', overflow: 'hidden', background: T.blush };
+const lifestyleImg = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 const pcard = { textAlign: 'center', background: T.shell, overflow: 'hidden', boxShadow: T.shadowSm };
 const badge = { position: 'absolute', top: 14, left: 14, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: T.clay, padding: '5px 10px', zIndex: 1, borderRadius: 30, fontWeight: 600 };
 const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overflow: 'hidden', width: '100%', background: T.blush };

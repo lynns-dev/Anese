@@ -34,7 +34,12 @@ const HOW_TO_USE = [
 
 // Drop real customer before/after photos into public/images and list them
 // here — the section hides while empty.
-const RECEIPTS = [];
+const RECEIPTS = [
+  '/images/anese-before-after-1.jpg',
+  '/images/anese-before-after-2.jpg',
+  '/images/anese-before-after-3.jpg',
+  '/images/anese-before-after-4.jpg',
+];
 
 const FAQS = [
   ['Is it too rough?', "Nope. The texture is intentionally balanced — gritty enough to exfoliate, gentle enough that you're not left raw. We're buffing, not sanding."],

@@ -101,7 +101,7 @@ const styles = {
     background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color .35s ease',
   },
   logoLink: { flex: '0 0 auto' },
-  logoImg: { height: 22, width: 'auto', display: 'block' },
+  logoImg: { height: 34, width: 'auto', display: 'block' },
   mobileMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0,
     background: T.white, borderBottom: `1px solid ${T.line}`,

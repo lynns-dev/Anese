@@ -19,10 +19,10 @@ const BENEFITS = [
 ];
 
 const GALLERY_IMAGES = [
-  '/images/anese-lifestyle-1.png',
-  '/images/anese-lifestyle-2.png',
-  '/images/anese-lifestyle-3.png',
-  '/images/anese-lifestyle-4.png',
+  '/images/anese-before-after-1.jpg',
+  '/images/anese-before-after-2.jpg',
+  '/images/anese-before-after-3.jpg',
+  '/images/anese-before-after-4.jpg',
 ];
 
 export default function HomePage() {

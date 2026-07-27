@@ -19,10 +19,10 @@ const BENEFITS = [
 ];
 
 const GALLERY_IMAGES = [
-  '/images/ChatGPT Image May 31, 2026, 02_08_34 PM.png',
-  '/images/ChatGPT Image May 31, 2026, 02_42_55 PM.png',
-  '/images/ChatGPT Image May 31, 2026, 04_22_05 PM.png',
-  '/images/ChatGPT Image May 31, 2026, 04_48_27 PM.png',
+  '/images/anese-lifestyle-1.png',
+  '/images/anese-lifestyle-2.png',
+  '/images/anese-lifestyle-3.png',
+  '/images/anese-lifestyle-4.png',
 ];
 
 export default function HomePage() {
@@ -251,7 +251,7 @@ const announce = { textAlign: 'center', fontSize: 11, letterSpacing: '0.2em', te
 const heroWrap = { position: 'relative' };
 const heroBg = {
   position: 'relative', height: '88vh', minHeight: 560,
-  backgroundImage: 'url(/images/ChatGPT Image May 31, 2026, 02_45_31 PM.png)', backgroundSize: 'cover', backgroundPosition: 'center 40%',
+  backgroundImage: 'url(/images/anese-lifestyle-hero.png)', backgroundSize: 'cover', backgroundPosition: 'center 40%',
   display: 'flex', alignItems: 'flex-end',
 };
 const heroScrim = {

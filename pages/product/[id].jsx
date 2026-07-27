@@ -41,6 +41,15 @@ const RECEIPTS = [
   '/images/anese-before-after-4.jpg',
 ];
 
+// Drop real Anese UGC/ad clips into public/videos and list them here — the
+// section hides while empty.
+const UGC_VIDEOS = [
+  '/videos/anese-ugc-1.mp4',
+  '/videos/anese-ugc-2.mp4',
+  '/videos/anese-ugc-3.mp4',
+  '/videos/anese-ugc-4.mp4',
+];
+
 const FAQS = [
   ['Is it too rough?', "Nope. The texture is intentionally balanced — gritty enough to exfoliate, gentle enough that you're not left raw. We're buffing, not sanding."],
   ['How often should I use it?', '2–3x a week is the sweet spot, depending on your skin. A small scoop goes a long way.'],
@@ -314,6 +323,31 @@ export default function ProductPage({ product }) {
         </section>
       )}
 
+      {/* UGC VIDEOS */}
+      {UGC_VIDEOS.length > 0 && (
+        <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
+          <div style={{ ...S.wrap, textAlign: 'center' }}>
+            <p style={S.label}>As seen and used</p>
+            <h2 style={{ ...S.h2, marginTop: 14 }}>Real people, <span style={S.it}>real routines.</span></h2>
+            <div className="ugc-track" style={ugcTrack}>
+              {UGC_VIDEOS.map((src, i) => (
+                <video
+                  key={i}
+                  className="ugc-item"
+                  style={ugcItem}
+                  src={src}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                  controls
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* HOW TO */}
       <section style={{ ...band, background: T.ink, color: T.oat }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
@@ -480,12 +514,14 @@ export default function ProductPage({ product }) {
         .related-item:nth-child(n + 2) { border-left: 1px solid ${T.line}; }
         .thumb-col { flex-direction: column; }
         .sticky-bar-inner { padding: 0 32px; }
+        .ugc-track { scroll-snap-type: x mandatory; }
         @media (max-width: 880px) {
           .benefit-grid { grid-template-columns: 1fr; }
           .timeline-grid { grid-template-columns: 1fr; }
           .how-grid { grid-template-columns: 1fr; }
           .rev-grid { grid-template-columns: 1fr; }
           .receipts-grid { grid-template-columns: 1fr 1fr; }
+          .ugc-item { flex: 0 0 calc((100% - 40px) / 3); }
         }
         @media (max-width: 680px) {
           .pdp-grid { grid-template-columns: 1fr; }
@@ -552,6 +588,9 @@ const howCard = { paddingTop: 28, borderTop: '1px solid rgba(255,255,255,0.2)' }
 
 const receiptsGrid = { display: 'grid', gap: 18, marginTop: 54 };
 const receiptCard = { borderRadius: 20, overflow: 'hidden', boxShadow: T.shadowSm, background: T.shell };
+
+const ugcTrack = { display: 'flex', gap: 20, overflowX: 'auto', marginTop: 44, paddingBottom: 6 };
+const ugcItem = { aspectRatio: '9/16', objectFit: 'cover', background: T.blush, borderRadius: 20, minWidth: 0, boxShadow: T.shadowSm, flex: '0 0 22%', scrollSnapAlign: 'start' };
 
 const revGrid = { display: 'grid', gap: 22, marginTop: 54, textAlign: 'left' };
 const revCard = { background: T.oat, borderRadius: 24, padding: 34 };

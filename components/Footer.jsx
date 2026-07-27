@@ -9,7 +9,7 @@ export default function Footer() {
         <span style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 22 }}>ANESE</span>
         <div style={{ display: 'flex', gap: 24, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft }}>
           <Link href="/shop">Shop</Link>
-          <Link href="/#notes">Scent</Link>
+          <Link href="/#shop">About</Link>
           <Link href="/#reviews">Reviews</Link>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft, width: '100%', paddingTop: 20, borderTop: `1px solid ${T.line}`, marginTop: 4 }}>
@@ -19,7 +19,7 @@ export default function Footer() {
           <Link href="/shipping">Shipping Policy</Link>
         </div>
         <small style={{ width: '100%', color: T.soft, fontSize: 11 }}>
-          Poudre de corps parfumée · Concept build — product visuals are illustrative.
+          Skincare that hypes you up, never tears you down.
         </small>
       </div>
     </footer>

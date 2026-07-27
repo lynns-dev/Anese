@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // One-time import of real customer reviews (exported from the previous
 // Vitals reviews app on aneseskin.com) into this site's KV-backed review
-// store, for 'that-booty-tho' and 'that-booty-tho-xl'.
+// store, for 'that-booty-tho' and 'that-booty-tho-6oz'.
 //
 // Source data: reviews-import-data.json, generated from the raw CSV export
 // (not committed — it contained customer emails) with:
@@ -13,7 +13,9 @@
 //   - that-booty-tho capped to 400 reviews (of ~6,700 remaining after
 //     filtering) to stay well under KV request-size limits, since the whole
 //     per-product review array is read/written as one JSON blob on every
-//     write. that-booty-tho-xl keeps all 188 remaining after filtering.
+//     write. The remaining 188 reviews were originally for the 8oz "XL"
+//     jar (now discontinued in favor of the 6oz) and are remapped here to
+//     that-booty-tho-6oz as its closest current equivalent.
 //
 // Idempotent: skips any review whose (author, rating, first 40 chars of
 // text) already exists in the store, so re-running after a partial failure

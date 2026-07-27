@@ -75,8 +75,8 @@ export default function HomePage() {
         <div style={heroBg}>
           <div style={heroScrim} />
           <div style={heroContent}>
-            <span style={{ ...S.label, display: 'block', marginBottom: 26, color: T.blush }}>Walnut grain body scrub</span>
-            <h1 style={heroH1}>Skin so soft it's <span style={{ ...S.it, color: T.blush }}>basically a flex.</span></h1>
+            <span style={{ ...S.label, display: 'block', marginBottom: 26, color: T.white }}>Walnut grain body scrub</span>
+            <h1 style={heroH1}>Skin so soft it's <span style={{ ...S.it, color: T.white }}>basically a flex.</span></h1>
             <p style={heroSub}>The scrub that's not here to "fix" your body — just to make it feel ridiculously good. Your booty's new hype girl.</p>
             {siteReviews.count > 0 && (
               <div style={hrate}>
@@ -97,7 +97,7 @@ export default function HomePage() {
         <div className="ticker-track" style={tickerTrack}>
           {['softer', 'smoother', 'glowier', 'touchable', 'confident', 'softer', 'smoother', 'glowier', 'touchable', 'confident'].map((w, i) => (
             <React.Fragment key={i}>
-              <span>{w}</span><em style={{ color: T.clay, fontStyle: 'italic', margin: '0 22px' }}>✶</em>
+              <span>{w}</span><em style={{ color: T.ink, fontStyle: 'italic', margin: '0 22px' }}>✶</em>
             </React.Fragment>
           ))}
         </div>
@@ -146,7 +146,7 @@ export default function HomePage() {
           <div className="ben-grid" style={benGrid}>
             {BENEFITS.map(([h, p], i) => (
               <div key={i} style={benCard}>
-                <div style={{ fontFamily: T.serif, fontSize: 24, color: T.clay, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
+                <div style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
                 <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, marginBottom: 8, lineHeight: 1.05 }}>{h}</div>
                 <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{p}</p>
               </div>
@@ -201,8 +201,8 @@ export default function HomePage() {
       {/* RITUAL */}
       <section style={{ ...band, background: T.ink, color: T.oat, textAlign: 'center' }}>
         <div style={S.wrap}>
-          <p style={{ ...S.label, color: T.blush }}>The ritual</p>
-          <h2 style={{ ...S.h2, color: T.oat, marginTop: 12 }}>How to <span style={{ ...S.it, color: T.blush }}>scrub it.</span></h2>
+          <p style={{ ...S.label, color: T.white }}>The ritual</p>
+          <h2 style={{ ...S.h2, color: T.oat, marginTop: 12 }}>How to <span style={{ ...S.it, color: T.white }}>scrub it.</span></h2>
           <div className="rit-grid" style={ritGrid}>
             {[
               ['1', 'Hop in the shower', "On wet skin, scoop two moist fingers' worth onto your target area."],
@@ -210,7 +210,7 @@ export default function HomePage() {
               ['3', 'Rinse & repeat', "2–3x a week. A small scoop goes a long way."],
             ].map(([n, h, p], i) => (
               <div key={i}>
-                <div style={{ fontFamily: T.serif, fontSize: 44, color: T.blush, lineHeight: 0.8 }}>{n}</div>
+                <div style={{ fontFamily: T.serif, fontSize: 44, color: T.white, lineHeight: 0.8 }}>{n}</div>
                 <h4 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 24, margin: '14px 0 6px' }}>{h}</h4>
                 <p style={{ fontSize: 14, color: 'rgba(244,237,227,0.78)', maxWidth: '32ch', margin: '0 auto' }}>{p}</p>
               </div>
@@ -302,4 +302,4 @@ const rev = { padding: '30px 28px', background: T.oat, borderRadius: 20 };
 const ritGrid = { display: 'grid', gap: 44, marginTop: 54 };
 const newsForm = { display: 'flex', maxWidth: 420, margin: '0 auto', borderBottom: `1px solid ${T.ink}`, alignItems: 'center' };
 const newsInput = { flex: 1, height: 52, border: 'none', background: 'transparent', color: T.ink, padding: '0 4px', fontSize: 15, fontFamily: T.sans, outline: 'none' };
-const newsSubmit = { background: 'none', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.sans, color: T.clayDeep };
+const newsSubmit = { background: 'none', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.sans, color: T.ink };

@@ -171,7 +171,7 @@ export default function ProductPage({ product }) {
             <div style={imgSide}>
               {product.badge && <span style={imageBadge}>{product.badge}</span>}
               {activeImage ? (
-                <img src={activeImage} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <img src={activeImage} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 28, boxSizing: 'border-box', display: 'block' }} />
               ) : (
                 <ProductVisual id={product.id} width={230} />
               )}
@@ -182,11 +182,11 @@ export default function ProductPage({ product }) {
                   <button
                     key={src}
                     onClick={() => setActiveImage(src)}
-                    style={{ ...thumbBtn, borderColor: activeImage === src ? T.clay : T.line, opacity: activeImage === src ? 1 : 0.5 }}
+                    style={{ ...thumbBtn, borderColor: activeImage === src ? T.ink : T.line, opacity: activeImage === src ? 1 : 0.5 }}
                     aria-label={`Show image ${i + 1}`}
                     aria-current={activeImage === src}
                   >
-                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8, boxSizing: 'border-box', display: 'block' }} />
                   </button>
                 ))}
               </div>
@@ -240,7 +240,7 @@ export default function ProductPage({ product }) {
               <AccordionRow title="How to use" open={openSection === 'how-to-use'} onToggle={() => toggleSection('how-to-use')}>
                 {HOW_TO_USE.map(([h, p], i) => (
                   <div key={i} style={{ marginBottom: i < HOW_TO_USE.length - 1 ? 18 : 0, display: 'flex', gap: 14 }}>
-                    <span style={{ fontFamily: T.serif, fontStyle: 'italic', color: T.clay, fontSize: 20, flex: '0 0 22px' }}>{i + 1}</span>
+                    <span style={{ fontFamily: T.serif, fontStyle: 'italic', color: T.ink, fontSize: 20, flex: '0 0 22px' }}>{i + 1}</span>
                     <div>
                       <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 18, marginBottom: 4 }}>{h}</div>
                       <p style={{ fontSize: 13, color: T.soft, margin: 0 }}>{p}</p>
@@ -263,7 +263,7 @@ export default function ProductPage({ product }) {
         <div className="ticker-track" style={tickerTrack}>
           {['softer', 'smoother', 'glowier', 'touchable', 'confident', 'softer', 'smoother', 'glowier', 'touchable', 'confident'].map((w, i) => (
             <React.Fragment key={i}>
-              <span>{w}</span><em style={{ color: T.clay, fontStyle: 'italic', margin: '0 22px' }}>✶</em>
+              <span>{w}</span><em style={{ color: T.ink, fontStyle: 'italic', margin: '0 22px' }}>✶</em>
             </React.Fragment>
           ))}
         </div>
@@ -277,7 +277,7 @@ export default function ProductPage({ product }) {
           <div className="benefit-grid" style={benefitGrid}>
             {BENEFITS.map(([h, p], i) => (
               <div key={i} style={benefitCard}>
-                <div style={{ fontFamily: T.serif, fontSize: 24, color: T.clay, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
+                <div style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
                 <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, marginBottom: 8, lineHeight: 1.05 }}>{h}</div>
                 <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{p}</p>
               </div>
@@ -351,12 +351,12 @@ export default function ProductPage({ product }) {
       {/* HOW TO */}
       <section style={{ ...band, background: T.ink, color: T.oat }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={{ ...S.label, color: T.blush }}>The ritual</p>
-          <h2 style={{ ...S.h2, marginTop: 14, color: T.oat }}>How to <span style={{ ...S.it, color: T.blush }}>scrub it.</span></h2>
+          <p style={{ ...S.label, color: T.white }}>The ritual</p>
+          <h2 style={{ ...S.h2, marginTop: 14, color: T.oat }}>How to <span style={{ ...S.it, color: T.white }}>scrub it.</span></h2>
           <div className="how-grid" style={howGrid}>
             {HOW_TO_USE.map(([h, p], i) => (
               <div key={i} style={howCard}>
-                <div style={{ fontFamily: T.serif, fontSize: 44, color: T.blush, lineHeight: 0.8 }}>{i + 1}</div>
+                <div style={{ fontFamily: T.serif, fontSize: 44, color: T.white, lineHeight: 0.8 }}>{i + 1}</div>
                 <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, margin: '14px 0 6px' }}>{h}</div>
                 <p style={{ fontSize: 14, color: 'rgba(244,237,227,0.78)', margin: 0 }}>{p}</p>
               </div>
@@ -471,7 +471,7 @@ export default function ProductPage({ product }) {
       <section style={closing}>
         <p style={{ ...S.label, color: T.oat }}>One tub away</p>
         <h2 style={{ ...S.h2, marginTop: 16, color: '#fff', fontSize: 'clamp(44px,7vw,76px)' }}>
-          Your booty called. <span style={{ ...S.it, color: T.blush }}>It wants the scrub.</span>
+          Your booty called. <span style={{ ...S.it, color: T.white }}>It wants the scrub.</span>
         </h2>
         <p style={{ fontSize: 18, margin: '16px 0 34px', color: 'rgba(255,255,255,0.9)' }}>Soft, smooth, glowing, confident.</p>
         <button onClick={handleAdd} style={{ ...S.btnFill, padding: '0 52px' }}>Add to cart — ${unitPrice}</button>
@@ -579,7 +579,7 @@ const band = { padding: '90px 0' };
 
 const accordionRow = { borderBottom: `1px solid ${T.line}` };
 const accordionHeader = { width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.serif, fontSize: 20, color: T.ink, textAlign: 'left' };
-const accordionIcon = { fontSize: 20, color: T.clay, fontFamily: T.sans, fontWeight: 300 };
+const accordionIcon = { fontSize: 20, color: T.ink, fontFamily: T.sans, fontWeight: 300 };
 const accordionBody = { overflow: 'hidden', transition: 'max-height 0.35s ease, opacity 0.3s ease, padding-bottom 0.35s ease' };
 
 const benefitGrid = { display: 'grid', gap: 20, marginTop: 56, textAlign: 'left' };
@@ -618,11 +618,11 @@ const relatedText = { padding: '16px 20px 40px' };
 const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, overflow: 'hidden', padding: '16px 0', background: T.shell };
 const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink };
 
-const closing = { background: T.clay, color: T.oat, textAlign: 'center', padding: '120px 32px' };
+const closing = { background: T.ink, color: T.oat, textAlign: 'center', padding: '120px 32px' };
 
 const stickyBar = {
   position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 150,
-  background: T.ink, boxShadow: '0 -1px 0 rgba(0,0,0,0.6)',
+  background: T.ink,
   padding: '14px 0',
 };
 const stickyBarInner = {

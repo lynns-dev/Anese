@@ -17,7 +17,7 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
       style={{
         ...styles.header,
         position: overlay ? (scrolled ? 'fixed' : 'absolute') : 'sticky',
-        background: transparent ? 'transparent' : 'rgba(244,237,227,0.92)',
+        background: transparent ? 'transparent' : 'rgba(255,255,255,0.96)',
         backdropFilter: transparent ? 'none' : 'blur(10px)',
         borderBottom: transparent ? '1px solid transparent' : `1px solid ${T.line}`,
         transition: 'background .35s ease, border-color .35s ease',
@@ -82,7 +82,7 @@ const styles = {
     top: 0, left: 0, right: 0, zIndex: 100,
   },
   nav: {
-    maxWidth: T.maxw, margin: '0 auto', padding: '14px 40px',
+    maxWidth: T.maxw, margin: '0 auto', padding: '6px 40px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   },
   side: { display: 'flex', gap: 30, flex: 1, alignItems: 'center' },

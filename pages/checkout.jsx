@@ -523,8 +523,8 @@ export default function CheckoutPage() {
   return (
     <div>
       <header style={topbar}>
-        <Link href="/" style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64, textDecoration: 'none' }}>
-          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 24, width: 'auto' }} />
+        <Link href="/" style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 10, paddingBottom: 10, textDecoration: 'none' }}>
+          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 44, width: 'auto' }} />
         </Link>
       </header>
 

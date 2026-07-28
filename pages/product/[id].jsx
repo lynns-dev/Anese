@@ -239,7 +239,7 @@ export default function ProductPage({ product }) {
                   <button
                     key={src}
                     onClick={() => setActiveImage(src)}
-                    style={{ ...thumbBtn, borderColor: activeImage === src ? T.ink : T.line, opacity: activeImage === src ? 1 : 0.5 }}
+                    style={thumbBtn}
                     aria-label={`Show image ${i + 1}`}
                     aria-current={activeImage === src}
                   >
@@ -309,7 +309,7 @@ export default function ProductPage({ product }) {
             <h1 style={pdpTitle}>{product.name}</h1>
             <p style={pdpDesc}>{product.description}</p>
 
-            <div style={pdpPrice}>${unitPrice} <span style={{ fontSize: 13, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
+            <div style={pdpPrice}>${unitPrice} <span style={{ fontSize: 14, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap', marginBottom: 14 }}>
               <div style={qtyWrap}>
@@ -330,7 +330,7 @@ export default function ProductPage({ product }) {
                 <div style={{ flex: 1 }}>
                   <div style={S.label}>Go bigger</div>
                   <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 19, marginTop: 4 }}>{upsell.name}</div>
-                  <div style={{ fontSize: 13, color: T.soft, marginTop: 2 }}>{upsell.tagline}</div>
+                  <div style={{ fontSize: 14, color: T.soft, marginTop: 2 }}>{upsell.tagline}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontFamily: T.serif, fontSize: 18, marginBottom: 8 }}>${upsell.price}</div>
@@ -347,7 +347,7 @@ export default function ProductPage({ product }) {
                       <span style={{ fontFamily: T.serif, fontStyle: 'italic', color: T.ink, fontSize: 20, flex: '0 0 22px' }}>{i + 1}</span>
                       <div>
                         <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 18, marginBottom: 4 }}>{h}</div>
-                        <p style={{ fontSize: 13, color: T.soft, margin: 0 }}>{p}</p>
+                        <p style={{ fontSize: 14, color: T.soft, margin: 0 }}>{p}</p>
                       </div>
                     </div>
                   ))}
@@ -705,19 +705,19 @@ const imageBadge = {
   color: '#fff', background: T.clay, padding: '6px 12px', zIndex: 1, fontFamily: T.sans, fontWeight: 600, borderRadius: 30,
 };
 const thumbCol = { display: 'flex', gap: 12, flexShrink: 0 };
-const thumbBtn = { width: 72, height: 72, padding: 0, border: '2px solid', cursor: 'pointer', overflow: 'hidden', background: T.white, flexShrink: 0, transition: '.25s', boxShadow: T.shadowSm };
+const thumbBtn = { width: 72, height: 72, padding: 0, border: 'none', cursor: 'pointer', overflow: 'hidden', background: T.white, flexShrink: 0, boxShadow: T.shadowSm };
 const infoCol = {};
 const pdpRating = {
   display: 'flex', alignItems: 'center', gap: 9, fontSize: 14, color: T.soft, marginBottom: 20,
   fontFamily: T.sans, width: 'fit-content',
 };
 const pdpTitle = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(40px,5vw,60px)', lineHeight: 0.98, marginBottom: 16 };
-const pdpDesc = { fontSize: 17, color: T.soft, maxWidth: '42ch', marginBottom: 24, lineHeight: 1.6 };
+const pdpDesc = { fontSize: 14, color: T.soft, maxWidth: '42ch', marginBottom: 24, lineHeight: 1.6 };
 const pdpPrice = { fontFamily: T.serif, fontWeight: 400, fontSize: 30, marginBottom: 20 };
 const qtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.line}`, background: T.shell, height: 56 };
 const qtyBtn = { width: 44, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: T.ink };
 const qtyValue = { width: 30, textAlign: 'center', fontSize: 14, fontWeight: 500 };
-const badgeRow = { fontSize: 13, color: T.soft, marginTop: 4, marginBottom: 8 };
+const badgeRow = { fontSize: 14, color: T.soft, marginTop: 4, marginBottom: 8 };
 
 const upsellCard = {
   display: 'flex', alignItems: 'center', gap: 14, border: `1px solid ${T.line}`, borderRadius: 20,

@@ -699,7 +699,7 @@ export default function ProductPage({ product }) {
 
 const grid = { display: 'grid', gap: 60, alignItems: 'start' };
 const gallery = { display: 'flex', gap: 14, alignSelf: 'start' };
-const imgSide = { position: 'relative', background: T.white, aspectRatio: '4/5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 1, minWidth: 0, boxShadow: T.shadow };
+const imgSide = { position: 'relative', background: T.white, aspectRatio: '4/5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 1, minWidth: 0, boxShadow: T.shadow, padding: 20, boxSizing: 'border-box' };
 const imageBadge = {
   position: 'absolute', top: 14, right: 14, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',
   color: '#fff', background: T.clay, padding: '6px 12px', zIndex: 1, fontFamily: T.sans, fontWeight: 600, borderRadius: 30,

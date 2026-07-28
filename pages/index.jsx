@@ -117,6 +117,12 @@ export default function HomePage() {
                 <div style={pcardText}>
                   <Link href={`/product/${p.id}`} style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 19 }}>{p.name}</Link>
                   <div style={pnotes}>{p.tagline}</div>
+                  {reviewsByProduct[p.id]?.count > 0 && (
+                    <div style={ratingRow}>
+                      <span style={{ letterSpacing: '1.5px', color: T.ink }}>{'★'.repeat(Math.round(reviewsByProduct[p.id].average))}{'☆'.repeat(5 - Math.round(reviewsByProduct[p.id].average))}</span>
+                      {' '}{reviewsByProduct[p.id].average.toFixed(1)} ({reviewsByProduct[p.id].count})
+                    </div>
+                  )}
                   <div style={{ fontSize: 20, fontWeight: 600, color: T.ink }}>
                     ${p.price} <span style={{ fontSize: 13, fontWeight: 400, color: T.soft }}>· {p.size}</span>
                   </div>
@@ -291,6 +297,7 @@ const badge = { position: 'absolute', top: 14, left: 14, fontSize: 11, letterSpa
 const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overflow: 'hidden', width: '100%', background: T.white };
 const pcardText = { padding: '20px 24px 28px' };
 const pnotes = { fontSize: 12, color: T.soft, margin: '6px 0 6px' };
+const ratingRow = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: T.soft, marginBottom: 8, fontFamily: T.sans };
 const benGrid = { display: 'grid', gap: 20, marginTop: 56, textAlign: 'left' };
 const benCard = { background: T.oat, borderRadius: 24, padding: '38px 32px' };
 const galGrid = { display: 'grid', gap: 16, marginTop: 50 };

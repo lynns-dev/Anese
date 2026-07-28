@@ -121,12 +121,20 @@ export default function ProductPage({ product }) {
   const [reviewError, setReviewError] = React.useState('');
   const [reviewSubmitted, setReviewSubmitted] = React.useState(false);
 
+  // Reviews are lazy-loaded 10 at a time as the shopper scrolls, instead of
+  // dumping the full list (often hundreds — see the imported reviews) into
+  // the DOM at once.
+  const REVIEWS_PAGE_SIZE = 10;
+  const [visibleReviewCount, setVisibleReviewCount] = React.useState(REVIEWS_PAGE_SIZE);
+  const reviewSentinelRef = React.useRef(null);
+
   React.useEffect(() => {
     setActiveImage(images[0] || '');
   }, [images]);
 
   React.useEffect(() => {
     if (!product) return;
+    setVisibleReviewCount(REVIEWS_PAGE_SIZE);
     fetch(`/api/reviews?productId=${product.id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -134,6 +142,23 @@ export default function ProductPage({ product }) {
       })
       .catch(() => {});
   }, [product]);
+
+  // Bumps visibleReviewCount by one page whenever the sentinel div at the
+  // bottom of the currently-rendered reviews scrolls into view.
+  React.useEffect(() => {
+    const node = reviewSentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleReviewCount((c) => Math.min(c + REVIEWS_PAGE_SIZE, reviewData.reviews.length));
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [reviewData.reviews.length, visibleReviewCount]);
 
   React.useEffect(() => {
     if (!product) return;
@@ -463,7 +488,7 @@ export default function ProductPage({ product }) {
 
           {reviewData.reviews.length > 0 && (
             <div className="rev-grid" style={revGrid}>
-              {reviewData.reviews.slice().reverse().slice(0, 3).map((r) => (
+              {reviewData.reviews.slice().reverse().slice(0, visibleReviewCount).map((r) => (
                 <div key={r.id} style={revCard}>
                   <div style={{ color: T.honey, letterSpacing: '1px', marginBottom: 18 }}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
                   <p style={{ fontFamily: T.serif, fontSize: 23, lineHeight: 1.25, marginBottom: 20 }}>"{r.text}"</p>
@@ -471,6 +496,10 @@ export default function ProductPage({ product }) {
                 </div>
               ))}
             </div>
+          )}
+
+          {visibleReviewCount < reviewData.reviews.length && (
+            <div ref={reviewSentinelRef} style={{ height: 1 }} />
           )}
 
           <div style={reviewFormWrap}>

@@ -1,13 +1,19 @@
 import { getReviews, deleteReview, approveReview } from '../../../lib/reviewsStore';
 import { PRODUCTS } from '../../../lib/products';
 
+// Reviews rated 1-2 stars or mentioning "scam" are kept out of the admin
+// list entirely, same as the public feed — nothing to moderate on them.
+function isHidden(r) {
+  return r.rating <= 2 || /scam/i.test(r.text || '');
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const entries = await Promise.all(
         PRODUCTS.map(async (p) => {
           const reviews = await getReviews(p.id);
-          return reviews.map((r) => ({ ...r, productId: p.id, productName: p.name }));
+          return reviews.filter((r) => !isHidden(r)).map((r) => ({ ...r, productId: p.id, productName: p.name }));
         })
       );
       const all = entries.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

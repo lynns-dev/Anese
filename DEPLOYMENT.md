@@ -43,6 +43,9 @@ Square's Web Payments SDK tokenize flow (`lib/squareClient.js`) was built and re
    - `NEXT_PUBLIC_SQUARE_APPLICATION_ID` / `NEXT_PUBLIC_SQUARE_LOCATION_ID`: from Step 1
    - `KV_REST_API_URL` / `KV_REST_API_TOKEN`: from a KV store (Vercel Storage → Marketplace → Upstash, or a standalone Upstash Redis database — same REST API either way)
    - `NEXT_PUBLIC_BASE_URL`: your Vercel domain (e.g., `https://anese-checkout.vercel.app`)
+   - `NEXT_PUBLIC_META_PIXEL_ID`: `4260977350834839` — this site's own Meta Pixel. It must not be Veil's; the two stores report separately, and a shared id merges their audiences and conversions into one pool.
+   - `META_CAPI_ACCESS_TOKEN`: Events Manager → the pixel above → Settings → Conversions API → Generate access token. Server-side events are skipped with a console error (never a failed checkout) if this is missing.
+   - `META_CAPI_TEST_EVENT_CODE`: optional, and only while testing — set it to the code from Events Manager → Test events to route server events there, then remove it. Left in place it keeps real conversions out of reporting.
    - `STRIPE_SECRET_KEY` / `QB_CLIENT_ID` / `QB_CLIENT_SECRET` / `QB_ENVIRONMENT`: only needed if you still have orders placed via Stripe or QuickBooks that you might need to refund — see "Refunding legacy orders" below
 7. Redeploy by going to "Deployments" → last deployment → "Redeploy"
 

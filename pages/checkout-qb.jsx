@@ -5,9 +5,10 @@ import ProductVisual from '../components/ProductVisual';
 import AddressFields from '../components/AddressFields';
 import { useCart } from '../lib/useCart';
 import { tokenizeCard } from '../lib/qbPayments';
-import { fbTrack, generateEventId } from '../lib/fbPixel';
+import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
+import { getIdentity, rememberIdentity } from '../lib/identity';
 import { setCheckoutStep } from '../lib/checkoutStage';
 import { T, S } from '../lib/theme';
 
@@ -429,6 +430,7 @@ export default function CheckoutQbBackupPage() {
         contents: cart.map((i) => ({ id: i.id, quantity: i.quantity })),
         url: window.location.href,
         sessionId: getSessionId(),
+        ...getIdentity(),
       }),
       keepalive: true,
     }).catch(() => {});
@@ -446,6 +448,11 @@ export default function CheckoutQbBackupPage() {
 
   const handleEmailBlur = () => {
     if (!email.trim()) return;
+    // Everything typed here is also what Meta matches on, so remember it and
+    // re-init the Pixel — otherwise the email only starts riding along on
+    // events from the *next* page load, missing this checkout entirely.
+    rememberIdentity({ email, phone: shipping.phone });
+    refreshPixelIdentity(process.env.NEXT_PUBLIC_META_PIXEL_ID);
     fetch('/api/checkout-lead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -550,6 +557,7 @@ export default function CheckoutQbBackupPage() {
           paymentMethod: 'QuickBooks',
           attribution: getStoredAttribution(),
           shippingProtection: shippingProtectionCost || 0,
+          sessionId: getSessionId(),
         }),
       });
       const data = await res.json();
@@ -557,9 +565,10 @@ export default function CheckoutQbBackupPage() {
 
       sessionStorage.setItem('anese-purchase', JSON.stringify({
         eventId: purchaseEventId,
+        orderId: data.id,
         amount: grandTotal,
         contentIds: cart.map((i) => i.id),
-        contents: cart.map((i) => ({ id: i.id, quantity: i.quantity })),
+        contents: cart.map((i) => ({ id: i.id, quantity: i.quantity, item_price: i.price })),
       }));
       clearCheckoutProgress();
       await router.push('/success');

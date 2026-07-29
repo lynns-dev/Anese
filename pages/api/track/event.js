@@ -25,18 +25,16 @@ export default async function handler(req, res) {
 
   const { event, productName, eventId, contentId, contentIds, contents, value, url, sessionId, email, phone } = req.body || {};
   if (ALLOWED.includes(event) && !isExcludedIp(req)) {
-    try {
-      await incrementEvent(event, sessionId);
-      if (LOGGED.includes(event)) {
-        await logEvent(event, {
-          ...(productName ? { productName } : {}),
-          ...(sessionId ? { sessionId } : {}),
-        });
-      }
-
-      const capiEventName = CAPI_EVENT_NAMES[event];
-      if (capiEventName && eventId) {
-        await sendCapiEvent({
+    // The Meta send and the KV analytics writes are started together and
+    // kept in separate try/catch blocks on purpose. They used to sit in one
+    // sequential try: the KV counter went first, so a transient KV failure
+    // (quota, rate limit, a blip at the provider) threw before the Meta call
+    // was ever reached and the conversion was lost silently — an internal
+    // dashboard number taking down an ad-optimization signal. Running them
+    // concurrently also means Meta isn't waiting behind two KV round-trips.
+    const capiEventName = CAPI_EVENT_NAMES[event];
+    const capiSend = capiEventName && eventId
+      ? sendCapiEvent({
           eventName: capiEventName,
           eventId,
           eventSourceUrl: url,
@@ -57,11 +55,25 @@ export default async function handler(req, res) {
             content_type: 'product',
             contents,
           },
+        }).catch((err) => console.error('Meta CAPI send failed:', err))
+      : null;
+
+    try {
+      await incrementEvent(event, sessionId);
+      if (LOGGED.includes(event)) {
+        await logEvent(event, {
+          ...(productName ? { productName } : {}),
+          ...(sessionId ? { sessionId } : {}),
         });
       }
     } catch (err) {
       console.error('Event tracking failed:', err);
     }
+
+    // Awaited before responding: on serverless the function can be frozen
+    // the moment the response is sent, which would abandon an in-flight
+    // request to Meta.
+    await capiSend;
   }
 
   return res.status(204).end();

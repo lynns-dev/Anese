@@ -6,14 +6,17 @@
 // 'site') start as 'pending' and need approval in /admin before they're
 // visible anywhere. Imported reviews (source: 'imported', added by the
 // store owner via /admin) publish immediately since they're already vetted.
-// 1-2 star reviews are excluded from the public feed entirely, regardless
-// of status, so they never appear or affect the displayed average.
+// 1-2 star reviews, and any review whose text contains "scam", are
+// excluded from the public feed entirely, regardless of status, so they
+// never appear or affect the displayed average.
 
 import { getReviews, addReview } from '../../lib/reviewsStore';
 import { PRODUCTS } from '../../lib/products';
 
 function aggregate(reviews) {
-  const approved = reviews.filter((r) => r.status === 'approved' && r.rating >= 3);
+  const approved = reviews.filter(
+    (r) => r.status === 'approved' && r.rating >= 3 && !/scam/i.test(r.text || '')
+  );
   const count = approved.length;
   const average = count === 0 ? 0 : Math.round((approved.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10;
   return { count, average, reviews: approved };

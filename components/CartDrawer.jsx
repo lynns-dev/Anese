@@ -6,9 +6,13 @@ import ProductVisual from './ProductVisual';
 import { getProductById, FREE_GIFT, FREE_GIFT_THRESHOLD } from '../lib/products';
 import { createApplePayButton, tokenizeWallet } from '../lib/squareClient';
 import { loadCheckoutProgress, clearCheckoutProgress, hasUsableShipping } from '../lib/checkoutProgress';
+import { isShopPayAvailable, mountShopPayButton } from '../lib/shopPayClient';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
+import { getIdentity } from '../lib/identity';
+
+const SHOP_PAY_CONTAINER_ID = 'cart-shop-pay-button';
 
 const FREE_SHIP_AT = 50;
 const FREE_GIFT_AT = FREE_GIFT_THRESHOLD;
@@ -21,6 +25,10 @@ export default function CartDrawer({
   const [discountCode, setDiscountCode] = React.useState('');
   const [discountMessage, setDiscountMessage] = React.useState('');
   const [discountSubmitting, setDiscountSubmitting] = React.useState(false);
+  const [shopPayReady, setShopPayReady] = React.useState(false);
+  const [payError, setPayError] = React.useState('');
+  const [paying, setPaying] = React.useState(false);
+  const shopPayEventIdRef = React.useRef(null);
   const puff = getProductById('puff');
   const hasPuff = cart.some((i) => i.id === 'puff');
   const puffPrice = puff ? Math.round(puff.price * 0.9 * 100) / 100 : 0;
@@ -37,10 +45,26 @@ export default function CartDrawer({
   const [appleAvailable, setAppleAvailable] = React.useState(false);
   const [walletSubmitting, setWalletSubmitting] = React.useState(false);
   const [walletMessage, setWalletMessage] = React.useState('');
-  const shippingCost = total >= FREE_SHIP_AT || total === 0 ? 0 : 5;
+
+  const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
+  const discountTotal = subtotal - total;
+  const freeShipping = total >= FREE_SHIP_AT;
+
+  // Free shipping and the free gift unlock together at the same threshold,
+  // so this is a single-stage progress bar (no separate marker needed).
+  const progressPct = Math.min(100, (total / FREE_GIFT_AT) * 100);
+  const progressMessage = freeShipping
+    ? `You've unlocked free shipping and a free ${FREE_GIFT.name}.`
+    : `Add $${(FREE_GIFT_AT - total).toFixed(2)} more for free shipping and a free ${FREE_GIFT.name}.`;
+
+  // Same $0/$5 rule pages/checkout.jsx charges — this drawer has no address
+  // yet, so like checkout before one's entered, an empty cart charges
+  // nothing and everything else falls back to the flat rate.
+  const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : 5);
   const grandTotal = discountedTotal + shippingCost;
+
   const latestRef = React.useRef({});
-  latestRef.current = { cart, grandTotal };
+  latestRef.current = { cart, grandTotal, shippingCost, discountCode: appliedDiscount?.code };
 
   React.useEffect(() => {
     if (!open || cart.length === 0) return;
@@ -150,16 +174,75 @@ export default function CartDrawer({
     }
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
-  const discountTotal = subtotal - total;
-  const freeShipping = total >= FREE_SHIP_AT;
-
-  // Free shipping and the free gift unlock together at the same threshold,
-  // so this is a single-stage progress bar (no separate marker needed).
-  const progressPct = Math.min(100, (total / FREE_GIFT_AT) * 100);
-  const progressMessage = freeShipping
-    ? `You've unlocked free shipping and a free ${FREE_GIFT.name}.`
-    : `Add $${(FREE_GIFT_AT - total).toFixed(2)} more for free shipping and a free ${FREE_GIFT.name}.`;
+  // Shop Pay's button doesn't bake the amount in at creation — a fresh
+  // session is requested (POST /api/shop-pay/session) each time the
+  // shopper opens the sheet, so this mounts once per drawer-open rather
+  // than rebuilding on every total change.
+  React.useEffect(() => {
+    if (!open || cart.length === 0) return undefined;
+    let cancelled = false;
+    let teardown = null;
+    (async () => {
+      const available = await isShopPayAvailable();
+      if (cancelled || !available) return;
+      teardown = await mountShopPayButton(SHOP_PAY_CONTAINER_ID, {
+        onSessionRequest: async () => {
+          setPayError('');
+          setPaying(true);
+          const { cart: items, grandTotal: amount, shippingCost: shipping, discountCode: code } = latestRef.current;
+          const purchaseEventId = generateEventId();
+          shopPayEventIdRef.current = purchaseEventId;
+          const res = await fetch('/api/shop-pay/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cart: items,
+              amount,
+              shippingCost: shipping,
+              discountCode: code,
+              eventId: purchaseEventId,
+              email: getIdentity().email || undefined,
+              url: window.location.href,
+              attribution: getStoredAttribution(),
+              sessionId: getSessionId(),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Shop Pay is unavailable for this cart.');
+          return data.session;
+        },
+        onComplete: () => {
+          // Optimistic UX only — the order this site's own ledger/admin
+          // actually records comes from the Shopify webhook
+          // (pages/api/shop-pay/webhook.js), the one thing guaranteed to
+          // see every completed order even if this event never fires.
+          const { cart: items, grandTotal: amount } = latestRef.current;
+          fbTrack('Purchase', {
+            content_ids: items.map((i) => i.id),
+            content_type: 'product',
+            contents: items.map((i) => ({ id: i.id, quantity: i.quantity, item_price: i.price })),
+            value: amount,
+            currency: 'USD',
+          }, shopPayEventIdRef.current);
+          onClose?.();
+          router.push('/success');
+          clear?.();
+          setPaying(false);
+        },
+        onClose: () => setPaying(false),
+        onError: (err) => {
+          setPayError(err?.message || 'Something went wrong with Shop Pay. Please try again.');
+          setPaying(false);
+        },
+      });
+      if (!cancelled) setShopPayReady(Boolean(teardown));
+    })();
+    return () => {
+      cancelled = true;
+      teardown?.();
+      setShopPayReady(false);
+    };
+  }, [open, cart.length]);
 
   return (
     <>
@@ -304,6 +387,22 @@ export default function CartDrawer({
           {walletMessage && (
             <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{walletMessage}</p>
           )}
+
+          {shopPayReady && cart.length > 0 && (
+            <div style={orDivider}>
+              <span style={orDividerLine} />
+              <span style={orDividerText}>or</span>
+              <span style={orDividerLine} />
+            </div>
+          )}
+          {/* Always in the DOM once there's a cart to mount into — the SDK
+              (lib/shopPayClient.js) targets this id as soon as
+              isShopPayAvailable() resolves, which can happen before
+              shopPayReady flips true. Only the visible space collapses. */}
+          {cart.length > 0 && (
+            <div id={SHOP_PAY_CONTAINER_ID} style={{ display: shopPayReady ? 'block' : 'none', opacity: paying ? 0.6 : 1, pointerEvents: paying ? 'none' : 'auto' }} />
+          )}
+          {payError && <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 10 }}>{payError}</p>}
         </div>
       </aside>
     </>
@@ -340,5 +439,9 @@ const discountInput = {
 
 const summaryRow = { display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' };
 const shippingNote = { fontSize: 11, color: T.soft, marginTop: 8, letterSpacing: '0.02em' };
-// No background/border here — Apple Pay styles its own attached button.
+// No background/border here — Apple Pay/Shop Pay each style their own
+// attached button.
 const walletButtonContainer = { width: '100%', minHeight: 44 };
+const orDivider = { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' };
+const orDividerLine = { flex: 1, height: 1, background: T.line };
+const orDividerText = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft };

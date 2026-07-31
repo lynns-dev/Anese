@@ -13,6 +13,7 @@ import { PRODUCTS, getProductById } from '../lib/products';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
+import { getIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 
 // Third and final step of the ad funnel — a single-page "order form" style
@@ -193,6 +194,7 @@ export default function Offer3Page() {
         contents: [{ id: selectedId, quantity }],
         url: window.location.href,
         sessionId: getSessionId(),
+        ...getIdentity(),
       }),
       keepalive: true,
     }).catch(() => {});

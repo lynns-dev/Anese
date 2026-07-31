@@ -8,6 +8,7 @@ import { useAllReviews } from '../lib/useReviews';
 import { PRODUCTS, getProductById } from '../lib/products';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getSessionId } from '../lib/session';
+import { getIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 
 // Second step of the ad funnel — a conventional hero/benefits/guarantee/
@@ -113,6 +114,7 @@ export default function Offer2Page() {
         value: selectedProduct.price,
         url: window.location.href,
         sessionId: getSessionId(),
+        ...getIdentity(),
       }),
       keepalive: true,
     }).catch(() => {});

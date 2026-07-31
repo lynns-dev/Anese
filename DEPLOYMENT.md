@@ -43,8 +43,48 @@ Square's Web Payments SDK tokenize flow (`lib/squareClient.js`) was built and re
    - `NEXT_PUBLIC_SQUARE_APPLICATION_ID` / `NEXT_PUBLIC_SQUARE_LOCATION_ID`: from Step 1
    - `KV_REST_API_URL` / `KV_REST_API_TOKEN`: from a KV store (Vercel Storage → Marketplace → Upstash, or a standalone Upstash Redis database — same REST API either way)
    - `NEXT_PUBLIC_BASE_URL`: your Vercel domain (e.g., `https://anese-checkout.vercel.app`)
+   - `NEXT_PUBLIC_META_PIXEL_ID`: `4260977350834839` — this site's own Meta Pixel. It must not be Veil's; the two stores report separately, and a shared id merges their audiences and conversions into one pool.
+   - `META_CAPI_ACCESS_TOKEN`: Events Manager → the pixel above → Settings → Conversions API → Generate access token. Server-side events are skipped with a console error (never a failed checkout) if this is missing.
+   - `META_CAPI_TEST_EVENT_CODE`: optional, and only while testing — set it to the code from Events Manager → Test events to route server events there, then remove it. Left in place it keeps real conversions out of reporting.
    - `STRIPE_SECRET_KEY` / `QB_CLIENT_ID` / `QB_CLIENT_SECRET` / `QB_ENVIRONMENT`: only needed if you still have orders placed via Stripe or QuickBooks that you might need to refund — see "Refunding legacy orders" below
 7. Redeploy by going to "Deployments" → last deployment → "Redeploy"
+
+---
+
+## Step 3 (optional): Set Up Shop Pay
+
+An embedded Shop Pay button in the cart drawer — the shopper pays in a popup on this site rather than being redirected to a Shopify-hosted checkout page. Requires a Shopify store with Shopify Payments already active (Shop Pay only works through Shopify's own payment processing). This must be a **separate** Shopify store/app from Veil's, the same way the Meta Pixel above is this site's own — sharing credentials between the two sites would route Anese's Shop Pay orders into Veil's Shopify store.
+
+### What to set up in Shopify
+
+Shopify retired the old "legacy custom app" screen that used to hand you a static Admin API access token and Storefront API access token directly — confirmed live against a real store admin while building this, not assumed. Every store is now funneled into **Dev Dashboard** apps, which only ever give you a client id + client secret and require a real OAuth authorization to actually get a token. That's a bigger setup than a copy-paste, but it only has to be done once, and this site needs its **own** Dev Dashboard app — not the one used for Veil, the same way its Meta Pixel above is its own. Sharing credentials between the two sites would route this site's orders into Veil's Shopify store.
+
+1. **Create a Dev Dashboard app** for this site — `npm init @shopify/app@latest`, or via Shopify's Partner/Dev Dashboard directly. This gives you a **Client ID** and **Client Secret**.
+   - `SHOPIFY_STORE_DOMAIN`: this store's `*.myshopify.com` address.
+   - `SHOPIFY_CLIENT_ID` / `SHOPIFY_CLIENT_SECRET`: from that app's Credentials page. Treat the secret like any other production credential — if it's ever been pasted somewhere insecure, rotate it from that same page before going live.
+2. **Declare Admin API scopes** for the app: `read_orders`, `write_orders`. Where this lives depends on how the app was created — for a CLI-scaffolded app it's `shopify.app.toml`'s `[access_scopes]`; for one made directly in Dev Dashboard, look for a Configuration/API access section. The OAuth flow below requests exactly `read_orders,write_orders` — if the app has fewer scopes declared than that, Shopify's approval screen won't grant it.
+3. **Allow-list the OAuth redirect URL**: same app's settings, add `https://<your-domain>/api/shopify-auth/callback` to whatever field lists allowed redirect/callback URLs.
+4. **A cron secret you make up yourself** (any random string, not from Shopify) → `CRON_SECRET`. Protects `/api/shop-pay/reconcile` (the fallback for a webhook that never arrives) from being triggered by anyone but Vercel's own scheduler.
+5. **Deploy with those four env vars set**, then visit `https://<your-domain>/api/shopify-auth/connect` once in a browser and approve the authorization screen. This one visit does everything the old legacy-app screen used to require manually:
+   - exchanges the authorization code for an Admin API access token and stores it
+   - uses that token to mint a Storefront API access token (`storefrontAccessTokenCreate`) and stores it too
+   - registers the `orders/create` webhook that makes order recording actually work
+   - You should never need to visit `/connect` again unless the connection is revoked from Shopify admin (uninstalling the app).
+6. **Product variants**: every item that can appear in a Shop Pay cart needs a matching Shopify product/variant, including the free Silk Bag gift (`lib/products.js`'s `FREE_GIFT`) — create a $0 variant for it too, or Shop Pay simply won't offer itself once a cart crosses the $50 threshold that auto-adds it. Copy each variant's numeric id from its admin URL into `lib/shopifyProductMap.js`'s `SHOPIFY_VARIANT_MAP`.
+
+`SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_ADMIN_ACCESS_TOKEN`, and `SHOPIFY_WEBHOOK_SECRET` are **not** env vars anymore — the OAuth connect flow obtains and stores the first two itself (`lib/shopifyTokenStore.js`, backed by the same KV store everything else here uses), and webhook signatures are verified with `SHOPIFY_CLIENT_SECRET` directly, since the separate "webhook secret" only ever existed on the retired legacy screen.
+
+### A note on verification
+
+shopify.dev was unreachable from the environment this was built in (bot-protection blocked every fetch attempt), so most of this was built from Shopify's own indexed API schema pages and a Shopify Partner's published reference connector rather than reading the primary docs directly. `lib/shopPayServer.js` and `lib/shopPayClient.js` both flag exactly which pieces are lower-confidence in their file-level comments — mainly the Shop Pay session-create mutation's precise field shapes, and the browser SDK's exact method/event names. The OAuth install flow itself (`buildShopifyAuthorizeUrl`, `verifyOAuthCallbackHmac`, `exchangeShopifyAuthorizationCode`) is Shopify's classic, long-stable mechanism and doesn't carry that same uncertainty — and it's been exercised end-to-end over real HTTP against this repo's own copy (state/HMAC verification correctly rejects a forged, tampered, or mismatched callback; a genuine one passes both checks and reaches the real token-exchange call). Everything downstream of a created session (webhook HMAC verification, order recording, refunds, the reconciliation fallback) is either standard Shopify webhook behavior or shares this codebase's existing, already-proven order-fulfillment path — that part doesn't need re-verifying either.
+
+Once connected: open the app's GraphiQL explorer if Dev Dashboard offers one for this app, and confirm `shopPayPaymentRequestSessionCreate`'s real input/return shape matches `lib/shopPayServer.js`. Then open the site with a cart containing only mapped items and confirm the button actually renders and opens a working sheet — that's the one live check this integration needs before real traffic sees it.
+
+### A note on the reconciliation cron
+
+Vercel Cron on the free/Hobby plan is limited to once-per-day schedules — `vercel.json` here requests every 10 minutes, which needs a Pro plan (or higher) to actually run that often. On Hobby, either upgrade or expect Vercel to silently collapse it to once a day; check what Vercel's dashboard actually shows for this cron job after deploying rather than assuming the configured schedule took effect.
+
+---
 
 ### Option B: Deploy via Git
 

@@ -33,9 +33,15 @@ export const US_STATES = [
 export default function AddressFields({
   value, onChange, idPrefix, inputStyle,
   rowClass2 = 'row-2', rowClass3 = 'row-3',
+  // compact: hides Apartment/Phone (both optional) behind a single
+  // "+ Apartment, suite, phone" toggle instead of always showing two extra
+  // fields — opt-in per caller so checkout-qb.jsx/offer3.jsx keep their
+  // existing always-visible fields.
+  compact = false,
 }) {
   const set = (field) => (e) => onChange({ ...value, [field]: e.target.value });
   const section = idPrefix === 'bill' ? 'billing' : 'shipping';
+  const [moreOpen, setMoreOpen] = React.useState(!compact || Boolean(value.apt || value.phone));
 
   const [suggestions, setSuggestions] = React.useState([]);
   const [open, setOpen] = React.useState(false);
@@ -108,7 +114,9 @@ export default function AddressFields({
           </ul>
         )}
       </div>
-      <input placeholder="Apartment, suite, etc. (optional)" value={value.apt} onChange={set('apt')} style={{ ...inputStyle, marginTop: 8 }} autoComplete={`${section} address-line2`} />
+      {(!compact || moreOpen) && (
+        <input placeholder="Apartment, suite, etc. (optional)" value={value.apt} onChange={set('apt')} style={{ ...inputStyle, marginTop: 8 }} autoComplete={`${section} address-line2`} />
+      )}
       <div className={rowClass3} style={{ marginTop: 8 }}>
         <input placeholder="City" value={value.city} onChange={set('city')} style={inputStyle} autoComplete={`${section} address-level2`} required />
         <select value={value.state} onChange={set('state')} style={inputStyle} autoComplete={`${section} address-level1`} required>
@@ -117,14 +125,24 @@ export default function AddressFields({
         </select>
         <input placeholder="ZIP code" value={value.zip} onChange={set('zip')} style={inputStyle} autoComplete={`${section} postal-code`} required />
       </div>
-      <input
-        placeholder="Phone (optional)"
-        value={value.phone}
-        onChange={set('phone')}
-        style={{ ...inputStyle, marginTop: 8 }}
-        autoComplete={`${section} tel`}
-        id={idPrefix ? `${idPrefix}-phone` : undefined}
-      />
+      {compact && !moreOpen ? (
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          style={{ background: 'none', border: 'none', padding: 0, marginTop: 10, fontSize: 13, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', color: T.soft }}
+        >
+          + Add apartment/suite or phone number
+        </button>
+      ) : (
+        <input
+          placeholder="Phone (optional)"
+          value={value.phone}
+          onChange={set('phone')}
+          style={{ ...inputStyle, marginTop: 8 }}
+          autoComplete={`${section} tel`}
+          id={idPrefix ? `${idPrefix}-phone` : undefined}
+        />
+      )}
     </>
   );
 }

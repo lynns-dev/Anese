@@ -11,6 +11,7 @@ import {
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
+import { loadCheckoutProgress, saveCheckoutProgress, clearCheckoutProgress } from '../lib/checkoutProgress';
 import { T, S } from '../lib/theme';
 
 // Live checkout — charges through Square. QuickBooks Payments is kept as a
@@ -19,43 +20,51 @@ import { T, S } from '../lib/theme';
 // way this page was moved into it. Keep the two pages' non-payment sections
 // in sync by hand when either one changes.
 //
-// Single-page form (not the 3-step Shipping -> Payment -> Review flow
-// checkout-qb.jsx uses) with a sticky order summary, Apple Pay/Google
-// Pay/Afterpay via Square's Web Payments SDK, and a card element Square
-// renders itself (lib/squareClient.js) — no raw card fields of our own.
+// 2-step flow (Shipping -> Payment, merged from the old single long-scroll
+// form) with a sticky order summary, Apple Pay/Google Pay/Afterpay via
+// Square's Web Payments SDK, and a card element Square renders itself
+// (lib/squareClient.js) — no raw card fields of our own. Step 1 collects
+// contact + delivery address + shipping method + protection; Step 2 is
+// payment only, with a compact read-only recap of Step 1 up top (and a
+// "Change" link back) instead of repeating the summary line-by-line — one
+// discount-code box total, not one per step. Each step's fields aren't
+// mounted in the DOM at all while the other step is active, so native
+// required-field validation on "Continue" only ever looks at what's
+// actually visible, same technique used on checkout-qb.jsx's 3-step flow.
 
 const EMPTY_ADDRESS = { firstName: '', lastName: '', address: '', apt: '', city: '', state: '', zip: '', phone: '' };
 
-// Restores contact/shipping progress after a refresh so a shopper who's
-// already filled in the form doesn't have to start over. Same storage key
-// as checkout.jsx (QuickBooks) used, since the shape is compatible — never
-// includes card data (Square's own SDK fields aren't ours to read anyway).
-const CHECKOUT_PROGRESS_KEY = 'anese-checkout-progress';
+const STEPS = [
+  { n: 1, label: 'Shipping' },
+  { n: 2, label: 'Payment' },
+];
 
-function loadCheckoutProgress() {
-  try {
-    const raw = sessionStorage.getItem(CHECKOUT_PROGRESS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveCheckoutProgress(progress) {
-  try {
-    sessionStorage.setItem(CHECKOUT_PROGRESS_KEY, JSON.stringify(progress));
-  } catch {
-    // Storage can throw (private-browsing quota, etc.) — losing the
-    // resume-on-refresh convenience isn't worth failing checkout over.
-  }
-}
-
-function clearCheckoutProgress() {
-  try {
-    sessionStorage.removeItem(CHECKOUT_PROGRESS_KEY);
-  } catch {
-    // Same as above — non-fatal either way.
-  }
+function StepIndicator({ step, maxStepReached, onJump }) {
+  return (
+    <div style={stepIndicatorWrap}>
+      {STEPS.map(({ n, label }, i) => {
+        const done = n < step;
+        const active = n === step;
+        const reachable = n <= maxStepReached;
+        return (
+          <React.Fragment key={n}>
+            <button
+              type="button"
+              onClick={() => reachable && onJump(n)}
+              disabled={!reachable}
+              style={{ ...stepIndicatorItem, cursor: reachable ? 'pointer' : 'default' }}
+            >
+              <span style={{ ...stepDot, ...(done ? stepDotDone : active ? stepDotActive : stepDotPending) }}>
+                {done ? '✓' : n}
+              </span>
+              <span style={{ ...stepLabel, color: active || done ? T.ink : T.soft }}>{label}</span>
+            </button>
+            {i < STEPS.length - 1 && <span style={stepConnector} />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 }
 
 // Flat optional add-on for reshipment/refund if a package is lost, damaged,
@@ -137,6 +146,20 @@ export default function CheckoutPage() {
   const [newsletter, setNewsletter] = React.useState(true);
   const [shipping, setShipping] = React.useState(EMPTY_ADDRESS);
   const [shippingProtection, setShippingProtection] = React.useState(false);
+  const [showMoreAddress, setShowMoreAddress] = React.useState(false);
+
+  // 2-step flow (Shipping -> Payment). maxStepReached gates the step
+  // indicator's jump-back links — a shopper can always return to a step
+  // already completed, but can't skip ahead by clicking Payment first.
+  const [step, setStep] = React.useState(1);
+  const [maxStepReached, setMaxStepReached] = React.useState(1);
+
+  // Every step change scrolls back to the top of the page — advancing from
+  // a scrolled-down Step 1 straight into Step 2 would otherwise leave the
+  // shopper staring at whatever scroll position Step 1 left them at.
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
 
   // Payment — Square's Card element renders its own number/expiry/CVC/
   // postal-code fields into squareCardContainerRef; the returned Card
@@ -475,6 +498,20 @@ export default function CheckoutPage() {
     }
   };
 
+  const goToStep = (n) => {
+    setError('');
+    setStep(n);
+    setMaxStepReached((m) => Math.max(m, n));
+  };
+
+  // Step 1's own <form> submit — native required-field validation only
+  // ever sees Step 1's fields since Step 2 isn't mounted yet, same
+  // technique checkout-qb.jsx's 3-step flow uses.
+  const handleStep1Submit = (e) => {
+    e.preventDefault();
+    goToStep(2);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -537,186 +574,222 @@ export default function CheckoutPage() {
       </button>
 
       <div className="checkout-grid" style={checkoutGrid}>
-        <form onSubmit={handleSubmit} style={formCol}>
-          <section style={{ marginTop: 24 }}>
-            <div style={sectionHead}>
-              <h2 style={sectionTitle}>Contact</h2>
-            </div>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={handleEmailBlur}
-              style={input}
-              autoComplete="email"
-              required
-            />
-            <label style={checkboxLabel}>
-              <input type="checkbox" checked={newsletter} onChange={(e) => setNewsletter(e.target.checked)} />
-              Email me with news and offers
-            </label>
-          </section>
+        <div style={formCol}>
+          <StepIndicator step={step} maxStepReached={maxStepReached} onJump={goToStep} />
 
-          <section style={{ marginTop: 24 }}>
-            <div style={sectionHead}>
-              <h2 style={sectionTitle}>Delivery</h2>
-            </div>
-            <select value="United States" readOnly style={{ ...input, marginBottom: 12, color: T.soft }}>
-              <option>United States</option>
-            </select>
-            <AddressFields value={shipping} onChange={setShipping} idPrefix="ship" inputStyle={input} />
-          </section>
-
-          <section style={{ marginTop: 24 }}>
-            <div style={sectionHead}>
-              <h2 style={sectionTitle}>Shipping method</h2>
-            </div>
-            {addressEntered ? (
-              <div style={shipMethod}>
-                <div>
-                  <div>Standard Shipping</div>
-                  <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>3–5 business days after order placed</div>
+          {step === 1 && (
+            <form onSubmit={handleStep1Submit}>
+              <section style={{ marginTop: 24 }}>
+                <div style={sectionHead}>
+                  <h2 style={sectionTitle}>Contact</h2>
                 </div>
-                <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
-              </div>
-            ) : (
-              <p style={{ color: T.soft, fontSize: 14 }}>Enter your delivery address to see shipping options.</p>
-            )}
-          </section>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={handleEmailBlur}
+                  style={input}
+                  autoComplete="email"
+                  required
+                />
+                <label style={checkboxLabel}>
+                  <input type="checkbox" checked={newsletter} onChange={(e) => setNewsletter(e.target.checked)} />
+                  Email me with news and offers
+                </label>
+              </section>
 
-          <section style={{ marginTop: 16 }}>
-            <div style={protectionCard}>
-              <div style={protectionIconBox}>
-                <BoxProtectionIcon style={{ color: T.ink }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 14, color: T.ink }}>Shipping Protection</span>
-                  <span title="Covers reshipment or a refund if your order is lost, damaged, or stolen in transit. Contact us and we'll make it right.">
-                    <InfoIcon style={{ color: T.soft }} />
-                  </span>
+              <section style={{ marginTop: 24 }}>
+                <div style={sectionHead}>
+                  <h2 style={sectionTitle}>Delivery</h2>
                 </div>
-                <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>For lost, damaged, or stolen packages</div>
-                <div style={{ fontSize: 13, color: T.ink, marginTop: 4 }}>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</div>
-              </div>
+                <select value="United States" readOnly style={{ ...input, marginBottom: 12, color: T.soft }}>
+                  <option>United States</option>
+                </select>
+                <AddressFields value={shipping} onChange={setShipping} idPrefix="ship" inputStyle={input} compact />
+              </section>
+
+              <section style={{ marginTop: 24 }}>
+                <div style={sectionHead}>
+                  <h2 style={sectionTitle}>Shipping method</h2>
+                </div>
+                {addressEntered ? (
+                  <div style={shipMethod}>
+                    <div>
+                      <div>Standard Shipping</div>
+                      <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>3–5 business days after order placed</div>
+                    </div>
+                    <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
+                  </div>
+                ) : (
+                  <p style={{ color: T.soft, fontSize: 14 }}>Enter your delivery address to see shipping options.</p>
+                )}
+              </section>
+
+              <section style={{ marginTop: 16 }}>
+                <div style={protectionCard}>
+                  <div style={protectionIconBox}>
+                    <BoxProtectionIcon style={{ color: T.ink }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 14, color: T.ink }}>Shipping Protection</span>
+                      <span title="Covers reshipment or a refund if your order is lost, damaged, or stolen in transit. Contact us and we'll make it right.">
+                        <InfoIcon style={{ color: T.soft }} />
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>For lost, damaged, or stolen packages</div>
+                    <div style={{ fontSize: 13, color: T.ink, marginTop: 4 }}>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShippingProtection((v) => !v)}
+                    style={{ ...S.btnOutline, height: 38, padding: '0 20px', ...(shippingProtection ? { background: T.paper } : {}) }}
+                  >
+                    {shippingProtection ? 'Remove' : 'Add'}
+                  </button>
+                </div>
+              </section>
+
               <button
-                type="button"
-                onClick={() => setShippingProtection((v) => !v)}
-                style={{ ...S.btnOutline, height: 38, padding: '0 20px', ...(shippingProtection ? { background: T.paper } : {}) }}
+                type="submit"
+                style={{ ...S.btnFill, width: '100%', justifyContent: 'center', marginTop: 24, height: 58, fontSize: 13 }}
               >
-                {shippingProtection ? 'Remove' : 'Add'}
+                Continue to payment
               </button>
-            </div>
-          </section>
+            </form>
+          )}
 
-          <section style={{ marginTop: 24 }}>
-            <h2 style={{ ...sectionTitle, marginBottom: 4 }}>Payment</h2>
-            <p style={{ fontSize: 13, color: T.soft, marginBottom: 14 }}>All transactions are secure and encrypted.</p>
-
-            {/* Apple Pay / Google Pay, positioned after shipping is
-                collected — both need email/shipping already filled in before
-                handleWalletPay lets a click through to tokenize() (this
-                doesn't collect shipping the way a native Apple Pay sheet
-                can), so putting the buttons here instead of higher up means
-                they're usable the moment they're visible instead of erroring
-                on click. The containers always exist in the DOM (hidden via
-                display:none, not conditional rendering) since Square's
-                attach() needs to find them by id before we know whether that
-                wallet is actually available on this browser/device; the
-                whole section (heading + OR divider) stays hidden the same
-                way until at least one of them is. Sits above Afterpay per
-                request, so shoppers see Apple/Google Pay first. */}
-            <div style={{ display: (appleAvailable || googleAvailable) ? 'block' : 'none', marginBottom: 10 }}>
-              <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ display: appleAvailable ? 'block' : 'none' }}>
-                  <div id="apple-pay-button" style={walletButtonContainer} />
+          {step === 2 && (
+            <form onSubmit={handleSubmit}>
+              {/* Compact read-only recap of Step 1 instead of repeating it —
+                  a "Change" link jumps straight back rather than re-showing
+                  every field a second time. */}
+              <section style={{ marginTop: 24 }}>
+                <div style={recapRow}>
+                  <div>
+                    <div style={recapLabel}>Contact</div>
+                    <div style={recapValue}>{email}</div>
+                  </div>
+                  <button type="button" onClick={() => goToStep(1)} style={changeLink}>Change</button>
                 </div>
-                <div style={{ display: googleAvailable ? 'block' : 'none' }}>
-                  <div id="google-pay-button" style={walletButtonContainer} />
+                <div style={{ ...recapRow, marginTop: 10 }}>
+                  <div>
+                    <div style={recapLabel}>Ship to</div>
+                    <div style={recapValue}>
+                      {shipping.address}{shipping.apt ? `, ${shipping.apt}` : ''}, {shipping.city}, {shipping.state} {shipping.zip}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => goToStep(1)} style={changeLink}>Change</button>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            {/* Afterpay sits right above the card box — same
-                email/shipping validation via handleWalletPay, just
-                presented as an alternative to the card form specifically
-                instead of grouped with the other wallets. Only one "OR"
-                divider total, after Afterpay and before Credit card — not
-                also between the wallet buttons and Afterpay. */}
-            <div style={{ display: afterpayAvailable ? 'block' : 'none', marginBottom: 14 }}>
-              <div id="afterpay-button" style={walletButtonContainer} />
-              <div style={orDivider}>
-                <span style={orDividerLine} />
-                <span style={orDividerText}>OR</span>
-                <span style={orDividerLine} />
-              </div>
-            </div>
+              <section style={{ marginTop: 24 }}>
+                <h2 style={{ ...sectionTitle, marginBottom: 4 }}>Payment</h2>
+                <p style={{ fontSize: 13, color: T.soft, marginBottom: 14 }}>All transactions are secure and encrypted.</p>
 
-            <div style={paymentList}>
-              <div style={accordionRow}>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>Credit card</span>
-              </div>
-              <div style={accordionBody}>
-                {/* Square's Web Payments SDK renders its own card
-                    number/expiry/CVC/postal fields into this container,
-                    including its own network-brand logo as you type — see
-                    the mount effect above. Nothing here reads or holds the
-                    raw card data. */}
-                <div id="square-card-container" style={squareCardContainer} />
-                {!squareReady && !squareError && (
-                  <p style={{ fontSize: 12, color: T.soft, marginTop: 8 }}>Loading payment form…</p>
+                {/* Apple Pay / Google Pay — the containers always exist in
+                    the DOM (hidden via display:none, not conditional
+                    rendering) since Square's attach() needs to find them by
+                    id before we know whether that wallet is actually
+                    available on this browser/device; the whole section
+                    (heading + OR divider) stays hidden the same way until
+                    at least one of them is. Sits above Afterpay per request,
+                    so shoppers see Apple/Google Pay first. */}
+                <div style={{ display: (appleAvailable || googleAvailable) ? 'block' : 'none', marginBottom: 10 }}>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    <div style={{ display: appleAvailable ? 'block' : 'none' }}>
+                      <div id="apple-pay-button" style={walletButtonContainer} />
+                    </div>
+                    <div style={{ display: googleAvailable ? 'block' : 'none' }}>
+                      <div id="google-pay-button" style={walletButtonContainer} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Afterpay sits right above the card box — same
+                    email/shipping validation via handleWalletPay, just
+                    presented as an alternative to the card form specifically
+                    instead of grouped with the other wallets. Only one "OR"
+                    divider total, after Afterpay and before Credit card —
+                    not also between the wallet buttons and Afterpay. */}
+                <div style={{ display: afterpayAvailable ? 'block' : 'none', marginBottom: 14 }}>
+                  <div id="afterpay-button" style={walletButtonContainer} />
+                  <div style={orDivider}>
+                    <span style={orDividerLine} />
+                    <span style={orDividerText}>OR</span>
+                    <span style={orDividerLine} />
+                  </div>
+                </div>
+
+                <div style={paymentList}>
+                  <div style={accordionRow}>
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>Credit card</span>
+                  </div>
+                  <div style={accordionBody}>
+                    {/* Square's Web Payments SDK renders its own card
+                        number/expiry/CVC/postal fields into this container,
+                        including its own network-brand logo as you type —
+                        see the mount effect above. Nothing here reads or
+                        holds the raw card data. */}
+                    <div id="square-card-container" style={squareCardContainer} />
+                    {!squareReady && !squareError && (
+                      <p style={{ fontSize: 12, color: T.soft, marginTop: 8 }}>Loading payment form…</p>
+                    )}
+                    {squareError && (
+                      <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{squareError}</p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* Single discount-code box for the whole checkout — the old
+                  single-page form also had one in the sticky summary,
+                  showing the same input twice on screen at once. */}
+              <section style={{ marginTop: 24 }}>
+                <div style={sectionHead}>
+                  <h2 style={sectionTitle}>Discount code</h2>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <input
+                    placeholder="Discount code"
+                    value={discountCode}
+                    onChange={(e) => {
+                      setDiscountCode(e.target.value);
+                      if (appliedDiscount) clearDiscount();
+                      setDiscountMessage('');
+                    }}
+                    style={{ ...input, flex: 1 }}
+                  />
+                  <button type="button" style={S.btnOutline} onClick={handleApplyDiscount}>Apply</button>
+                </div>
+                {discountMessage && (
+                  <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 8 }}>{discountMessage}</p>
                 )}
-                {squareError && (
-                  <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{squareError}</p>
-                )}
-              </div>
-            </div>
-          </section>
+              </section>
 
-          <section style={{ marginTop: 24 }}>
-            <div style={sectionHead}>
-              <h2 style={sectionTitle}>Discount code</h2>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <input
-                placeholder="Discount code"
-                value={discountCode}
-                onChange={(e) => {
-                  setDiscountCode(e.target.value);
-                  if (appliedDiscount) clearDiscount();
-                  setDiscountMessage('');
+              {error && <p ref={errorRef} style={errorText}>{error}</p>}
+
+              <button
+                type="submit"
+                disabled={submitting || !squareReady}
+                style={{
+                  ...S.btnFill, width: '100%', justifyContent: 'center', marginTop: 20,
+                  height: 58, fontSize: 13, opacity: submitting || !squareReady ? 0.6 : 1,
                 }}
-                style={{ ...input, flex: 1 }}
-              />
-              <button type="button" style={S.btnOutline} onClick={handleApplyDiscount}>Apply</button>
-            </div>
-            {discountMessage && (
-              <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 8 }}>{discountMessage}</p>
-            )}
-          </section>
-
-
-          {error && <p ref={errorRef} style={errorText}>{error}</p>}
-
-          <button
-            type="submit"
-            disabled={submitting || !squareReady}
-            style={{
-              ...S.btnFill, width: '100%', justifyContent: 'center', marginTop: 20,
-              height: 58, fontSize: 13, opacity: submitting || !squareReady ? 0.6 : 1,
-            }}
-          >
-            {submitting ? 'Processing…' : `Place order — $${grandTotal.toFixed(2)}`}
-          </button>
-          <div style={secureNote}>
-            <LockIcon />
-            <span>256-bit SSL encrypted &middot; your card details never touch our servers</span>
-          </div>
-          <p style={{ fontSize: 11, color: T.soft, textAlign: 'center', marginTop: 8 }}>
-            Payments securely processed by Square
-          </p>
-        </form>
+              >
+                {submitting ? 'Processing…' : `Place order — $${grandTotal.toFixed(2)}`}
+              </button>
+              <div style={secureNote}>
+                <LockIcon />
+                <span>256-bit SSL encrypted &middot; your card details never touch our servers</span>
+              </div>
+              <p style={{ fontSize: 11, color: T.soft, textAlign: 'center', marginTop: 8 }}>
+                Payments securely processed by Square
+              </p>
+            </form>
+          )}
+        </div>
 
         <aside className={`order-summary ${summaryOpen ? 'open' : ''}`} style={summaryCol}>
           <div style={{ maxHeight: 340, overflowY: 'auto', marginBottom: 20 }}>
@@ -765,23 +838,6 @@ export default function CheckoutPage() {
             <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
             <span style={{ fontFamily: T.sans, fontSize: 24 }}>${grandTotal.toFixed(2)}</span>
           </div>
-
-          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-            <input
-              placeholder="Discount code"
-              value={discountCode}
-              onChange={(e) => {
-                setDiscountCode(e.target.value);
-                if (appliedDiscount) clearDiscount();
-                setDiscountMessage('');
-              }}
-              style={{ ...input, flex: 1 }}
-            />
-            <button type="button" style={S.btnOutline} onClick={handleApplyDiscount}>Apply</button>
-          </div>
-          {discountMessage && (
-            <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 8 }}>{discountMessage}</p>
-          )}
         </aside>
       </div>
 
@@ -848,6 +904,21 @@ export default function CheckoutPage() {
 }
 
 const topbar = { borderBottom: `1px solid ${T.line}`, textAlign: 'center' };
+const stepIndicatorWrap = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 20 };
+const stepIndicatorItem = { display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, font: 'inherit' };
+const stepDot = {
+  width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: 12, fontFamily: T.sans, fontWeight: 700, flexShrink: 0,
+};
+const stepDotPending = { background: T.paper, color: T.soft, border: `1px solid ${T.line}` };
+const stepDotActive = { background: T.ink, color: T.oat };
+const stepDotDone = { background: T.ink, color: T.oat };
+const stepLabel = { fontFamily: T.sans, fontSize: 13, fontWeight: 600 };
+const stepConnector = { width: 30, height: 1, background: T.line };
+const recapRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '12px 14px', border: `1px solid ${T.line}`, borderRadius: 8 };
+const recapLabel = { fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.soft };
+const recapValue = { fontSize: 14, color: T.ink, marginTop: 3 };
+const changeLink = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, textDecoration: 'underline', textUnderlineOffset: 3, color: T.ink, flexShrink: 0 };
 const summaryToggle = {
   width: '100%', border: 'none', borderBottom: `1px solid ${T.line}`, background: T.paper,
   padding: '16px 24px', alignItems: 'center', justifyContent: 'space-between',

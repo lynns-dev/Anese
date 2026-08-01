@@ -6,6 +6,7 @@ import CartDrawer from '../../components/CartDrawer';
 import ProductVisual from '../../components/ProductVisual';
 import Marquee from '../../components/Marquee';
 import Footer from '../../components/Footer';
+import Seo from '../../components/Seo';
 import { PRODUCTS, getProductById } from '../../lib/products';
 import { useCart } from '../../lib/useCart';
 import { fbTrack } from '../../lib/fbPixel';
@@ -213,8 +214,16 @@ export default function ProductPage({ product }) {
 
   const handleAddUpsell = () => upsell && c.add(upsell, 1);
 
+  const isBootyScrub = product.category === 'scrub';
+
   return (
     <div style={{ paddingBottom: 76 }}>
+      <Seo
+        title={isBootyScrub ? `${product.name} | Booty Skincare Scrub — ANESE` : `${product.name} | ANESE`}
+        description={product.description}
+        path={`/product/${product.id}`}
+        image={product.images?.[0]}
+      />
       <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} />
 
       <section style={{ maxWidth: T.maxw, margin: '0 auto', padding: '22px 32px 0' }}>

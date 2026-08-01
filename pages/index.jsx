@@ -1,14 +1,35 @@
 import React from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 import Header from '../components/Header';
 import CartDrawer from '../components/CartDrawer';
 import ProductVisual from '../components/ProductVisual';
 import Marquee from '../components/Marquee';
 import Footer from '../components/Footer';
+import Seo, { SITE_URL } from '../components/Seo';
 import { getFeaturedProducts } from '../lib/products';
 import { useCart } from '../lib/useCart';
 import { useAllReviews } from '../lib/useReviews';
 import { T, S } from '../lib/theme';
+
+// SiteNavigationElement + WebSite structured data — the standard signal
+// Google uses (alongside actual site structure/click-through data) to
+// decide which pages to show as sitelinks under a search result. Shop and
+// That Booty Tho are listed first since those are the two pages requested
+// as the priority "top links" — order here reflects intended priority,
+// though Google ultimately chooses sitelinks itself; nothing in Search
+// guarantees a specific page appears.
+const HOME_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'WebSite', name: 'ANESE', url: SITE_URL },
+    {
+      '@type': 'SiteNavigationElement',
+      name: ['Shop', 'That Booty Tho', 'Before & After'],
+      url: [`${SITE_URL}/shop`, `${SITE_URL}/product/that-booty-tho`, `${SITE_URL}/#before-after`],
+    },
+  ],
+};
 
 const BANNER_MESSAGES = ['Free shipping $50+', '15% off with code FIRST15'];
 
@@ -55,6 +76,14 @@ export default function HomePage() {
 
   return (
     <div>
+      <Seo path="/" />
+      <Head>
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(HOME_JSON_LD) }}
+        />
+      </Head>
       <div style={announce}>
         <div
           style={{

@@ -5,6 +5,7 @@ import CartDrawer from '../components/CartDrawer';
 import ProductVisual from '../components/ProductVisual';
 import Marquee from '../components/Marquee';
 import Footer from '../components/Footer';
+import Seo from '../components/Seo';
 import { PRODUCTS } from '../lib/products';
 import { useCart } from '../lib/useCart';
 import { useAllReviews } from '../lib/useReviews';
@@ -15,6 +16,11 @@ export default function ShopPage() {
   const reviews = useAllReviews();
   return (
     <div>
+      <Seo
+        title="Shop Booty Skincare | ANESE — That Booty Tho & More"
+        description="Shop ANESE's booty skincare collection, starting with That Booty Tho — the cult-favorite scrub for butt, thighs, and hips. Free shipping over $50."
+        path="/shop"
+      />
       <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} />
 
       {/* BANNER */}

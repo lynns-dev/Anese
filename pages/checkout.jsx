@@ -585,9 +585,9 @@ export default function CheckoutPage() {
   return (
     <div>
       <header className="desktop-topbar" style={topbar}>
-        <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
+        <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 88 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 34, width: 'auto' }} />
+            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 64, width: 'auto' }} />
           </Link>
           <div style={secureBadge}>
             <LockIcon style={{ color: T.soft }} />
@@ -602,7 +602,7 @@ export default function CheckoutPage() {
       <header className="mobile-topbar" style={mobileTopbar}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <LockIcon style={{ color: T.soft, flexShrink: 0 }} />
-          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 22, width: 'auto' }} />
+          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 36, width: 'auto' }} />
         </Link>
         <button type="button" onClick={() => setReceiptOpen(true)} style={mobileTotalButton}>
           <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>${grandTotal.toFixed(2)}</span>

@@ -9,13 +9,14 @@ import { fulfillOrder } from '../../lib/orderFulfillment';
 
 // Same flat shape used by every other checkout path on this site and
 // rendered in the admin Orders tab ({ name, address, apt, city, state,
-// zip, phone }) — the raw checkout form uses firstName/lastName instead of
-// a single name field, so that needs collapsing here rather than storing
-// the form's own shape.
+// zip, phone }). `name` is the field of record on checkout.jsx's simplified
+// address form; the older firstName/lastName pair (checkout-qb.jsx,
+// offer3.jsx, and any in-flight sessionStorage progress saved before this
+// changed) is still accepted as a fallback so neither breaks.
 function normalizeFormShipping(shipping) {
   if (!shipping?.address || !shipping?.city) return null;
   return {
-    name: `${shipping.firstName || ''} ${shipping.lastName || ''}`.trim(),
+    name: shipping.name || `${shipping.firstName || ''} ${shipping.lastName || ''}`.trim(),
     address: shipping.address,
     apt: shipping.apt || '',
     city: shipping.city,

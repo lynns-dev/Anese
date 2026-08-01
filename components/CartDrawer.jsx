@@ -4,8 +4,8 @@ import { useRouter } from 'next/router';
 import { T, S } from '../lib/theme';
 import ProductVisual from './ProductVisual';
 import { getProductById, FREE_GIFT, FREE_GIFT_THRESHOLD } from '../lib/products';
-import { createApplePayButton, tokenizeWallet } from '../lib/squareClient';
-import { loadCheckoutProgress, clearCheckoutProgress, hasUsableShipping } from '../lib/checkoutProgress';
+import { createApplePayButton, tokenizeWalletWithContact } from '../lib/squareClient';
+import { clearCheckoutProgress } from '../lib/checkoutProgress';
 import { isShopPayAvailable, mountShopPayButton } from '../lib/shopPayClient';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
@@ -33,14 +33,12 @@ export default function CartDrawer({
   const hasPuff = cart.some((i) => i.id === 'puff');
   const puffPrice = puff ? Math.round(puff.price * 0.9 * 100) / 100 : 0;
 
-  // Apple Pay right on the drawer — a fast path for a shopper who already
-  // has shipping info on file this session (e.g. saved earlier at
-  // /checkout, or from a previous order this browser session) so they
-  // never have to open the full checkout page at all. Shoppers without
-  // saved shipping still see the button (Apple Pay's own sheet doesn't
-  // collect a shipping address the way a native Apple Pay integration
-  // would here — see lib/squareClient.js), but clicking it sends them to
-  // /checkout to enter one first rather than failing silently.
+  // Apple Pay right on the drawer — there's no address form here at all, so
+  // the payment request is built with requestContact so Apple's own sheet
+  // gathers name/address/email itself; extractWalletContact() (in
+  // lib/squareClient.js) maps that back into the site's shipping shape and
+  // the charge is abandoned (not attempted) if no usable address comes
+  // back, so an order can never be taken with nowhere to ship it.
   const appleMethodRef = React.useRef(null);
   const [appleAvailable, setAppleAvailable] = React.useState(false);
   const [walletSubmitting, setWalletSubmitting] = React.useState(false);
@@ -67,50 +65,35 @@ export default function CartDrawer({
   latestRef.current = { cart, grandTotal, shippingCost, discountCode: appliedDiscount?.code };
 
   React.useEffect(() => {
-    if (!open || cart.length === 0) return;
+    if (!open || cart.length === 0) return undefined;
     let cancelled = false;
-    let cleanup = () => {};
-
     (async () => {
-      const apple = await createApplePayButton(latestRef.current.grandTotal, 'cart-apple-pay-button');
-      if (cancelled) {
-        apple?.destroy?.().catch(() => {});
-        return;
-      }
-      if (!apple) return;
+      const apple = await createApplePayButton(latestRef.current.grandTotal, null, { requestContact: true });
+      if (cancelled) return;
       appleMethodRef.current = apple;
-      setAppleAvailable(true);
-      const btn = document.getElementById('cart-apple-pay-button');
-      const onClick = (event) => { event.preventDefault(); handleApplePayClick(); };
-      btn?.addEventListener('click', onClick);
-      cleanup = () => btn?.removeEventListener('click', onClick);
+      setAppleAvailable(Boolean(apple));
     })();
-
     return () => {
       cancelled = true;
-      cleanup();
-      appleMethodRef.current?.destroy?.().catch(() => {});
       appleMethodRef.current = null;
       setAppleAvailable(false);
       setWalletMessage('');
     };
-    // handleApplePayClick only ever reads fresh state via latestRef/refs —
-    // safe to omit here so this doesn't re-mount on every cart edit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, cart.length]);
 
   const handleApplePayClick = async () => {
-    const progress = loadCheckoutProgress();
-    if (!hasUsableShipping(progress)) {
-      setWalletMessage('Add your shipping address to pay with Apple Pay — continuing to checkout…');
-      router.push('/checkout');
-      return;
-    }
     if (!appleMethodRef.current) return;
     setWalletSubmitting(true);
     setWalletMessage('');
     try {
-      const token = await tokenizeWallet(appleMethodRef.current);
+      const { token, contact } = await tokenizeWalletWithContact(appleMethodRef.current);
+      // Nothing is charged until there's somewhere to ship it — Apple
+      // returns the sheet's contact info alongside the token, and an order
+      // without a usable address can't be fulfilled.
+      if (!contact) {
+        setWalletMessage('Apple Pay didn’t return a shipping address. Please use checkout instead.');
+        return;
+      }
       const { cart: currentCart, grandTotal: amount } = latestRef.current;
       const purchaseEventId = generateEventId();
       const res = await fetch('/api/square-checkout', {
@@ -120,12 +103,13 @@ export default function CartDrawer({
           token,
           amount,
           items: currentCart,
-          email: progress.email,
-          shipping: progress.shipping,
+          email: contact.email,
+          shipping: contact,
           eventId: purchaseEventId,
           url: window.location.href,
           paymentMethod: 'Square (Apple Pay)',
           attribution: getStoredAttribution(),
+          sessionId: getSessionId(),
         }),
       });
       const data = await res.json();
@@ -146,10 +130,10 @@ export default function CartDrawer({
 
       clearCheckoutProgress();
       onClose();
+      await router.push('/success');
       clear?.();
-      router.push('/success');
     } catch (err) {
-      setWalletMessage(err.message || 'Something went wrong. Please try again.');
+      if (!err.cancelled) setWalletMessage(err.message || 'Something went wrong. Please try again.');
     } finally {
       setWalletSubmitting(false);
     }
@@ -381,19 +365,31 @@ export default function CartDrawer({
           >
             Checkout
           </Link>
-          <div style={{ display: appleAvailable ? 'block' : 'none', marginTop: 10, opacity: walletSubmitting ? 0.6 : 1, pointerEvents: walletSubmitting ? 'none' : 'auto' }}>
-            <div id="cart-apple-pay-button" style={walletButtonContainer} />
-          </div>
+          {/* Apple Pay, under the main Checkout button and split off by an
+              "or". Renders only once Square confirms the wallet is actually
+              available (Safari + a verified merchant domain), so nothing
+              shows on browsers that can't offer it. */}
+          {(appleAvailable || shopPayReady) && cart.length > 0 && (
+            <>
+              <div style={orDivider}>
+                <span style={orDividerLine} />
+                <span style={orDividerText}>or</span>
+                <span style={orDividerLine} />
+              </div>
+              {appleAvailable && (
+                <button
+                  type="button"
+                  className="cart-apple-pay-button"
+                  aria-label="Buy with Apple Pay"
+                  disabled={walletSubmitting}
+                  onClick={handleApplePayClick}
+                  style={{ opacity: walletSubmitting ? 0.6 : 1, marginBottom: shopPayReady ? 10 : 0 }}
+                />
+              )}
+            </>
+          )}
           {walletMessage && (
             <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{walletMessage}</p>
-          )}
-
-          {shopPayReady && cart.length > 0 && (
-            <div style={orDivider}>
-              <span style={orDividerLine} />
-              <span style={orDividerText}>or</span>
-              <span style={orDividerLine} />
-            </div>
           )}
           {/* Always in the DOM once there's a cart to mount into — the SDK
               (lib/shopPayClient.js) targets this id as soon as
@@ -403,6 +399,23 @@ export default function CartDrawer({
             <div id={SHOP_PAY_CONTAINER_ID} style={{ display: shopPayReady ? 'block' : 'none', opacity: paying ? 0.6 : 1, pointerEvents: paying ? 'none' : 'auto' }} />
           )}
           {payError && <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 10 }}>{payError}</p>}
+
+          <style jsx>{`
+            .cart-apple-pay-button {
+              display: block;
+              width: 100%;
+              min-height: 44px;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              -webkit-appearance: -apple-pay-button;
+              -apple-pay-button-type: buy;
+              -apple-pay-button-style: black;
+            }
+            @supports not (-webkit-appearance: -apple-pay-button) {
+              .cart-apple-pay-button { display: none; }
+            }
+          `}</style>
         </div>
       </aside>
     </>
@@ -439,9 +452,6 @@ const discountInput = {
 
 const summaryRow = { display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' };
 const shippingNote = { fontSize: 11, color: T.soft, marginTop: 8, letterSpacing: '0.02em' };
-// No background/border here — Apple Pay/Shop Pay each style their own
-// attached button.
-const walletButtonContainer = { width: '100%', minHeight: 44 };
 const orDivider = { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' };
 const orDividerLine = { flex: 1, height: 1, background: T.line };
 const orDividerText = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft };

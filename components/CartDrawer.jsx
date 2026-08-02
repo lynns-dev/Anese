@@ -427,7 +427,7 @@ export default function CartDrawer({
               <div
                 id={GOOGLE_PAY_CONTAINER_ID}
                 style={{
-                  width: '100%', minHeight: googleAvailable ? 48 : 0,
+                  width: '100%', height: googleAvailable ? 48 : 0, border: 'none', overflow: 'hidden',
                   display: googleAvailable ? 'block' : 'none',
                   opacity: walletSubmitting ? 0.6 : 1, pointerEvents: walletSubmitting ? 'none' : 'auto',
                 }}
@@ -450,7 +450,7 @@ export default function CartDrawer({
             .cart-apple-pay-button {
               display: block;
               width: 100%;
-              min-height: 48px;
+              height: 48px;
               border: none;
               border-radius: 6px;
               cursor: pointer;

@@ -1075,7 +1075,8 @@ export default function CheckoutPage() {
         .apple-pay-button {
           display: inline-block;
           width: 100%;
-          min-height: 48px;
+          height: 48px;
+          border: none;
           border-radius: 6px;
           -webkit-appearance: -apple-pay-button;
           -apple-pay-button-type: buy;
@@ -1136,7 +1137,7 @@ const squareCardContainer = { minHeight: 48 };
 const orDivider = { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 0' };
 const orDividerLine = { flex: 1, height: 1, background: T.line };
 const orDividerText = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft };
-const walletButtonContainer = { width: '100%', minHeight: 48 };
+const walletButtonContainer = { width: '100%', height: 48, border: 'none', overflow: 'hidden' };
 const billingRecap = {
   display: 'flex', gap: 12, padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white, fontSize: 14,
 };

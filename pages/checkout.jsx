@@ -12,6 +12,7 @@ import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { loadCheckoutProgress, saveCheckoutProgress, clearCheckoutProgress } from '../lib/checkoutProgress';
+import { setCheckoutStep } from '../lib/checkoutStage';
 import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 
@@ -228,6 +229,16 @@ export default function CheckoutPage() {
   // completed step's label) is gone.
   const [step, setStep] = React.useState(savedProgress?.step ?? 1);
 
+  // Reported to the live-view heartbeat in pages/_app.jsx (via
+  // lib/checkoutStage.js) so admin can see which step visitors are stuck
+  // on, not just that they're "at checkout" generically. Cleared on
+  // unmount so a visitor who navigates away doesn't linger as mid-checkout
+  // until their next heartbeat happens to overwrite it.
+  React.useEffect(() => {
+    setCheckoutStep(step);
+    return () => setCheckoutStep(null);
+  }, [step]);
+
   // Payment — Square's Card element renders its own number/expiry/CVC/
   // postal-code fields into #square-card-container; the returned Card
   // instance lives in squareCardRef for tokenize() at submit time.
@@ -261,6 +272,20 @@ export default function CheckoutPage() {
   React.useEffect(() => {
     saveCheckoutProgress({ step, email, newsletter, shipping, shippingProtection, discountCode });
   }, [step, email, newsletter, shipping, shippingProtection, discountCode]);
+
+  // Historical funnel counter (admin's funnel card) — reaching Step 2 for
+  // the first time, deduped server-side per session so jumping back and
+  // forth doesn't inflate this. Step 1 is already covered by the existing
+  // checkout_start ping below.
+  React.useEffect(() => {
+    if (step !== 2) return;
+    fetch('/api/track/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'checkout_payment', sessionId: getSessionId() }),
+      keepalive: true,
+    }).catch(() => {});
+  }, [step]);
 
   // The error message renders once, near the submit button at the bottom
   // of whichever step is active — scrolled into view on every change so it

@@ -19,15 +19,11 @@ const nextConfig = {
   async rewrites() {
     return [
       ...OLD_PRODUCT_URL_REWRITES,
-      // Apple's own domain-verification fetcher kept reporting a "partial
-      // response" for the static public/.well-known/... file, even after
-      // the content was confirmed byte-exact and a no-store Cache-Control
-      // header was added — the likely cause is Vercel's static-asset CDN
-      // honoring a Range request with a 206 Partial Content response,
-      // which isn't something a static file's own headers can turn off.
-      // Routed to a serverless function instead (pages/api/apple-pay-
-      // domain-verification.js), which has no Range/206 support at all —
-      // see that file for the actual payload.
+      // Routed to a serverless function (pages/api/apple-pay-domain-
+      // verification.js) instead of a static public/ file, to avoid
+      // Vercel's static-asset CDN honoring Range requests with a 206
+      // Partial Content response — see that file for the actual payload
+      // and a note on a separate, now-fixed content bug.
       {
         source: '/.well-known/apple-developer-merchantid-domain-association',
         destination: '/api/apple-pay-domain-verification',

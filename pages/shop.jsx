@@ -23,15 +23,14 @@ export default function ShopPage() {
       />
       <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} />
 
-      {/* BANNER */}
+      {/* BANNER — plain text header, no background image */}
       <section style={banner}>
-        <div style={bannerOverlay} />
-        <div style={{ ...S.wrap, position: 'relative', textAlign: 'center' }}>
-          <p style={{ ...S.label, color: 'rgba(252,251,247,0.75)' }}>The collection</p>
-          <h1 style={{ ...S.h2, color: T.white, fontSize: 'clamp(38px,5.6vw,64px)', marginTop: 14 }}>
+        <div style={{ ...S.wrap, textAlign: 'center' }}>
+          <p style={S.label}>The collection</p>
+          <h1 style={{ ...S.h2, fontSize: 'clamp(38px,5.6vw,64px)', marginTop: 14 }}>
             Shop <span style={S.it}>ANESE.</span>
           </h1>
-          <p style={{ color: 'rgba(252,251,247,0.82)', fontSize: 15, marginTop: 14, maxWidth: '46ch', marginLeft: 'auto', marginRight: 'auto' }}>
+          <p style={{ color: T.soft, fontSize: 15, marginTop: 14, maxWidth: '46ch', marginLeft: 'auto', marginRight: 'auto' }}>
             A small, considered wardrobe of scent — featherlight powders, pressed into skin instead of sprayed into the air.
           </p>
         </div>
@@ -83,10 +82,8 @@ export default function ShopPage() {
 }
 
 const banner = {
-  position: 'relative', minHeight: 340, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  backgroundImage: 'url(/images/anese-model-one.png)', backgroundSize: 'cover', backgroundPosition: 'center 25%',
+  padding: '64px 0 24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
-const bannerOverlay = { position: 'absolute', inset: 0, background: 'rgba(22,20,15,0.55)' };
 const grid = { display: 'grid', gap: 40 };
 const card = { textAlign: 'center' };
 const badge = { position: 'absolute', top: 14, right: 14, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.ink, background: 'rgba(252,251,247,0.92)', padding: '6px 10px', zIndex: 1 };

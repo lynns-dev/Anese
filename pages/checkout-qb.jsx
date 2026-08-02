@@ -86,6 +86,13 @@ function clearCheckoutProgress() {
 // or stolen in transit.
 const SHIPPING_PROTECTION_PRICE = 2.79;
 
+// Social proof shown near the order summary — static copy, not pulled from
+// lib/reviewsStore.js (those are per-product; these two are checkout-wide).
+const FEATURED_REVIEWS = [
+  { rating: 5, text: 'Makes your booty so smooth!', author: 'Alexa, Verified Buyer' },
+  { rating: 5, text: 'Worth the price. I want all the products now.', author: 'Kelsea Riess, Verified Buyer' },
+];
+
 // Formats raw digits as "MM / YY" while typing; parseExpiry below splits it
 // back out into the { expMonth, expYear } shape lib/qbPayments.js expects.
 function formatExpiry(raw) {
@@ -298,6 +305,58 @@ function StepIndicator({ step, maxStepReached, onJump }) {
           </React.Fragment>
         );
       })}
+    </div>
+  );
+}
+
+// Static list, both shown at once — this sits under the order summary
+// sidebar, which is desktop-only (CSS hides the whole sidebar on mobile),
+// so no separate visibility handling is needed here.
+function FeaturedReviews({ reviews }) {
+  return (
+    <div style={featuredReviewsWrap}>
+      <p style={fieldGroupLabel}>What customers are saying</p>
+      {reviews.map((r) => (
+        <div key={r.author} style={featuredReviewCard}>
+          <div style={{ color: T.ink, fontSize: 13, letterSpacing: '0.05em' }}>
+            {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+          </div>
+          <p style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, margin: '8px 0 0' }}>&ldquo;{r.text}&rdquo;</p>
+          <div style={{ fontSize: 12, color: T.soft, marginTop: 8 }}>{r.author}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Mobile-only (visibility handled by the .mobile-reviews-carousel CSS class
+// on its wrapper) — cycles one review at a time rather than listing both,
+// since there isn't room to show them side by side under a form button.
+function ReviewsCarousel({ reviews }) {
+  const [index, setIndex] = React.useState(0);
+  React.useEffect(() => {
+    if (reviews.length < 2) return;
+    const id = setInterval(() => setIndex((i) => (i + 1) % reviews.length), 5000);
+    return () => clearInterval(id);
+  }, [reviews.length]);
+  const r = reviews[index];
+  return (
+    <div>
+      <p style={{ ...fieldGroupLabel, textAlign: 'center' }}>What customers are saying</p>
+      <div style={featuredReviewCard}>
+        <div style={{ color: T.ink, fontSize: 13, letterSpacing: '0.05em' }}>
+          {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+        </div>
+        <p style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, margin: '8px 0 0' }}>&ldquo;{r.text}&rdquo;</p>
+        <div style={{ fontSize: 12, color: T.soft, marginTop: 8 }}>{r.author}</div>
+      </div>
+      {reviews.length > 1 && (
+        <div style={carouselDots}>
+          {reviews.map((rev, i) => (
+            <span key={rev.author} style={{ ...carouselDot, background: i === index ? T.ink : T.line }} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -757,6 +816,10 @@ export default function CheckoutQbBackupPage() {
                 <button type="submit" style={{ ...bigButton, marginTop: 24 }}>
                   Continue to payment
                 </button>
+
+                <div className="mobile-reviews-carousel">
+                  <ReviewsCarousel reviews={FEATURED_REVIEWS} />
+                </div>
               </section>
             )}
 
@@ -881,6 +944,10 @@ export default function CheckoutQbBackupPage() {
                     Review order
                   </button>
                 </div>
+
+                <div className="mobile-reviews-carousel">
+                  <ReviewsCarousel reviews={FEATURED_REVIEWS} />
+                </div>
               </section>
             )}
 
@@ -964,6 +1031,11 @@ export default function CheckoutQbBackupPage() {
                     {submitting ? 'Processing…' : `Place your order — $${grandTotal.toFixed(2)}`}
                   </button>
                 </div>
+
+                <div className="mobile-reviews-carousel">
+                  <ReviewsCarousel reviews={FEATURED_REVIEWS} />
+                </div>
+
                 <div style={secureNote}>
                   <LockIcon />
                   <span>256-bit SSL encrypted &middot; your card details never touch our servers</span>
@@ -1023,6 +1095,8 @@ export default function CheckoutQbBackupPage() {
             <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
             <span style={{ fontFamily: T.sans, fontSize: 24 }}>${grandTotal.toFixed(2)}</span>
           </div>
+
+          <FeaturedReviews reviews={FEATURED_REVIEWS} />
         </aside>
       </div>
 
@@ -1074,11 +1148,13 @@ export default function CheckoutQbBackupPage() {
             overflow-y: auto;
           }
         }
+        .mobile-reviews-carousel { display: none; }
         @media (max-width: 860px) {
           .checkout-grid { grid-template-columns: 1fr; }
           .desktop-topbar { display: none; }
           .mobile-topbar { display: flex; }
           .order-summary { display: none; }
+          .mobile-reviews-carousel { display: block; margin-top: 20px; }
         }
         @media (max-width: 520px) {
           :global(.row-3) { grid-template-columns: 1fr; }
@@ -1183,6 +1259,10 @@ const changeLink = {
   fontSize: 12, fontWeight: 700, textDecoration: 'underline', color: T.ink,
 };
 const reviewCard = { padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white, fontSize: 14 };
+const featuredReviewsWrap = { marginTop: 28, paddingTop: 24, borderTop: `1px solid ${T.line}` };
+const featuredReviewCard = { padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.paper, marginTop: 12 };
+const carouselDots = { display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 };
+const carouselDot = { width: 6, height: 6, borderRadius: '50%' };
 const protectionCard = {
   display: 'flex', alignItems: 'center', gap: 14, padding: 14,
   border: `1px solid ${T.line}`, borderRadius: 14, background: T.white,

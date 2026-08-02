@@ -454,7 +454,6 @@ export default function CartDrawer({
               border: none;
               border-radius: 6px;
               cursor: pointer;
-              font-size: 12px;
               -webkit-appearance: -apple-pay-button;
               -apple-pay-button-type: buy;
               -apple-pay-button-style: black;

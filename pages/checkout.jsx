@@ -813,8 +813,6 @@ export default function CheckoutPage() {
           >
             {step === 1 && (
               <section style={{ marginTop: 28 }}>
-                <h1 style={stepTitle}>Contact</h1>
-
                 {/* Express checkout — Apple Pay / Google Pay / Afterpay up
                     front, before the shopper has typed anything. Unlike the
                     Step 2 wallet buttons below (which reuse the address
@@ -824,7 +822,8 @@ export default function CheckoutPage() {
                     handleExpressWalletPay. Only rendered once at least one
                     wallet is confirmed available, same tri-state pattern as
                     Step 2. */}
-                <div style={{ display: (expressAppleAvailable || expressGoogleAvailable || expressAfterpayAvailable) ? 'block' : 'none', marginTop: 20 }}>
+                <div style={{ display: (expressAppleAvailable || expressGoogleAvailable || expressAfterpayAvailable) ? 'block' : 'none' }}>
+                  <p style={{ ...fieldGroupLabel, textAlign: 'center' }}>Express checkout</p>
                   <div style={{ display: 'grid', gap: 10 }}>
                     <div style={{ display: expressAppleAvailable ? 'block' : 'none' }}>
                       <button
@@ -873,8 +872,9 @@ export default function CheckoutPage() {
                   </select>
                 </div>
 
-                <div style={{ marginTop: 26 }}>
-                  <p style={fieldGroupLabel}>Email</p>
+                <h1 style={{ ...stepTitle, marginTop: 30 }}>Contact</h1>
+
+                <div style={{ marginTop: 18 }}>
                   <input
                     type="email"
                     placeholder="Email"

@@ -6,7 +6,7 @@ import AddressFields from '../components/AddressFields';
 import { useCart } from '../lib/useCart';
 import {
   createSquareCard, tokenizeSquareCard,
-  createApplePayButton, createGooglePayButton, createAfterpayButton, tokenizeWallet,
+  createApplePayButton, createGooglePayButton, createAfterpayButton, tokenizeWallet, tokenizeWalletWithContact,
 } from '../lib/squareClient';
 import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
@@ -43,14 +43,6 @@ import { T, S } from '../lib/theme';
 // recap.
 
 const EMPTY_ADDRESS = { name: '', address: '', apt: '', city: '', state: '', zip: '', phone: '' };
-
-// Flat optional add-on for reshipment/refund if a package is lost, damaged,
-// or stolen in transit. Price mirrors the reference design (necessaire.com)
-// this was modeled on — adjust freely. IMPORTANT: this only means something
-// to a shopper if there's a real support process behind it (reship/refund
-// on request for orders that paid for it) — see the order's shippingProtection
-// field in the admin Orders tab.
-const SHIPPING_PROTECTION_PRICE = 2.79;
 
 // Social proof shown near the order summary — static copy, not pulled from
 // lib/reviewsStore.js (those are per-product; these two are checkout-wide).
@@ -103,37 +95,13 @@ function CheckIcon(props) {
   );
 }
 
-// ANESE's shipping-protection mark — an open-flap box with a small
-// shield-check badge overlapping its corner to read as "this box is
-// covered," rather than a generic insurance/shield glyph on its own.
-function BoxProtectionIcon(props) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path d="M2.5 7.5l7.5-3.7 7.5 3.7-7.5 3.7-7.5-3.7Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M2.5 7.5v7.6l7.5 3.7 7.5-3.7V7.5M10 11.2v7.6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M16.3 12.6l3 1v2.1c0 1.9-1.3 3-3 3.6-1.7-.6-3-1.7-3-3.6v-2.1l3-1Z" fill="#FCFBF7" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M15.2 16.3l.9.9 1.6-1.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function InfoIcon(props) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 11v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="12" cy="7.7" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
 // Itemized cart, discount code entry, and the full price breakdown — shown
 // once at the top of the form column on both steps (in the space the old
 // Shipping/Payment step indicator used to occupy), so a shopper never
 // loses sight of what they're buying while filling in the form beneath it.
 function OrderItemsPanel({
   cart, subtotal, discountTotal, codeDiscountAmount, appliedDiscount, shippingCost, addressEntered,
-  shippingProtection, grandTotal, discountCode, setDiscountCode, discountMessage, setDiscountMessage,
+  grandTotal, discountCode, setDiscountCode, discountMessage, setDiscountMessage,
   clearDiscount, handleApplyDiscount,
 }) {
   return (
@@ -143,10 +111,9 @@ function OrderItemsPanel({
           <div key={item.id} style={summaryItem}>
             <div style={summaryImgWrap}>
               <ProductVisual id={item.id} images={item.images} alt={item.name} width={48} staticImage />
-              <span style={qtyBadge}>{item.quantity}</span>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14 }}>{item.name}</div>
+              <div style={{ fontSize: 14 }}>{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</div>
               <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>{item.size}</div>
             </div>
             <div style={{ fontSize: 14 }}>${(item.price * item.quantity).toFixed(2)}</div>
@@ -200,12 +167,6 @@ function OrderItemsPanel({
           <span style={{ color: T.soft }}>Shipping</span>
           <span>{!addressEntered ? 'Enter address' : (shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`)}</span>
         </div>
-        {shippingProtection && (
-          <div style={summaryRow}>
-            <span style={{ color: T.soft }}>Shipping Protection</span>
-            <span>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</span>
-          </div>
-        )}
         <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 12, marginTop: 4 }}>
           <span style={{ fontFamily: T.sans, fontSize: 17, fontWeight: 700 }}>Total</span>
           <span style={{ fontFamily: T.sans, fontSize: 20, fontWeight: 700 }}>${grandTotal.toFixed(2)}</span>
@@ -280,7 +241,6 @@ export default function CheckoutPage() {
   const [email, setEmail] = React.useState(savedProgress?.email ?? '');
   const [newsletter, setNewsletter] = React.useState(savedProgress?.newsletter ?? true);
   const [shipping, setShipping] = React.useState(savedProgress?.shipping ?? EMPTY_ADDRESS);
-  const [shippingProtection, setShippingProtection] = React.useState(savedProgress?.shippingProtection ?? false);
 
   // 2-step flow (Shipping -> Payment) — Step 1's submit and Step 2's Back
   // button are the only ways to move between them now that the old visible
@@ -315,6 +275,21 @@ export default function CheckoutPage() {
   const [googleAvailable, setGoogleAvailable] = React.useState(false);
   const [afterpayAvailable, setAfterpayAvailable] = React.useState(false);
 
+  // Express checkout — the same three wallets, but shown at the top of
+  // Step 1 (before the shopper has typed anything) and built with
+  // requestContact so each wallet's own sheet collects name/email/address
+  // itself. Separate refs/state/containers from the Step 2 set above since
+  // both can be mounted at once (Step 1's express buttons don't unmount
+  // until the shopper actually leaves Step 1) and Square's own method
+  // instances can't be shared between two differently-configured payment
+  // requests.
+  const expressAppleMethodRef = React.useRef(null);
+  const expressGoogleMethodRef = React.useRef(null);
+  const expressAfterpayMethodRef = React.useRef(null);
+  const [expressAppleAvailable, setExpressAppleAvailable] = React.useState(false);
+  const [expressGoogleAvailable, setExpressGoogleAvailable] = React.useState(false);
+  const [expressAfterpayAvailable, setExpressAfterpayAvailable] = React.useState(false);
+
   // Discount + UI state
   const [discountCode, setDiscountCode] = React.useState(savedProgress?.discountCode ?? '');
   const [discountMessage, setDiscountMessage] = React.useState('');
@@ -323,13 +298,13 @@ export default function CheckoutPage() {
   const errorRef = React.useRef(null);
   const formTopRef = React.useRef(null);
 
-  // Mirrors step/email/newsletter/shipping/discount/protection to
-  // sessionStorage on every change so a mid-checkout refresh resumes on the
-  // same step with the form already filled in, rather than bouncing back to
-  // a blank Step 1. Cleared on successful order.
+  // Mirrors step/email/newsletter/shipping/discount to sessionStorage on
+  // every change so a mid-checkout refresh resumes on the same step with
+  // the form already filled in, rather than bouncing back to a blank
+  // Step 1. Cleared on successful order.
   React.useEffect(() => {
-    saveCheckoutProgress({ step, email, newsletter, shipping, shippingProtection, discountCode });
-  }, [step, email, newsletter, shipping, shippingProtection, discountCode]);
+    saveCheckoutProgress({ step, email, newsletter, shipping, discountCode });
+  }, [step, email, newsletter, shipping, discountCode]);
 
   // Historical funnel counter (admin's funnel card) — reaching Step 2 for
   // the first time, deduped server-side per session so jumping back and
@@ -513,11 +488,73 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [squareReady]);
 
+  // Express checkout at the top of Step 1 — mounted independently of the
+  // Step 2 wallets/card above, since Step 1 doesn't need Square's card
+  // element and (unlike Step 2) has no address on file yet: requestContact
+  // has each wallet's own sheet collect it instead. Gated on step === 1 the
+  // same way Step 2's card is gated on step === 2 — the containers aren't
+  // in the DOM at all while the other step is showing.
+  React.useEffect(() => {
+    if (step !== 1) return;
+    let cancelled = false;
+    const cleanupFns = [];
+
+    (async () => {
+      const amount = latestRef.current.grandTotal;
+
+      const apple = await createApplePayButton(amount, null, { requestContact: true });
+      if (!cancelled) {
+        setExpressAppleAvailable(Boolean(apple));
+        if (apple) expressAppleMethodRef.current = apple;
+      }
+
+      const google = await createGooglePayButton(amount, 'express-google-pay-button', null, { requestContact: true });
+      if (cancelled) {
+        google?.destroy?.().catch(() => {});
+      } else if (google) {
+        expressGoogleMethodRef.current = google;
+        setExpressGoogleAvailable(true);
+        const btn = document.getElementById('express-google-pay-button');
+        const onClick = (event) => { event.preventDefault(); handleExpressWalletPay(expressGoogleMethodRef, 'Google Pay'); };
+        btn?.addEventListener('click', onClick);
+        cleanupFns.push(() => btn?.removeEventListener('click', onClick));
+      }
+
+      const afterpay = await createAfterpayButton(amount, 'express-afterpay-button', null, { requestContact: true });
+      if (cancelled) {
+        afterpay?.destroy?.().catch(() => {});
+      } else if (afterpay) {
+        expressAfterpayMethodRef.current = afterpay;
+        setExpressAfterpayAvailable(true);
+        const btn = document.getElementById('express-afterpay-button');
+        const onClick = (event) => { event.preventDefault(); handleExpressWalletPay(expressAfterpayMethodRef, 'Afterpay'); };
+        btn?.addEventListener('click', onClick);
+        cleanupFns.push(() => btn?.removeEventListener('click', onClick));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      cleanupFns.forEach((fn) => fn());
+      expressGoogleMethodRef.current?.destroy?.().catch(() => {});
+      expressAfterpayMethodRef.current?.destroy?.().catch(() => {});
+      expressAppleMethodRef.current = null;
+      expressGoogleMethodRef.current = null;
+      expressAfterpayMethodRef.current = null;
+      setExpressAppleAvailable(false);
+      setExpressGoogleAvailable(false);
+      setExpressAfterpayAvailable(false);
+    };
+    // handleExpressWalletPay only ever reads fresh state via latestRef and
+    // stable setters — safe to omit here so this doesn't re-attach on
+    // every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 ? 0 : 5);
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
   const discountTotal = subtotal - total;
-  const shippingProtectionCost = shippingProtection ? SHIPPING_PROTECTION_PRICE : 0;
-  const grandTotal = discountedTotal + shippingCost + shippingProtectionCost;
+  const grandTotal = discountedTotal + shippingCost;
 
   // Apple Pay/Google Pay's button click handler is attached once (see the
   // wallet mount effect above) and can fire long after that — reading
@@ -525,7 +562,7 @@ export default function CheckoutPage() {
   // over them directly means it always sees what's currently on the page,
   // not what was there at mount.
   const latestRef = React.useRef({});
-  latestRef.current = { email, shipping, cart, grandTotal, shippingProtectionCost };
+  latestRef.current = { email, shipping, cart, grandTotal };
 
   // Fires once the shopper's attention leaves the email field — a good
   // enough proxy for "entered their email" without hammering the KV store
@@ -574,8 +611,8 @@ export default function CheckoutPage() {
   // regardless of which method produced it. Reads email/shipping/cart/
   // grandTotal from latestRef rather than closed-over state since the
   // wallet path can fire long after the render that created its handler.
-  const completeSquareOrder = async (token, paymentMethodLabel) => {
-    const { email, shipping, cart, grandTotal, shippingProtectionCost } = latestRef.current;
+  const completeSquareOrder = async (token, paymentMethodLabel, overrides = {}) => {
+    const { email, shipping, cart, grandTotal } = { ...latestRef.current, ...overrides };
     const purchaseEventId = generateEventId();
 
     const res = await fetch('/api/square-checkout', {
@@ -591,7 +628,6 @@ export default function CheckoutPage() {
         url: window.location.href,
         paymentMethod: paymentMethodLabel,
         attribution: getStoredAttribution(),
-        shippingProtection: shippingProtectionCost || 0,
         sessionId: getSessionId(),
       }),
     });
@@ -628,6 +664,33 @@ export default function CheckoutPage() {
     try {
       const token = await tokenizeWallet(methodRef.current);
       await completeSquareOrder(token, `Square (${label})`);
+    } catch (err) {
+      if (!err.cancelled) setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Express checkout buttons at the top of Step 1 collect the shipping
+  // contact from the wallet's own sheet (requestContact on the mount
+  // effect above) rather than reading the Step 1 form, which isn't filled
+  // in yet when these are used. tokenizeWalletWithContact
+  // (lib/squareClient.js) hands back both the token and whatever contact
+  // the sheet collected; its own extractWalletContact returns null if the
+  // essentials (street, city, postal code) aren't all present, so a charge
+  // is never attempted with nowhere to ship it — the shopper falls back to
+  // the form below instead.
+  const handleExpressWalletPay = async (methodRef, label) => {
+    setError('');
+    if (!methodRef.current) return;
+    setSubmitting(true);
+    try {
+      const { token, contact } = await tokenizeWalletWithContact(methodRef.current);
+      if (!contact) {
+        setError(`${label} didn’t return a shipping address. Please continue with the form below.`);
+        return;
+      }
+      await completeSquareOrder(token, `Square (${label})`, { email: contact.email, shipping: contact });
     } catch (err) {
       if (!err.cancelled) setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -709,7 +772,6 @@ export default function CheckoutPage() {
               appliedDiscount={appliedDiscount}
               shippingCost={shippingCost}
               addressEntered={addressEntered}
-              shippingProtection={shippingProtection}
               grandTotal={grandTotal}
               discountCode={discountCode}
               setDiscountCode={setDiscountCode}
@@ -728,7 +790,40 @@ export default function CheckoutPage() {
           >
             {step === 1 && (
               <section style={{ marginTop: 28 }}>
-                <h1 style={stepTitle}>Where should we send your order?</h1>
+                <h1 style={stepTitle}>Contact</h1>
+
+                {/* Express checkout — Apple Pay / Google Pay / Afterpay up
+                    front, before the shopper has typed anything. Unlike the
+                    Step 2 wallet buttons below (which reuse the address
+                    already entered in Step 1), these are built with
+                    requestContact so the wallet's own sheet collects name,
+                    email, and shipping address itself — see
+                    handleExpressWalletPay. Only rendered once at least one
+                    wallet is confirmed available, same tri-state pattern as
+                    Step 2. */}
+                <div style={{ display: (expressAppleAvailable || expressGoogleAvailable || expressAfterpayAvailable) ? 'block' : 'none', marginTop: 20 }}>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    <div style={{ display: expressAppleAvailable ? 'block' : 'none' }}>
+                      <button
+                        type="button"
+                        className="apple-pay-button"
+                        aria-label="Apple Pay"
+                        onClick={() => handleExpressWalletPay(expressAppleMethodRef, 'Apple Pay')}
+                      />
+                    </div>
+                    <div style={{ display: expressGoogleAvailable ? 'block' : 'none' }}>
+                      <div id="express-google-pay-button" style={walletButtonContainer} />
+                    </div>
+                    <div style={{ display: expressAfterpayAvailable ? 'block' : 'none' }}>
+                      <div id="express-afterpay-button" style={walletButtonContainer} />
+                    </div>
+                  </div>
+                  <div style={orDivider}>
+                    <span style={orDividerLine} />
+                    <span style={orDividerText}>or</span>
+                    <span style={orDividerLine} />
+                  </div>
+                </div>
 
                 <div style={{ marginTop: 30 }}>
                   <p style={fieldGroupLabel}>Shipping address</p>
@@ -749,31 +844,6 @@ export default function CheckoutPage() {
                 )}
 
                 <div style={{ marginTop: 26 }}>
-                  <div style={protectionCard}>
-                    <div style={protectionIconBox}>
-                      <BoxProtectionIcon style={{ color: T.ink }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 14, color: T.ink }}>Shipping Protection</span>
-                        <span title="Covers reshipment or a refund if your order is lost, damaged, or stolen in transit. Contact us and we'll make it right.">
-                          <InfoIcon style={{ color: T.soft }} />
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>For lost, damaged, or stolen packages</div>
-                      <div style={{ fontSize: 13, color: T.ink, marginTop: 4 }}>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShippingProtection((v) => !v)}
-                      style={{ ...smallOutlineButton, height: 38, padding: '0 20px', ...(shippingProtection ? { background: T.paper } : {}) }}
-                    >
-                      {shippingProtection ? 'Remove' : 'Add'}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 26 }}>
                   <p style={fieldGroupLabel}>Country</p>
                   <select value="United States" readOnly style={{ ...bigInput, color: T.soft }}>
                     <option>United States</option>
@@ -781,7 +851,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div style={{ marginTop: 26 }}>
-                  <p style={fieldGroupLabel}>Contact</p>
+                  <p style={fieldGroupLabel}>Email</p>
                   <input
                     type="email"
                     placeholder="Email"
@@ -920,10 +990,9 @@ export default function CheckoutPage() {
               <div key={item.id} style={summaryItem}>
                 <div style={summaryImgWrap}>
                   <ProductVisual id={item.id} images={item.images} alt={item.name} width={48} staticImage />
-                  <span style={qtyBadge}>{item.quantity}</span>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14 }}>{item.name}</div>
+                  <div style={{ fontSize: 14 }}>{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</div>
                   <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>{item.size}</div>
                 </div>
                 <div style={{ fontSize: 14 }}>${(item.price * item.quantity).toFixed(2)}</div>
@@ -951,12 +1020,6 @@ export default function CheckoutPage() {
             <span style={{ color: T.soft }}>Shipping</span>
             <span>{!addressEntered ? 'Enter address' : (shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`)}</span>
           </div>
-          {shippingProtection && (
-            <div style={summaryRow}>
-              <span style={{ color: T.soft }}>Shipping Protection</span>
-              <span>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</span>
-            </div>
-          )}
           <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 16, marginTop: 6 }}>
             <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
             <span style={{ fontFamily: T.sans, fontSize: 24 }}>${grandTotal.toFixed(2)}</span>
@@ -1100,14 +1163,6 @@ const featuredReviewsWrap = { marginTop: 28, paddingTop: 24, borderTop: `1px sol
 const featuredReviewCard = { padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.paper, marginTop: 12 };
 const carouselDots = { display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 };
 const carouselDot = { width: 6, height: 6, borderRadius: '50%' };
-const protectionCard = {
-  display: 'flex', alignItems: 'center', gap: 14, padding: 14,
-  border: `1px solid ${T.line}`, borderRadius: 14, background: T.white,
-};
-const protectionIconBox = {
-  width: 44, height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  border: `1px solid ${T.line}`, borderRadius: 8, background: T.white,
-};
 const shipMethod = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 16px',
   border: `1.5px solid ${T.ink}`, borderRadius: 14, fontSize: 14,
@@ -1115,10 +1170,6 @@ const shipMethod = {
 const errorText = { color: '#a13d2b', fontSize: 13, marginTop: 16 };
 const summaryItem = { display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0' };
 const summaryImgWrap = { position: 'relative', width: 48, height: 48, flexShrink: 0, overflow: 'hidden', border: `1px solid ${T.line}`, background: T.white };
-const qtyBadge = {
-  position: 'absolute', top: -8, right: -8, background: T.soft, color: T.white, borderRadius: '50%',
-  width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
 const summaryRow = { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 14 };
 const reassuranceWrap = { borderTop: `1px solid ${T.line}`, background: T.paper };
 const reassuranceGrid = { maxWidth: 1280, margin: '0 auto', padding: '32px 40px', display: 'grid', gap: 24 };

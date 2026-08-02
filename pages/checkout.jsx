@@ -318,7 +318,6 @@ export default function CheckoutPage() {
   // Discount + UI state
   const [discountCode, setDiscountCode] = React.useState(savedProgress?.discountCode ?? '');
   const [discountMessage, setDiscountMessage] = React.useState('');
-  const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const errorRef = React.useRef(null);
@@ -669,88 +668,21 @@ export default function CheckoutPage() {
   return (
     <div>
       <header className="desktop-topbar" style={topbar}>
-        <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 88 }}>
+        <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 112 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 64, width: 'auto' }} />
+            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 84, width: 'auto' }} />
           </Link>
-          <div style={secureBadge}>
-            <LockIcon style={{ color: T.soft }} />
-            <span>Secure Checkout</span>
-          </div>
         </div>
       </header>
 
-      {/* Mobile-only compact header — small lock badge + logo left, total
-          right. Tapping the total opens the itemized receipt popup below
-          instead of the old inline-collapsing order summary. */}
+      {/* Mobile-only compact header — centered logo, no total (the same
+          totals already show inline via OrderItemsPanel at the top of the
+          form column below, on every breakpoint). */}
       <header className="mobile-topbar" style={mobileTopbar}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <LockIcon style={{ color: T.soft, flexShrink: 0 }} />
-          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 36, width: 'auto' }} />
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 52, width: 'auto' }} />
         </Link>
-        <button type="button" onClick={() => setReceiptOpen(true)} style={mobileTotalButton}>
-          <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>${grandTotal.toFixed(2)}</span>
-          <span style={{ fontSize: 10, color: T.soft }}>▾</span>
-        </button>
       </header>
-
-      {receiptOpen && (
-        <div style={receiptOverlay} onClick={() => setReceiptOpen(false)}>
-          <div style={receiptSheet} onClick={(e) => e.stopPropagation()}>
-            <div style={receiptHead}>
-              <span style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 16 }}>Order summary</span>
-              <button type="button" onClick={() => setReceiptOpen(false)} style={receiptClose} aria-label="Close">✕</button>
-            </div>
-            <div style={{ maxHeight: '40vh', overflowY: 'auto', padding: '4px 20px' }}>
-              {cart.map((item) => (
-                <div key={item.id} style={summaryItem}>
-                  <div style={summaryImgWrap}>
-                    <ProductVisual id={item.id} images={item.images} alt={item.name} width={48} staticImage />
-                    <span style={qtyBadge}>{item.quantity}</span>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14 }}>{item.name}</div>
-                    <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>{item.size}</div>
-                  </div>
-                  <div style={{ fontSize: 14 }}>${(item.price * item.quantity).toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ padding: '4px 20px 24px' }}>
-              <div style={summaryRow}>
-                <span style={{ color: T.soft }}>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              {discountTotal > 0 && (
-                <div style={summaryRow}>
-                  <span style={{ color: T.soft }}>Discount</span>
-                  <span>−${discountTotal.toFixed(2)}</span>
-                </div>
-              )}
-              {codeDiscountAmount > 0 && (
-                <div style={summaryRow}>
-                  <span style={{ color: T.soft }}>Promo ({appliedDiscount.code})</span>
-                  <span>−${codeDiscountAmount.toFixed(2)}</span>
-                </div>
-              )}
-              <div style={summaryRow}>
-                <span style={{ color: T.soft }}>Shipping</span>
-                <span>{!addressEntered ? 'Enter address' : (shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`)}</span>
-              </div>
-              {shippingProtection && (
-                <div style={summaryRow}>
-                  <span style={{ color: T.soft }}>Shipping Protection</span>
-                  <span>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</span>
-                </div>
-              )}
-              <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 16, marginTop: 6 }}>
-                <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
-                <span style={{ fontFamily: T.sans, fontSize: 24 }}>${grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="checkout-grid" style={checkoutGrid}>
         <div className="form-col" style={formCol}>
@@ -1108,33 +1040,13 @@ const topbar = { borderBottom: `1px solid ${T.line}`, textAlign: 'center' };
 // rules, so if 'none' were set inline here, the <style jsx> media query
 // below meant to show this at mobile widths could never override it.
 const mobileTopbar = {
-  alignItems: 'center', justifyContent: 'space-between',
+  alignItems: 'center', justifyContent: 'center',
   padding: '14px 20px', borderBottom: `1px solid ${T.line}`, background: T.white,
-};
-const mobileTotalButton = {
-  display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
-  padding: 0, cursor: 'pointer', color: T.ink,
-};
-const receiptOverlay = {
-  position: 'fixed', inset: 0, background: 'rgba(46,38,32,0.4)', zIndex: 50,
-  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-};
-const receiptSheet = {
-  width: '100%', maxWidth: 480, background: T.white, borderRadius: '20px 20px 0 0',
-  maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
-};
-const receiptHead = {
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  padding: '18px 20px', borderBottom: `1px solid ${T.line}`,
-};
-const receiptClose = {
-  background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: T.soft, padding: 4,
 };
 const checkoutGrid = { display: 'grid', maxWidth: 1280, margin: '0 auto', columnGap: 40, rowGap: 20 };
 const formCol = { borderRight: `1px solid ${T.line}` };
 const summaryCol = { padding: '32px 40px', background: T.white };
 const secureNote = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, fontSize: 12, color: T.soft };
-const secureBadge = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: T.soft, fontFamily: T.sans };
 const stepTitle = { fontFamily: T.sans, fontWeight: 700, fontSize: 22, margin: 0, color: T.ink, lineHeight: 1.25 };
 const fieldGroupLabel = {
   fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: T.soft, fontWeight: 700, marginBottom: 10,

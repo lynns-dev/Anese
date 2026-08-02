@@ -391,14 +391,29 @@ export default function CartDrawer({
               split off by an "or". Each renders only once Square confirms
               that wallet is actually available (Safari + a verified
               merchant domain for Apple Pay; a saved card for Google Pay),
-              so nothing shows on browsers/accounts that can't offer it. */}
+              so nothing shows on browsers/accounts that can't offer it.
+              Side-by-side (Shopify-style) when both are available; a lone
+              wallet spans the full row instead of sitting in one narrow
+              half. The grid itself (and Google Pay's container within it)
+              stays in the DOM whenever there's a cart, regardless of
+              availability — Square's SDK attach()es into the container by
+              id as soon as createGooglePayButton() resolves, which can
+              happen before googleAvailable flips true; only the visible
+              space collapses. */}
           {(appleAvailable || googleAvailable || shopPayReady) && cart.length > 0 && (
-            <>
-              <div style={orDivider}>
-                <span style={orDividerLine} />
-                <span style={orDividerText}>or</span>
-                <span style={orDividerLine} />
-              </div>
+            <div style={orDivider}>
+              <span style={orDividerLine} />
+              <span style={orDividerText}>or</span>
+              <span style={orDividerLine} />
+            </div>
+          )}
+          {cart.length > 0 && (
+            <div
+              style={{
+                display: 'grid', gridTemplateColumns: (appleAvailable && googleAvailable) ? '1fr 1fr' : '1fr', gap: 10,
+                marginBottom: (appleAvailable || googleAvailable) && shopPayReady ? 10 : 0,
+              }}
+            >
               {appleAvailable && (
                 <button
                   type="button"
@@ -406,25 +421,18 @@ export default function CartDrawer({
                   aria-label="Buy with Apple Pay"
                   disabled={walletSubmitting}
                   onClick={() => handleWalletPay(appleMethodRef, 'Apple Pay')}
-                  style={{ opacity: walletSubmitting ? 0.6 : 1, marginBottom: 10 }}
+                  style={{ opacity: walletSubmitting ? 0.6 : 1 }}
                 />
               )}
-            </>
-          )}
-          {/* Always in the DOM once there's a cart to mount into — Square's
-              SDK attach()es its own iframe button into this id as soon as
-              createGooglePayButton() resolves, which can happen before
-              googleAvailable flips true. Only the visible space collapses. */}
-          {cart.length > 0 && (
-            <div
-              id={GOOGLE_PAY_CONTAINER_ID}
-              style={{
-                width: '100%', minHeight: googleAvailable ? 44 : 0,
-                display: googleAvailable ? 'block' : 'none',
-                opacity: walletSubmitting ? 0.6 : 1, pointerEvents: walletSubmitting ? 'none' : 'auto',
-                marginBottom: googleAvailable && shopPayReady ? 10 : 0,
-              }}
-            />
+              <div
+                id={GOOGLE_PAY_CONTAINER_ID}
+                style={{
+                  width: '100%', minHeight: googleAvailable ? 48 : 0,
+                  display: googleAvailable ? 'block' : 'none',
+                  opacity: walletSubmitting ? 0.6 : 1, pointerEvents: walletSubmitting ? 'none' : 'auto',
+                }}
+              />
+            </div>
           )}
           {walletMessage && (
             <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{walletMessage}</p>
@@ -442,7 +450,7 @@ export default function CartDrawer({
             .cart-apple-pay-button {
               display: block;
               width: 100%;
-              min-height: 44px;
+              min-height: 48px;
               border: none;
               border-radius: 6px;
               cursor: pointer;

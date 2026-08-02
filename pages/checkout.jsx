@@ -789,7 +789,11 @@ export default function CheckoutPage() {
                     Step 2. */}
                 <div style={{ display: (expressAppleAvailable || expressGoogleAvailable) ? 'block' : 'none' }}>
                   <p style={{ ...fieldGroupLabel, textAlign: 'center' }}>Express checkout</p>
-                  <div style={{ display: 'grid', gap: 10 }}>
+                  {/* Two-column when both wallets are available (Shopify-style
+                      express row); a lone wallet still gets the full width via
+                      gridColumn: '1 / -1' rather than being stranded in one
+                      narrow half. */}
+                  <div style={{ display: 'grid', gridTemplateColumns: (expressAppleAvailable && expressGoogleAvailable) ? '1fr 1fr' : '1fr', gap: 10 }}>
                     <div style={{ display: expressAppleAvailable ? 'block' : 'none' }}>
                       <button
                         type="button"
@@ -880,7 +884,7 @@ export default function CheckoutPage() {
                     only separates these from Credit card if at least one
                     wallet is actually showing. */}
                 <div style={{ display: (appleAvailable || googleAvailable) ? 'block' : 'none', marginTop: 20 }}>
-                  <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: (appleAvailable && googleAvailable) ? '1fr 1fr' : '1fr', gap: 10 }}>
                     <div style={{ display: appleAvailable ? 'block' : 'none' }}>
                       <button
                         type="button"
@@ -1071,7 +1075,7 @@ export default function CheckoutPage() {
         .apple-pay-button {
           display: inline-block;
           width: 100%;
-          min-height: 44px;
+          min-height: 48px;
           border-radius: 6px;
           -webkit-appearance: -apple-pay-button;
           -apple-pay-button-type: buy;
@@ -1132,7 +1136,7 @@ const squareCardContainer = { minHeight: 48 };
 const orDivider = { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 0' };
 const orDividerLine = { flex: 1, height: 1, background: T.line };
 const orDividerText = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft };
-const walletButtonContainer = { width: '100%', minHeight: 44 };
+const walletButtonContainer = { width: '100%', minHeight: 48 };
 const billingRecap = {
   display: 'flex', gap: 12, padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white, fontSize: 14,
 };

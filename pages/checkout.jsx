@@ -1078,6 +1078,7 @@ export default function CheckoutPage() {
           height: 48px;
           border: none;
           border-radius: 6px;
+          font-size: 16px;
           -webkit-appearance: -apple-pay-button;
           -apple-pay-button-type: buy;
           -apple-pay-button-style: black;

@@ -274,6 +274,12 @@ export default function CheckoutPage() {
   const [appleAvailable, setAppleAvailable] = React.useState(false);
   const [googleAvailable, setGoogleAvailable] = React.useState(false);
   const [afterpayAvailable, setAfterpayAvailable] = React.useState(false);
+  // Surfaces the real reason a wallet failed to initialize directly on the
+  // page — createApplePayButton/createGooglePayButton/createAfterpayButton
+  // otherwise only console.error() it and quietly hide the button, which
+  // leaves no way to tell "not supported here" apart from "actually
+  // misconfigured" without opening devtools. TEMPORARY debugging aid.
+  const [walletDebugError, setWalletDebugError] = React.useState('');
 
   // Express checkout — the same three wallets, but shown at the top of
   // Step 1 (before the shopper has typed anything) and built with
@@ -441,8 +447,12 @@ export default function CheckoutPage() {
 
     (async () => {
       const amount = latestRef.current.grandTotal;
+      const onWalletError = (label) => (err) => {
+        if (cancelled) return;
+        setWalletDebugError((prev) => `${prev ? `${prev}\n` : ''}${label}: ${err?.message || err}`);
+      };
 
-      const apple = await createApplePayButton(amount);
+      const apple = await createApplePayButton(amount, onWalletError('Apple Pay'));
       if (!cancelled) setAppleAvailable(Boolean(apple));
       if (cancelled) {
         // nothing to destroy — Apple Pay has no attach()'d element
@@ -450,7 +460,7 @@ export default function CheckoutPage() {
         appleMethodRef.current = apple;
       }
 
-      const google = await createGooglePayButton(amount, 'google-pay-button');
+      const google = await createGooglePayButton(amount, 'google-pay-button', onWalletError('Google Pay'));
       if (cancelled) {
         google?.destroy?.().catch(() => {});
       } else if (google) {
@@ -462,7 +472,7 @@ export default function CheckoutPage() {
         cleanupFns.push(() => btn?.removeEventListener('click', onClick));
       }
 
-      const afterpay = await createAfterpayButton(amount, 'afterpay-button');
+      const afterpay = await createAfterpayButton(amount, 'afterpay-button', onWalletError('Afterpay'));
       if (cancelled) {
         afterpay?.destroy?.().catch(() => {});
       } else if (afterpay) {
@@ -506,14 +516,18 @@ export default function CheckoutPage() {
 
     (async () => {
       const amount = latestRef.current.grandTotal;
+      const onWalletError = (label) => (err) => {
+        if (cancelled) return;
+        setWalletDebugError((prev) => `${prev ? `${prev}\n` : ''}${label} (express): ${err?.message || err}`);
+      };
 
-      const apple = await createApplePayButton(amount, null, { requestContact: true });
+      const apple = await createApplePayButton(amount, onWalletError('Apple Pay'), { requestContact: true });
       if (!cancelled) {
         setExpressAppleAvailable(Boolean(apple));
         if (apple) expressAppleMethodRef.current = apple;
       }
 
-      const google = await createGooglePayButton(amount, 'express-google-pay-button', null, { requestContact: true });
+      const google = await createGooglePayButton(amount, 'express-google-pay-button', onWalletError('Google Pay'), { requestContact: true });
       if (cancelled) {
         google?.destroy?.().catch(() => {});
       } else if (google) {
@@ -525,7 +539,7 @@ export default function CheckoutPage() {
         cleanupFns.push(() => btn?.removeEventListener('click', onClick));
       }
 
-      const afterpay = await createAfterpayButton(amount, 'express-afterpay-button', null, { requestContact: true });
+      const afterpay = await createAfterpayButton(amount, 'express-afterpay-button', onWalletError('Afterpay'), { requestContact: true });
       if (cancelled) {
         afterpay?.destroy?.().catch(() => {});
       } else if (afterpay) {
@@ -764,6 +778,20 @@ export default function CheckoutPage() {
       <div className="checkout-grid" style={checkoutGrid}>
         <div className="form-col" style={formCol}>
           <div ref={formTopRef} />
+          {/* TEMPORARY — surfaces the real Square SDK error for any wallet
+              that failed to initialize (see the onWalletError wiring in the
+              two wallet-mount effects above), so it's visible here instead
+              of only in devtools. Remove once wallet availability is
+              understood/resolved. */}
+          {walletDebugError && (
+            <pre style={{
+              whiteSpace: 'pre-wrap', fontSize: 12, color: '#a13d2b', background: '#fdf1ee',
+              border: '1px solid #eab6a8', borderRadius: 6, padding: '10px 12px', marginBottom: 16,
+            }}
+            >
+              {walletDebugError}
+            </pre>
+          )}
           {/* Desktop already has the same info in the sticky sidebar aside
               below — this inline panel is mobile-only there (that sidebar
               is hidden under 861px), so keeping it here too on desktop

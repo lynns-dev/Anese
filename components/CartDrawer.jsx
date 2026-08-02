@@ -46,6 +46,10 @@ export default function CartDrawer({
   const [googleAvailable, setGoogleAvailable] = React.useState(false);
   const [walletSubmitting, setWalletSubmitting] = React.useState(false);
   const [walletMessage, setWalletMessage] = React.useState('');
+  // TEMPORARY — see the matching walletDebugError in pages/checkout.jsx for
+  // why this exists: surfaces the real Square SDK failure reason on-screen
+  // instead of only in devtools' console.
+  const [walletDebugError, setWalletDebugError] = React.useState('');
 
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
   const discountTotal = subtotal - total;
@@ -72,12 +76,17 @@ export default function CartDrawer({
     let cancelled = false;
     let googleClickCleanup = null;
     (async () => {
-      const apple = await createApplePayButton(latestRef.current.grandTotal, null, { requestContact: true });
+      const onWalletError = (label) => (err) => {
+        if (cancelled) return;
+        setWalletDebugError((prev) => `${prev ? `${prev}\n` : ''}${label}: ${err?.message || err}`);
+      };
+
+      const apple = await createApplePayButton(latestRef.current.grandTotal, onWalletError('Apple Pay'), { requestContact: true });
       if (cancelled) return;
       appleMethodRef.current = apple;
       setAppleAvailable(Boolean(apple));
 
-      const google = await createGooglePayButton(latestRef.current.grandTotal, GOOGLE_PAY_CONTAINER_ID, null, { requestContact: true });
+      const google = await createGooglePayButton(latestRef.current.grandTotal, GOOGLE_PAY_CONTAINER_ID, onWalletError('Google Pay'), { requestContact: true });
       if (cancelled) {
         google?.destroy?.().catch(() => {});
         return;
@@ -387,6 +396,15 @@ export default function CartDrawer({
           >
             Checkout
           </Link>
+          {walletDebugError && (
+            <pre style={{
+              whiteSpace: 'pre-wrap', fontSize: 11, color: '#a13d2b', background: '#fdf1ee',
+              border: '1px solid #eab6a8', borderRadius: 6, padding: '8px 10px', marginTop: 12,
+            }}
+            >
+              {walletDebugError}
+            </pre>
+          )}
           {/* Apple Pay + Google Pay, under the main Checkout button and
               split off by an "or". Each renders only once Square confirms
               that wallet is actually available (Safari + a verified

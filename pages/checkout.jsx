@@ -352,11 +352,20 @@ export default function CheckoutPage() {
     if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [error]);
 
-  // Every step change scrolls back to the top of the form — otherwise
+  // Every step *change* scrolls back to the top of the form — otherwise
   // advancing from a long Step 1 (address fully filled in, scrolled down)
   // to a short Step 2 can leave the shopper staring at empty space below
-  // the fold with no visible change.
+  // the fold with no visible change. Skipped on the very first render
+  // (mountedRef still false) — scrollIntoView'ing formTopRef there was
+  // scrolling the freshly-loaded page down past the header, cutting the
+  // logo off instead of landing at the very top like a fresh page load
+  // should.
+  const mountedRef = React.useRef(false);
   React.useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);

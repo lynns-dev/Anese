@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { T, S } from '../lib/theme';
 import ProductVisual from './ProductVisual';
 import { getProductById, FREE_GIFT, FREE_GIFT_THRESHOLD } from '../lib/products';
-import { createApplePayButton, tokenizeWalletWithContact } from '../lib/squareClient';
+import { createApplePayButton, createGooglePayButton, tokenizeWalletWithContact } from '../lib/squareClient';
 import { clearCheckoutProgress } from '../lib/checkoutProgress';
 import { isShopPayAvailable, mountShopPayButton } from '../lib/shopPayClient';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
@@ -13,6 +13,7 @@ import { getSessionId } from '../lib/session';
 import { getIdentity } from '../lib/identity';
 
 const SHOP_PAY_CONTAINER_ID = 'cart-shop-pay-button';
+const GOOGLE_PAY_CONTAINER_ID = 'cart-google-pay-button';
 
 const FREE_SHIP_AT = 50;
 const FREE_GIFT_AT = FREE_GIFT_THRESHOLD;
@@ -40,7 +41,9 @@ export default function CartDrawer({
   // the charge is abandoned (not attempted) if no usable address comes
   // back, so an order can never be taken with nowhere to ship it.
   const appleMethodRef = React.useRef(null);
+  const googleMethodRef = React.useRef(null);
   const [appleAvailable, setAppleAvailable] = React.useState(false);
+  const [googleAvailable, setGoogleAvailable] = React.useState(false);
   const [walletSubmitting, setWalletSubmitting] = React.useState(false);
   const [walletMessage, setWalletMessage] = React.useState('');
 
@@ -67,31 +70,50 @@ export default function CartDrawer({
   React.useEffect(() => {
     if (!open || cart.length === 0) return undefined;
     let cancelled = false;
+    let googleClickCleanup = null;
     (async () => {
       const apple = await createApplePayButton(latestRef.current.grandTotal, null, { requestContact: true });
       if (cancelled) return;
       appleMethodRef.current = apple;
       setAppleAvailable(Boolean(apple));
+
+      const google = await createGooglePayButton(latestRef.current.grandTotal, GOOGLE_PAY_CONTAINER_ID, null, { requestContact: true });
+      if (cancelled) {
+        google?.destroy?.().catch(() => {});
+        return;
+      }
+      if (google) {
+        googleMethodRef.current = google;
+        setGoogleAvailable(true);
+        const btn = document.getElementById(GOOGLE_PAY_CONTAINER_ID);
+        const onClick = (event) => { event.preventDefault(); handleWalletPay(googleMethodRef, 'Google Pay'); };
+        btn?.addEventListener('click', onClick);
+        googleClickCleanup = () => btn?.removeEventListener('click', onClick);
+      }
     })();
     return () => {
       cancelled = true;
+      googleClickCleanup?.();
+      googleMethodRef.current?.destroy?.().catch(() => {});
       appleMethodRef.current = null;
+      googleMethodRef.current = null;
       setAppleAvailable(false);
+      setGoogleAvailable(false);
       setWalletMessage('');
     };
   }, [open, cart.length]);
 
-  const handleApplePayClick = async () => {
-    if (!appleMethodRef.current) return;
+  const handleWalletPay = async (methodRef, label) => {
+    if (!methodRef.current) return;
     setWalletSubmitting(true);
     setWalletMessage('');
     try {
-      const { token, contact } = await tokenizeWalletWithContact(appleMethodRef.current);
-      // Nothing is charged until there's somewhere to ship it — Apple
-      // returns the sheet's contact info alongside the token, and an order
+      const { token, contact } = await tokenizeWalletWithContact(methodRef.current);
+      // Nothing is charged until there's somewhere to ship it — the wallet
+      // sheet returns its contact info alongside the token, and an order
       // without a usable address can't be fulfilled.
       if (!contact) {
-        setWalletMessage('Apple Pay didn’t return a shipping address. Please use checkout instead.');
+        setWalletMessage(`${label} didn’t return a shipping address. Please use checkout instead.`);
         return;
       }
       const { cart: currentCart, grandTotal: amount } = latestRef.current;
@@ -107,7 +129,7 @@ export default function CartDrawer({
           shipping: contact,
           eventId: purchaseEventId,
           url: window.location.href,
-          paymentMethod: 'Square (Apple Pay)',
+          paymentMethod: `Square (${label})`,
           attribution: getStoredAttribution(),
           sessionId: getSessionId(),
         }),
@@ -365,11 +387,12 @@ export default function CartDrawer({
           >
             Checkout
           </Link>
-          {/* Apple Pay, under the main Checkout button and split off by an
-              "or". Renders only once Square confirms the wallet is actually
-              available (Safari + a verified merchant domain), so nothing
-              shows on browsers that can't offer it. */}
-          {(appleAvailable || shopPayReady) && cart.length > 0 && (
+          {/* Apple Pay + Google Pay, under the main Checkout button and
+              split off by an "or". Each renders only once Square confirms
+              that wallet is actually available (Safari + a verified
+              merchant domain for Apple Pay; a saved card for Google Pay),
+              so nothing shows on browsers/accounts that can't offer it. */}
+          {(appleAvailable || googleAvailable || shopPayReady) && cart.length > 0 && (
             <>
               <div style={orDivider}>
                 <span style={orDividerLine} />
@@ -382,11 +405,26 @@ export default function CartDrawer({
                   className="cart-apple-pay-button"
                   aria-label="Buy with Apple Pay"
                   disabled={walletSubmitting}
-                  onClick={handleApplePayClick}
-                  style={{ opacity: walletSubmitting ? 0.6 : 1, marginBottom: shopPayReady ? 10 : 0 }}
+                  onClick={() => handleWalletPay(appleMethodRef, 'Apple Pay')}
+                  style={{ opacity: walletSubmitting ? 0.6 : 1, marginBottom: 10 }}
                 />
               )}
             </>
+          )}
+          {/* Always in the DOM once there's a cart to mount into — Square's
+              SDK attach()es its own iframe button into this id as soon as
+              createGooglePayButton() resolves, which can happen before
+              googleAvailable flips true. Only the visible space collapses. */}
+          {cart.length > 0 && (
+            <div
+              id={GOOGLE_PAY_CONTAINER_ID}
+              style={{
+                width: '100%', minHeight: googleAvailable ? 44 : 0,
+                display: googleAvailable ? 'block' : 'none',
+                opacity: walletSubmitting ? 0.6 : 1, pointerEvents: walletSubmitting ? 'none' : 'auto',
+                marginBottom: googleAvailable && shopPayReady ? 10 : 0,
+              }}
+            />
           )}
           {walletMessage && (
             <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{walletMessage}</p>

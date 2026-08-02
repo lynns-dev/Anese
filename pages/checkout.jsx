@@ -293,6 +293,11 @@ export default function CheckoutPage() {
   // Discount + UI state
   const [discountCode, setDiscountCode] = React.useState(savedProgress?.discountCode ?? '');
   const [discountMessage, setDiscountMessage] = React.useState('');
+  // Mobile-only order summary accordion — collapsed by default so a
+  // shopper isn't scrolling past the full itemized breakdown before
+  // reaching the form; the desktop sticky sidebar (aside below) always
+  // shows it in full regardless of this.
+  const [orderSummaryOpen, setOrderSummaryOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const errorRef = React.useRef(null);
@@ -762,24 +767,42 @@ export default function CheckoutPage() {
           {/* Desktop already has the same info in the sticky sidebar aside
               below — this inline panel is mobile-only there (that sidebar
               is hidden under 861px), so keeping it here too on desktop
-              would just duplicate it above the shipping form. */}
+              would just duplicate it above the shipping form. Collapsed
+              into an accordion by default on mobile so the itemized
+              breakdown doesn't push the actual form below the fold. */}
           <div className="mobile-order-summary">
-            <OrderItemsPanel
-              cart={cart}
-              subtotal={subtotal}
-              discountTotal={discountTotal}
-              codeDiscountAmount={codeDiscountAmount}
-              appliedDiscount={appliedDiscount}
-              shippingCost={shippingCost}
-              addressEntered={addressEntered}
-              grandTotal={grandTotal}
-              discountCode={discountCode}
-              setDiscountCode={setDiscountCode}
-              discountMessage={discountMessage}
-              setDiscountMessage={setDiscountMessage}
-              clearDiscount={clearDiscount}
-              handleApplyDiscount={handleApplyDiscount}
-            />
+            <button
+              type="button"
+              onClick={() => setOrderSummaryOpen((o) => !o)}
+              style={orderSummaryToggle}
+              aria-expanded={orderSummaryOpen}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{orderSummaryOpen ? 'Hide' : 'Show'} order summary</span>
+                <span style={{ fontSize: 10, transform: orderSummaryOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>▾</span>
+              </span>
+              <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700 }}>${grandTotal.toFixed(2)}</span>
+            </button>
+            {orderSummaryOpen && (
+              <div style={{ marginTop: 12 }}>
+                <OrderItemsPanel
+                  cart={cart}
+                  subtotal={subtotal}
+                  discountTotal={discountTotal}
+                  codeDiscountAmount={codeDiscountAmount}
+                  appliedDiscount={appliedDiscount}
+                  shippingCost={shippingCost}
+                  addressEntered={addressEntered}
+                  grandTotal={grandTotal}
+                  discountCode={discountCode}
+                  setDiscountCode={setDiscountCode}
+                  discountMessage={discountMessage}
+                  setDiscountMessage={setDiscountMessage}
+                  clearDiscount={clearDiscount}
+                  handleApplyDiscount={handleApplyDiscount}
+                />
+              </div>
+            )}
           </div>
 
           <form
@@ -1159,6 +1182,11 @@ const billingRecap = {
   display: 'flex', gap: 12, padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white, fontSize: 14,
 };
 const reviewCard = { padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white, fontSize: 14 };
+const orderSummaryToggle = {
+  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  padding: '16px 18px', border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white,
+  cursor: 'pointer', fontFamily: T.sans, fontSize: 13, color: T.ink,
+};
 const featuredReviewsWrap = { marginTop: 28, paddingTop: 24, borderTop: `1px solid ${T.line}` };
 const featuredReviewCard = { padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.paper, marginTop: 12 };
 const carouselDots = { display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 };

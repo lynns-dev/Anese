@@ -17,23 +17,20 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    return OLD_PRODUCT_URL_REWRITES;
-  },
-  // Apple's own domain-verification fetcher reported a redirect on this
-  // path (fixed separately at the Vercel domain level) and then a
-  // "partial response" on retry — the file itself is confirmed byte-exact
-  // and valid locally, so this forces the edge to always serve it fresh
-  // (no-store) rather than a possibly-truncated cached copy, and pins an
-  // explicit Content-Type so nothing downstream guesses one that triggers
-  // compression/transformation of this exact payload.
-  async headers() {
     return [
+      ...OLD_PRODUCT_URL_REWRITES,
+      // Apple's own domain-verification fetcher kept reporting a "partial
+      // response" for the static public/.well-known/... file, even after
+      // the content was confirmed byte-exact and a no-store Cache-Control
+      // header was added — the likely cause is Vercel's static-asset CDN
+      // honoring a Range request with a 206 Partial Content response,
+      // which isn't something a static file's own headers can turn off.
+      // Routed to a serverless function instead (pages/api/apple-pay-
+      // domain-verification.js), which has no Range/206 support at all —
+      // see that file for the actual payload.
       {
         source: '/.well-known/apple-developer-merchantid-domain-association',
-        headers: [
-          { key: 'Content-Type', value: 'text/plain; charset=utf-8' },
-          { key: 'Cache-Control', value: 'no-store' },
-        ],
+        destination: '/api/apple-pay-domain-verification',
       },
     ];
   },

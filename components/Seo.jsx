@@ -4,7 +4,7 @@ import Head from 'next/head';
 // still ships a real <title>/description instead of nothing — the pages
 // router doesn't render one on its own, and a blank title is what Google
 // was indexing every page under until this existed.
-export const SITE_URL = 'https://anese.co';
+export const SITE_URL = 'https://aneseskin.com';
 export const DEFAULT_TITLE = 'ANESE | Booty Skincare — That Booty Tho Scrub';
 export const DEFAULT_DESCRIPTION =
   'ANESE makes booty skincare for butt, thighs, and hips — starting with That Booty Tho, the cult-favorite scrub for smoother, softer, glowing skin. Shop the full collection.';

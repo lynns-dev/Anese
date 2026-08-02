@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /api
 
-Sitemap: https://anese.co/sitemap.xml
+Sitemap: https://aneseskin.com/sitemap.xml

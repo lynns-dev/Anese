@@ -6,7 +6,7 @@ import AddressFields from '../components/AddressFields';
 import { useCart } from '../lib/useCart';
 import {
   createSquareCard, tokenizeSquareCard,
-  createApplePayButton, createGooglePayButton, createAfterpayButton, tokenizeWallet, tokenizeWalletWithContact,
+  createApplePayButton, createGooglePayButton, tokenizeWallet, tokenizeWalletWithContact,
 } from '../lib/squareClient';
 import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
@@ -266,16 +266,16 @@ export default function CheckoutPage() {
   const [squareReady, setSquareReady] = React.useState(false);
   const [squareError, setSquareError] = React.useState('');
 
-  // Apple Pay / Google Pay / Afterpay tokenize on click against the method
-  // instance Square attaches into each container below.
+  // Apple Pay / Google Pay tokenize on click against the method instance
+  // Square attaches into each container below. (Afterpay/Clearpay was
+  // removed — this Square account isn't onboarded for it; see git history
+  // if that ever changes.)
   const appleMethodRef = React.useRef(null);
   const googleMethodRef = React.useRef(null);
-  const afterpayMethodRef = React.useRef(null);
   const [appleAvailable, setAppleAvailable] = React.useState(false);
   const [googleAvailable, setGoogleAvailable] = React.useState(false);
-  const [afterpayAvailable, setAfterpayAvailable] = React.useState(false);
 
-  // Express checkout — the same three wallets, but shown at the top of
+  // Express checkout — the same two wallets, but shown at the top of
   // Step 1 (before the shopper has typed anything) and built with
   // requestContact so each wallet's own sheet collects name/email/address
   // itself. Separate refs/state/containers from the Step 2 set above since
@@ -285,10 +285,8 @@ export default function CheckoutPage() {
   // requests.
   const expressAppleMethodRef = React.useRef(null);
   const expressGoogleMethodRef = React.useRef(null);
-  const expressAfterpayMethodRef = React.useRef(null);
   const [expressAppleAvailable, setExpressAppleAvailable] = React.useState(false);
   const [expressGoogleAvailable, setExpressGoogleAvailable] = React.useState(false);
-  const [expressAfterpayAvailable, setExpressAfterpayAvailable] = React.useState(false);
 
   // Discount + UI state
   const [discountCode, setDiscountCode] = React.useState(savedProgress?.discountCode ?? '');
@@ -423,17 +421,14 @@ export default function CheckoutPage() {
 
   const addressEntered = Boolean(shipping.address.trim() && shipping.city.trim() && shipping.state && shipping.zip.trim());
 
-  // Mounts Apple Pay / Google Pay / Afterpay as soon as the Square SDK is
-  // ready (which only happens on Step 2 — shipping is always already
-  // filled in by then). Each pre-declares a total when created (whatever
-  // grandTotal is at that moment); known limitation: that displayed total
-  // doesn't live-update as discounts change afterward (recreating the
-  // buttons on every total change would flicker them) — the amount actually
-  // charged is always read fresh from latestRef at tokenize time, so this
-  // is a display lag, not a billing bug. Afterpay additionally has its own
-  // order-amount eligibility range — outside it, createAfterpayButton fails
-  // the same way an unsupported browser/device does for Apple/Google Pay,
-  // and the button just doesn't appear.
+  // Mounts Apple Pay / Google Pay as soon as the Square SDK is ready (which
+  // only happens on Step 2 — shipping is always already filled in by
+  // then). Each pre-declares a total when created (whatever grandTotal is
+  // at that moment); known limitation: that displayed total doesn't
+  // live-update as discounts change afterward (recreating the buttons on
+  // every total change would flicker them) — the amount actually charged
+  // is always read fresh from latestRef at tokenize time, so this is a
+  // display lag, not a billing bug.
   React.useEffect(() => {
     if (!squareReady) return;
     let cancelled = false;
@@ -461,31 +456,16 @@ export default function CheckoutPage() {
         btn?.addEventListener('click', onClick);
         cleanupFns.push(() => btn?.removeEventListener('click', onClick));
       }
-
-      const afterpay = await createAfterpayButton(amount, 'afterpay-button');
-      if (cancelled) {
-        afterpay?.destroy?.().catch(() => {});
-      } else if (afterpay) {
-        afterpayMethodRef.current = afterpay;
-        setAfterpayAvailable(true);
-        const btn = document.getElementById('afterpay-button');
-        const onClick = (event) => { event.preventDefault(); handleWalletPay(afterpayMethodRef, 'Afterpay'); };
-        btn?.addEventListener('click', onClick);
-        cleanupFns.push(() => btn?.removeEventListener('click', onClick));
-      }
     })();
 
     return () => {
       cancelled = true;
       cleanupFns.forEach((fn) => fn());
       googleMethodRef.current?.destroy?.().catch(() => {});
-      afterpayMethodRef.current?.destroy?.().catch(() => {});
       appleMethodRef.current = null;
       googleMethodRef.current = null;
-      afterpayMethodRef.current = null;
       setAppleAvailable(false);
       setGoogleAvailable(false);
-      setAfterpayAvailable(false);
     };
     // handleWalletPay only ever reads fresh state via latestRef and stable
     // setters — safe to omit here so this doesn't re-attach on every
@@ -524,31 +504,16 @@ export default function CheckoutPage() {
         btn?.addEventListener('click', onClick);
         cleanupFns.push(() => btn?.removeEventListener('click', onClick));
       }
-
-      const afterpay = await createAfterpayButton(amount, 'express-afterpay-button', null, { requestContact: true });
-      if (cancelled) {
-        afterpay?.destroy?.().catch(() => {});
-      } else if (afterpay) {
-        expressAfterpayMethodRef.current = afterpay;
-        setExpressAfterpayAvailable(true);
-        const btn = document.getElementById('express-afterpay-button');
-        const onClick = (event) => { event.preventDefault(); handleExpressWalletPay(expressAfterpayMethodRef, 'Afterpay'); };
-        btn?.addEventListener('click', onClick);
-        cleanupFns.push(() => btn?.removeEventListener('click', onClick));
-      }
     })();
 
     return () => {
       cancelled = true;
       cleanupFns.forEach((fn) => fn());
       expressGoogleMethodRef.current?.destroy?.().catch(() => {});
-      expressAfterpayMethodRef.current?.destroy?.().catch(() => {});
       expressAppleMethodRef.current = null;
       expressGoogleMethodRef.current = null;
-      expressAfterpayMethodRef.current = null;
       setExpressAppleAvailable(false);
       setExpressGoogleAvailable(false);
-      setExpressAfterpayAvailable(false);
     };
     // handleExpressWalletPay only ever reads fresh state via latestRef and
     // stable setters — safe to omit here so this doesn't re-attach on
@@ -610,9 +575,9 @@ export default function CheckoutPage() {
     setStep(n);
   };
 
-  // Shared by the card submit handler below and the Apple Pay/Google Pay/
-  // Afterpay click handlers — every Square payment method resolves to the
-  // same single-use token shape, so charging and fulfilling it is identical
+  // Shared by the card submit handler below and the Apple Pay/Google Pay
+  // click handlers — every Square payment method resolves to the same
+  // single-use token shape, so charging and fulfilling it is identical
   // regardless of which method produced it. Reads email/shipping/cart/
   // grandTotal from latestRef rather than closed-over state since the
   // wallet path can fire long after the render that created its handler.
@@ -651,7 +616,7 @@ export default function CheckoutPage() {
     clear();
   };
 
-  // Apple Pay / Google Pay / Afterpay only render their own button — there's
+  // Apple Pay / Google Pay only render their own button — there's
   // no "Place order" click to hang the usual form-level required-field
   // validation off of, so this checks email/shipping directly before
   // approving (belt-and-suspenders here since Step 2 can't be reached
@@ -813,8 +778,8 @@ export default function CheckoutPage() {
           >
             {step === 1 && (
               <section style={{ marginTop: 28 }}>
-                {/* Express checkout — Apple Pay / Google Pay / Afterpay up
-                    front, before the shopper has typed anything. Unlike the
+                {/* Express checkout — Apple Pay / Google Pay up front,
+                    before the shopper has typed anything. Unlike the
                     Step 2 wallet buttons below (which reuse the address
                     already entered in Step 1), these are built with
                     requestContact so the wallet's own sheet collects name,
@@ -822,7 +787,7 @@ export default function CheckoutPage() {
                     handleExpressWalletPay. Only rendered once at least one
                     wallet is confirmed available, same tri-state pattern as
                     Step 2. */}
-                <div style={{ display: (expressAppleAvailable || expressGoogleAvailable || expressAfterpayAvailable) ? 'block' : 'none' }}>
+                <div style={{ display: (expressAppleAvailable || expressGoogleAvailable) ? 'block' : 'none' }}>
                   <p style={{ ...fieldGroupLabel, textAlign: 'center' }}>Express checkout</p>
                   <div style={{ display: 'grid', gap: 10 }}>
                     <div style={{ display: expressAppleAvailable ? 'block' : 'none' }}>
@@ -835,9 +800,6 @@ export default function CheckoutPage() {
                     </div>
                     <div style={{ display: expressGoogleAvailable ? 'block' : 'none' }}>
                       <div id="express-google-pay-button" style={walletButtonContainer} />
-                    </div>
-                    <div style={{ display: expressAfterpayAvailable ? 'block' : 'none' }}>
-                      <div id="express-afterpay-button" style={walletButtonContainer} />
                     </div>
                   </div>
                   <div style={orDivider}>
@@ -914,7 +876,9 @@ export default function CheckoutPage() {
                     whether that wallet is actually available on this
                     browser/device. Apple Pay has no attach()/container at
                     all — it's our own native <button> below, styled with
-                    Safari's -apple-pay-button appearance. */}
+                    Safari's -apple-pay-button appearance. The "OR" divider
+                    only separates these from Credit card if at least one
+                    wallet is actually showing. */}
                 <div style={{ display: (appleAvailable || googleAvailable) ? 'block' : 'none', marginTop: 20 }}>
                   <div style={{ display: 'grid', gap: 10 }}>
                     <div style={{ display: appleAvailable ? 'block' : 'none' }}>
@@ -929,15 +893,6 @@ export default function CheckoutPage() {
                       <div id="google-pay-button" style={walletButtonContainer} />
                     </div>
                   </div>
-                </div>
-
-                {/* Afterpay sits right above the card box — same
-                    email/shipping validation via handleWalletPay, just
-                    presented as an alternative to the card form
-                    specifically. Only one "OR" divider total, after
-                    Afterpay and before Credit card. */}
-                <div style={{ display: afterpayAvailable ? 'block' : 'none', marginTop: afterpayAvailable && !(appleAvailable || googleAvailable) ? 20 : 10 }}>
-                  <div id="afterpay-button" style={walletButtonContainer} />
                   <div style={orDivider}>
                     <span style={orDividerLine} />
                     <span style={orDividerText}>OR</span>

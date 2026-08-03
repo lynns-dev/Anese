@@ -330,6 +330,9 @@ export default function ProductPage({ product }) {
                 )}
               </a>
               <h1 className="pdp-title" style={pdpTitle}>{product.name}</h1>
+              {product.subtitle && (
+                <p className="pdp-subtitle" style={pdpSubtitle}>{product.subtitle}</p>
+              )}
             </div>
             <p style={pdpDesc}>{product.description}</p>
 
@@ -697,8 +700,9 @@ export default function ProductPage({ product }) {
              source order (tagline -> stars -> title) still renders as-is. */
           .pdp-info-head { display: flex; flex-direction: column; }
           .pdp-title { order: 1; }
-          .pdp-rating { order: 2; margin-top: 8px; }
-          .pdp-tagline { order: 3; margin-top: 4px; margin-bottom: 0; }
+          .pdp-subtitle { order: 2; }
+          .pdp-rating { order: 3; margin-top: 8px; }
+          .pdp-tagline { order: 4; margin-top: 4px; margin-bottom: 0; }
 
           .mobile-slide-wrap { position: relative; width: 100%; }
           .mobile-slider-track {
@@ -751,6 +755,7 @@ const pdpRating = {
   fontFamily: T.sans, width: 'fit-content',
 };
 const pdpTitle = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(40px,5vw,60px)', lineHeight: 0.98, marginBottom: 16 };
+const pdpSubtitle = { fontFamily: T.sans, fontWeight: 700, fontSize: 16, color: T.ink, marginBottom: 16, lineHeight: 1.4 };
 const pdpDesc = { fontSize: 14, color: T.soft, maxWidth: '42ch', marginBottom: 24, lineHeight: 1.6 };
 const pdpPrice = { fontFamily: T.serif, fontWeight: 400, fontSize: 30, marginBottom: 20 };
 const qtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.line}`, background: T.shell, height: 56 };

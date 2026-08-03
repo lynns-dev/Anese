@@ -90,6 +90,24 @@ export default function ProductPage({ product }) {
   const images = React.useMemo(() => product?.images || [], [product]);
   const [activeImage, setActiveImage] = React.useState(images[0] || '');
 
+  // Floating add-to-cart bar only shows once the main Add to cart button
+  // (below) has scrolled out of view — not on load, where it'd just
+  // duplicate a CTA that's already on screen. Hides again if the shopper
+  // scrolls back up to it.
+  const [showStickyBar, setShowStickyBar] = React.useState(false);
+  const addToCartRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const node = addToCartRef.current;
+    if (!node) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   // Mobile-only image slider (arrows + swipe/scroll-snap) — separate from
   // the desktop sticky gallery + thumbnail rail above, which stays as-is.
   // Index-based rather than reusing activeImage since the two views are
@@ -226,7 +244,7 @@ export default function ProductPage({ product }) {
   const isBootyScrub = product.category === 'scrub';
 
   return (
-    <div style={{ paddingBottom: 76 }}>
+    <div style={{ paddingBottom: showStickyBar ? 76 : 0 }}>
       <Seo
         title={isBootyScrub ? `${product.name} | Booty Skincare Scrub — ANESE` : `${product.name} | ANESE`}
         description={product.description}
@@ -338,7 +356,7 @@ export default function ProductPage({ product }) {
 
             <div className="pdp-price" style={pdpPrice}>${unitPrice} <span style={{ fontSize: 14, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap', marginBottom: 14 }}>
+            <div ref={addToCartRef} style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap', marginBottom: 14 }}>
               <div style={qtyWrap}>
                 <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} style={qtyBtn} aria-label="Decrease quantity">−</button>
                 <span style={qtyValue}>{quantity}</span>
@@ -633,23 +651,27 @@ export default function ProductPage({ product }) {
 
       <CartDrawer {...c} onClose={() => c.setOpen(false)} />
 
-      {/* Floating add-to-cart bar */}
-      <div style={stickyBar}>
-        <div className="sticky-bar-inner" style={stickyBarInner}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 18, color: T.oat, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</div>
-            <div style={{ fontSize: 13, color: 'rgba(244,237,227,0.7)', marginTop: 2 }}>${unitPrice}</div>
-          </div>
-          <div className="sticky-bar-actions" style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-            <div style={stickyQtyWrap}>
-              <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} style={stickyQtyBtn} aria-label="Decrease quantity">−</button>
-              <span style={{ ...qtyValue, color: T.oat }}>{quantity}</span>
-              <button onClick={() => setQuantity((q) => q + 1)} style={stickyQtyBtn} aria-label="Increase quantity">+</button>
+      {/* Floating add-to-cart bar — only once the main Add to cart button
+          above has scrolled out of view (see the IntersectionObserver
+          effect near the top of this component). */}
+      {showStickyBar && (
+        <div style={stickyBar}>
+          <div className="sticky-bar-inner" style={stickyBarInner}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 15, color: T.oat, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</div>
+              <div style={{ fontFamily: T.sans, fontSize: 13, color: 'rgba(244,237,227,0.7)', marginTop: 2 }}>${unitPrice}</div>
             </div>
-            <button onClick={handleAdd} style={stickyAddBtn}>Add to cart</button>
+            <div className="sticky-bar-actions" style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+              <div style={stickyQtyWrap}>
+                <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} style={stickyQtyBtn} aria-label="Decrease quantity">−</button>
+                <span style={{ ...qtyValue, color: T.oat }}>{quantity}</span>
+                <button onClick={() => setQuantity((q) => q + 1)} style={stickyQtyBtn} aria-label="Increase quantity">+</button>
+              </div>
+              <button onClick={handleAdd} style={stickyAddBtn}>Add to cart</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <style jsx>{`
         .ticker-track { animation: anese-ticker 22s linear infinite; }

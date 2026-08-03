@@ -334,9 +334,9 @@ export default function ProductPage({ product }) {
                 <p className="pdp-subtitle" style={pdpSubtitle}>{product.subtitle}</p>
               )}
             </div>
-            <p style={pdpDesc}>{product.description}</p>
+            <p className="pdp-desc" style={pdpDesc}>{product.description}</p>
 
-            <div style={pdpPrice}>${unitPrice} <span style={{ fontSize: 14, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
+            <div className="pdp-price" style={pdpPrice}>${unitPrice} <span style={{ fontSize: 14, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap', marginBottom: 14 }}>
               <div style={qtyWrap}>
@@ -697,12 +697,17 @@ export default function ProductPage({ product }) {
 
           /* Title/stars/subtitle reordered below the image (see .pdp-info-head
              below) — this doesn't apply above 680px, where the JSX's own
-             source order (tagline -> stars -> title) still renders as-is. */
+             source order (tagline -> stars -> title) still renders as-is.
+             Margins are tightened here too (!important — these elements
+             carry an inline marginBottom that would otherwise win over a
+             plain class rule) so more of the page clears the fold. */
           .pdp-info-head { display: flex; flex-direction: column; }
-          .pdp-title { order: 1; }
-          .pdp-subtitle { order: 2; }
-          .pdp-rating { order: 3; margin-top: 8px; }
+          .pdp-title { order: 1; font-size: 32px !important; margin-bottom: 8px !important; }
+          .pdp-subtitle { order: 2; margin-bottom: 8px !important; }
+          .pdp-rating { order: 3; margin-top: 6px; margin-bottom: 10px !important; }
           .pdp-tagline { order: 4; margin-top: 4px; margin-bottom: 0; }
+          .pdp-desc { margin-bottom: 14px !important; }
+          .pdp-price { margin-bottom: 12px !important; }
 
           .mobile-slide-wrap { position: relative; width: 100%; }
           .mobile-slider-track {

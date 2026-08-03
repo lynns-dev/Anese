@@ -32,6 +32,20 @@ export default function Document() {
         `,
           }}
         />
+        {/* Microsoft Clarity — session recording/heatmaps, sitewide. Project
+            id "xwdmzgtlo1" is a public tracking identifier, same category as
+            the Meta Pixel id; not a secret. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+          (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "xwdmzgtlo1");
+        `,
+          }}
+        />
       </Head>
       <body>
         <Main />

@@ -101,19 +101,28 @@ export default function ProductPage({ product }) {
     setSlideIndex(0);
   }, [images]);
 
+  // Each slide is ~88% of the track's width (not 100%) so the next image
+  // peeks in at the edge — step size has to be measured from the track's
+  // actual scrollWidth divided by slide count rather than assumed to equal
+  // clientWidth, or every scrollTo/index calculation below would overshoot.
   const goToSlide = (i) => {
     const clamped = Math.max(0, Math.min(images.length - 1, i));
     setSlideIndex(clamped);
     const track = sliderTrackRef.current;
-    if (track) track.scrollTo({ left: clamped * track.clientWidth, behavior: 'smooth' });
+    if (track && images.length > 0) {
+      const step = track.scrollWidth / images.length;
+      track.scrollTo({ left: clamped * step, behavior: 'smooth' });
+    }
   };
 
   // Keeps slideIndex in sync when the shopper swipes/scrolls the track
   // directly instead of using the arrow buttons.
   const handleSliderScroll = () => {
     const track = sliderTrackRef.current;
-    if (!track || track.clientWidth === 0) return;
-    const i = Math.round(track.scrollLeft / track.clientWidth);
+    if (!track || images.length === 0) return;
+    const step = track.scrollWidth / images.length;
+    if (step === 0) return;
+    const i = Math.round(track.scrollLeft / step);
     setSlideIndex((cur) => (cur === i ? cur : i));
   };
   const [reviewData, setReviewData] = React.useState({ reviews: [], average: 0, count: 0 });
@@ -226,12 +235,12 @@ export default function ProductPage({ product }) {
       />
       <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} />
 
-      <section style={{ maxWidth: T.maxw, margin: '0 auto', padding: '22px 32px 0' }}>
+      <section className="pdp-breadcrumb" style={{ maxWidth: T.maxw, margin: '0 auto', padding: '22px 32px 0' }}>
         <Link href="/shop" style={{ ...S.label, display: 'inline-block', marginBottom: 30 }}>← Back to shop</Link>
       </section>
 
       {/* HERO */}
-      <section style={{ maxWidth: T.maxw, margin: '0 auto', padding: '0 32px 60px' }}>
+      <section className="pdp-hero" style={{ maxWidth: T.maxw, margin: '0 auto', padding: '0 32px 60px' }}>
         <div className="pdp-grid" style={grid}>
           <div className="pdp-gallery gallery-desktop" style={gallery}>
             <div style={imgSide}>
@@ -304,18 +313,24 @@ export default function ProductPage({ product }) {
           </div>
 
           <div style={infoCol}>
-            <p style={S.label}>{product.tagline}</p>
-            <a href="#reviews" style={pdpRating}>
-              {reviewData.count > 0 ? (
-                <>
-                  <span style={{ color: T.honey, letterSpacing: '1px' }}>{'★'.repeat(Math.round(reviewData.average))}{'☆'.repeat(5 - Math.round(reviewData.average))}</span>
-                  {' '}{reviewData.average.toFixed(1)} · {reviewData.count} review{reviewData.count === 1 ? '' : 's'}
-                </>
-              ) : (
-                'Be the first to review'
-              )}
-            </a>
-            <h1 style={pdpTitle}>{product.name}</h1>
+            {/* Reordered on mobile only (see .pdp-info-head below): title,
+                then review stars, then the tagline/subtitle — desktop keeps
+                the original tagline -> stars -> title -> description order
+                via source order (no CSS order applied above 680px). */}
+            <div className="pdp-info-head">
+              <p className="pdp-tagline" style={S.label}>{product.tagline}</p>
+              <a href="#reviews" className="pdp-rating" style={pdpRating}>
+                {reviewData.count > 0 ? (
+                  <>
+                    <span style={{ color: T.honey, letterSpacing: '1px' }}>{'★'.repeat(Math.round(reviewData.average))}{'☆'.repeat(5 - Math.round(reviewData.average))}</span>
+                    {' '}{reviewData.average.toFixed(1)} · {reviewData.count} review{reviewData.count === 1 ? '' : 's'}
+                  </>
+                ) : (
+                  'Be the first to review'
+                )}
+              </a>
+              <h1 className="pdp-title" style={pdpTitle}>{product.name}</h1>
+            </div>
             <p style={pdpDesc}>{product.description}</p>
 
             <div style={pdpPrice}>${unitPrice} <span style={{ fontSize: 14, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
@@ -670,18 +685,33 @@ export default function ProductPage({ product }) {
           .sticky-bar-inner { padding: 0 16px; gap: 12px; }
           .sticky-bar-actions { gap: 10px; }
 
+          /* No breadcrumb, no space above the main image on mobile. */
+          .pdp-breadcrumb { display: none; }
+          .pdp-hero { padding-top: 0; }
+
           .gallery-desktop { display: none !important; }
           .gallery-mobile { display: block; }
 
+          /* Title/stars/subtitle reordered below the image (see .pdp-info-head
+             below) — this doesn't apply above 680px, where the JSX's own
+             source order (tagline -> stars -> title) still renders as-is. */
+          .pdp-info-head { display: flex; flex-direction: column; }
+          .pdp-title { order: 1; }
+          .pdp-rating { order: 2; margin-top: 8px; }
+          .pdp-tagline { order: 3; margin-top: 4px; margin-bottom: 0; }
+
           .mobile-slide-wrap { position: relative; width: 100%; }
           .mobile-slider-track {
-            display: flex; overflow-x: auto; width: 100%;
+            display: flex; overflow-x: auto; width: 100%; gap: 12px;
             scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
           }
           .mobile-slider-track::-webkit-scrollbar { display: none; }
+          /* 88% width (not 100%) so the next image peeks in at the edge;
+             shorter aspect ratio than the old 4/5 so the title clears the
+             fold on a typical phone viewport. */
           .mobile-slide {
-            flex: 0 0 100%; width: 100%; aspect-ratio: 4/5;
+            flex: 0 0 88%; width: 88%; aspect-ratio: 1/1;
             scroll-snap-align: start; background: ${T.white};
           }
           .slider-arrow {
@@ -711,7 +741,7 @@ const gallery = { display: 'flex', gap: 14, alignSelf: 'start' };
 const imgSide = { position: 'relative', background: T.white, aspectRatio: '4/5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 1, minWidth: 0, boxShadow: T.shadow, padding: 20, boxSizing: 'border-box' };
 const imageBadge = {
   position: 'absolute', top: 14, right: 14, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',
-  color: '#fff', background: T.clay, padding: '6px 12px', zIndex: 1, fontFamily: T.sans, fontWeight: 600, borderRadius: 30,
+  color: '#fff', background: '#000', padding: '6px 12px', zIndex: 1, fontFamily: T.sans, fontWeight: 600, borderRadius: 30,
 };
 const thumbCol = { display: 'flex', gap: 12, flexShrink: 0 };
 const thumbBtn = { width: 72, height: 72, padding: 0, border: 'none', cursor: 'pointer', overflow: 'hidden', background: T.white, flexShrink: 0, boxShadow: T.shadowSm };

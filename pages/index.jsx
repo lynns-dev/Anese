@@ -14,7 +14,7 @@ import { T, S } from '../lib/theme';
 // Minimal line-art icons for the trust badges — matching the site's thin-
 // stroke aesthetic (see ProductVisual's SVG fallbacks) rather than emoji
 // or generic checkmarks, so the badges read as designed, not default.
-const iconProps = { width: 32, height: 32, viewBox: '0 0 24 24', fill: 'none', stroke: T.ink, strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+const iconProps = { width: 44, height: 44, viewBox: '0 0 24 24', fill: 'none', stroke: T.ink, strokeWidth: 1.2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
 function AwardIcon() {
   return (
     <svg {...iconProps}>
@@ -394,7 +394,7 @@ const trustItem = {
 };
 const trustItemTitle = { fontSize: 15, fontWeight: 700 };
 const trustItemSub = { fontSize: 12, color: T.soft, marginTop: 2 };
-const concernIcon = { width: 60, height: 60, margin: '0 auto 18px', display: 'block' };
+const concernIcon = { width: 100, height: 100, margin: '0 auto 18px', display: 'block' };
 const concernsGrid = { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 40 };
 const concernChip = {
   fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.ink,

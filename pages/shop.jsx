@@ -85,7 +85,7 @@ export default function ShopPage() {
 const banner = {
   padding: '64px 0 24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
-const bannerIcon = { width: 60, height: 60, margin: '0 auto 18px', display: 'block' };
+const bannerIcon = { width: 100, height: 100, margin: '0 auto 18px', display: 'block' };
 const grid = { display: 'grid', gap: 40 };
 const card = { textAlign: 'center' };
 const badge = { position: 'absolute', top: 14, right: 14, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.ink, background: 'rgba(252,251,247,0.92)', padding: '6px 10px', zIndex: 1 };

@@ -475,31 +475,6 @@ export default function ProductPage({ product }) {
             </section>
           )}
 
-          {/* UGC VIDEOS */}
-          {UGC_VIDEOS.length > 0 && (
-            <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
-              <div style={{ ...S.wrap, textAlign: 'center' }}>
-                <p style={S.label}>As seen and used</p>
-                <h2 style={{ ...S.h2, marginTop: 14 }}>Real people, <span style={S.it}>real routines.</span></h2>
-                <div className="ugc-track" style={ugcTrack}>
-                  {UGC_VIDEOS.map((src, i) => (
-                    <video
-                      key={i}
-                      className="ugc-item"
-                      style={ugcItem}
-                      src={src}
-                      muted
-                      loop
-                      playsInline
-                      autoPlay
-                      controls
-                    />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
           {/* HOW TO */}
           <section style={{ ...band, background: T.ink, color: T.oat }}>
             <div style={{ ...S.wrap, textAlign: 'center' }}>
@@ -517,6 +492,32 @@ export default function ProductPage({ product }) {
             </div>
           </section>
         </>
+      )}
+
+      {/* UGC VIDEOS — shown on every product (not just isScrub), since
+          real-customer social proof is relevant regardless of formula. */}
+      {UGC_VIDEOS.length > 0 && (
+        <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
+          <div style={{ ...S.wrap, textAlign: 'center' }}>
+            <p style={S.label}>As seen and used</p>
+            <h2 style={{ ...S.h2, marginTop: 14 }}>Real people, <span style={S.it}>real routines.</span></h2>
+            <div className="ugc-track" style={ugcTrack}>
+              {UGC_VIDEOS.map((src, i) => (
+                <video
+                  key={i}
+                  className="ugc-item"
+                  style={ugcItem}
+                  src={src}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                  controls
+                />
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* REVIEWS */}

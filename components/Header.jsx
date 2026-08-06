@@ -27,6 +27,7 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
         <div style={styles.side}>
           <div className="desktop-links" style={styles.desktopLinks}>
             <Link href="/shop" style={{ ...styles.navLink, color: linkColor, opacity: active('/shop') ? 1 : 0.7 }}>Shop</Link>
+            <Link href="/quiz" style={{ ...styles.navLink, color: linkColor, opacity: active('/quiz') ? 1 : 0.7 }}>Find My Routine</Link>
             <a href="/#before-after" style={{ ...styles.navLink, color: linkColor }}>Before & After</a>
           </div>
           <button
@@ -61,6 +62,7 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
       {menuOpen && (
         <div className="mobile-menu" style={styles.mobileMenu}>
           <Link href="/shop" onClick={closeMenu} style={styles.mobileMenuLink}>Shop</Link>
+          <Link href="/quiz" onClick={closeMenu} style={styles.mobileMenuLink}>Find My Routine</Link>
           <a href="/#before-after" onClick={closeMenu} style={styles.mobileMenuLink}>Before & After</a>
           <a href="/#reviews" onClick={closeMenu} style={styles.mobileMenuLink}>Reviews</a>
         </div>

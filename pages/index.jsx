@@ -120,6 +120,29 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* TRUST BADGES — borrows the credibility signals competitors lean on
+          (review volume, guarantee, free shipping) right where a first-time
+          visitor lands, before they've scrolled to the dedicated reviews
+          section further down. */}
+      <section style={trustBar}>
+        <div className="trust-row" style={trustRow}>
+          {siteReviews.count > 0 && (
+            <div style={trustItem}>
+              <span style={{ color: T.honey, letterSpacing: '1.5px' }}>{'★'.repeat(Math.round(siteReviews.average))}{'☆'.repeat(5 - Math.round(siteReviews.average))}</span>
+              <span>{siteReviews.average.toFixed(1)} · {siteReviews.count}+ reviews</span>
+            </div>
+          )}
+          <div style={trustItem}>
+            <span aria-hidden="true">✓</span>
+            <span>30-day money-back guarantee</span>
+          </div>
+          <div style={trustItem}>
+            <span aria-hidden="true">✓</span>
+            <span>Free shipping over $50</span>
+          </div>
+        </div>
+      </section>
+
       {/* TICKER */}
       <div style={ticker}>
         <div className="ticker-track" style={tickerTrack}>
@@ -314,6 +337,9 @@ const heroSub = { fontSize: 17, color: 'rgba(244,237,227,0.9)', maxWidth: '40ch'
 const hrate = { display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: 'rgba(244,237,227,0.9)', marginBottom: 30 };
 const heroBtn = { ...S.btnFill, background: T.oat, color: T.ink };
 const heroLink = { ...S.link, color: T.oat, borderBottom: 'none' };
+const trustBar = { padding: '20px 32px', background: T.shell, borderBottom: `1px solid ${T.line}` };
+const trustRow = { maxWidth: T.maxw, margin: '0 auto', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '14px 36px' };
+const trustItem = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontFamily: T.sans, color: T.ink, whiteSpace: 'nowrap' };
 const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, overflow: 'hidden', padding: '16px 0', background: T.shell };
 const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink };
 const band = { padding: '90px 0' };

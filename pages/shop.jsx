@@ -45,15 +45,15 @@ export default function ShopPage() {
                 <ProductVisual id={p.id} images={p.images} alt={p.name} width={p.id === 'puff' ? 130 : 120} />
               </Link>
               <div style={cardText}>
-                <Link href={`/product/${p.id}`} style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 18 }}>{p.name}</Link>
+                <Link href={`/product/${p.id}`} style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 16 }}>{p.name}</Link>
+                <div style={{ fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, margin: '6px 0' }}>{p.tagline}</div>
                 {reviews[p.id]?.count > 0 && (
-                  <div style={ratingRow}>
+                  <div style={{ ...ratingRow, fontSize: 12, marginTop: 0, marginBottom: 10 }}>
                     <span style={{ letterSpacing: '1.5px', color: T.ink }}>{'★'.repeat(Math.round(reviews[p.id].average))}{'☆'.repeat(5 - Math.round(reviews[p.id].average))}</span>
                     {' '}{reviews[p.id].average.toFixed(1)} ({reviews[p.id].count})
                   </div>
                 )}
-                <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, margin: '8px 0 10px' }}>{p.tagline}</div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: T.ink, marginBottom: 14 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, marginBottom: 14 }}>
                   ${p.price} <span style={{ fontSize: 13, fontWeight: 400, color: T.soft }}>· {p.size}</span>
                 </div>
                 <button style={{ ...S.btnFill, width: '100%', justifyContent: 'center' }} onClick={() => c.add(p)}>Add to cart</button>

@@ -144,15 +144,15 @@ export default function HomePage() {
                   <ProductVisual id={p.id} images={p.images} alt={p.name} width={104} />
                 </Link>
                 <div style={pcardText}>
-                  <Link href={`/product/${p.id}`} style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 19 }}>{p.name}</Link>
-                  <div style={pnotes}>{p.tagline}</div>
+                  <Link href={`/product/${p.id}`} style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 16 }}>{p.name}</Link>
+                  <div style={{ ...pnotes, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{p.tagline}</div>
                   {reviewsByProduct[p.id]?.count > 0 && (
-                    <div style={ratingRow}>
+                    <div style={{ ...ratingRow, fontSize: 12 }}>
                       <span style={{ letterSpacing: '1.5px', color: T.ink }}>{'★'.repeat(Math.round(reviewsByProduct[p.id].average))}{'☆'.repeat(5 - Math.round(reviewsByProduct[p.id].average))}</span>
                       {' '}{reviewsByProduct[p.id].average.toFixed(1)} ({reviewsByProduct[p.id].count})
                     </div>
                   )}
-                  <div style={{ fontSize: 20, fontWeight: 600, color: T.ink }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
                     ${p.price} <span style={{ fontSize: 13, fontWeight: 400, color: T.soft }}>· {p.size}</span>
                   </div>
                   <button style={{ ...S.btnFill, width: '100%', marginTop: 18 }} onClick={() => c.add(p)}>Add to cart</button>

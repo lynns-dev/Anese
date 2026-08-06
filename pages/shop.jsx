@@ -26,6 +26,7 @@ export default function ShopPage() {
       {/* BANNER — plain text header, no background image */}
       <section style={banner}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
+          <img src="/images/anese-cloud-recline-icon.png" alt="" style={bannerIcon} />
           <p style={S.label}>The collection</p>
           <h1 style={{ ...S.h2, fontSize: 'clamp(38px,5.6vw,64px)', marginTop: 14 }}>
             Shop <span style={S.it}>ANESE.</span>
@@ -84,6 +85,7 @@ export default function ShopPage() {
 const banner = {
   padding: '64px 0 24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
+const bannerIcon = { width: 60, height: 60, margin: '0 auto 18px', display: 'block' };
 const grid = { display: 'grid', gap: 40 };
 const card = { textAlign: 'center' };
 const badge = { position: 'absolute', top: 14, right: 14, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.ink, background: 'rgba(252,251,247,0.92)', padding: '6px 10px', zIndex: 1 };

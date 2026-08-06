@@ -253,7 +253,7 @@ export default function HomePage() {
       {/* BENEFITS */}
       <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <img src="/images/anese-tiger-icon.png" alt="" style={concernIcon} />
+          <img src="/images/anese-cloud-icon.png" alt="" style={concernIcon} />
           <p style={S.label}>Why you'll love it</p>
           <h2 style={{ ...S.h2, marginTop: 12 }}>Skin that <span style={S.it}>actually glows.</span></h2>
           <div className="ben-grid" style={benGrid}>

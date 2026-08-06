@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Header from '../../components/Header';
 import CartDrawer from '../../components/CartDrawer';
 import ProductVisual from '../../components/ProductVisual';
+import AnimatedResultsTimeline from '../../components/AnimatedResultsTimeline';
 import Marquee from '../../components/Marquee';
 import Footer from '../../components/Footer';
 import Seo from '../../components/Seo';
@@ -383,6 +384,11 @@ export default function ProductPage({ product }) {
                 </div>
               </div>
             )}
+
+            {/* Animated results timeline — placed right under Go bigger per
+                request. Scrub-only since the copy (texture/exfoliation
+                results) is written for the scrub specifically. */}
+            {isScrub && <AnimatedResultsTimeline />}
 
             <div style={{ marginTop: 24 }}>
               {isScrub && (

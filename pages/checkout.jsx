@@ -420,15 +420,24 @@ export default function CheckoutPage() {
   }, [step]);
 
   const addressEntered = Boolean(shipping.address.trim() && shipping.city.trim() && shipping.state && shipping.zip.trim());
+  // Computed here (rather than down with subtotal/discountTotal below) so
+  // it's in scope for the wallet-mount effects right after, which now
+  // depend on it — see those effects' comments for why.
+  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 ? 0 : 5);
+  const grandTotal = discountedTotal + shippingCost;
 
   // Mounts Apple Pay / Google Pay as soon as the Square SDK is ready (which
   // only happens on Step 2 — shipping is always already filled in by
-  // then). Each pre-declares a total when created (whatever grandTotal is
-  // at that moment); known limitation: that displayed total doesn't
-  // live-update as discounts change afterward (recreating the buttons on
-  // every total change would flicker them) — the amount actually charged
-  // is always read fresh from latestRef at tokenize time, so this is a
-  // display lag, not a billing bug.
+  // then). Re-declares its total whenever grandTotal changes (discount
+  // applied/removed, shipping threshold crossed): a shopper applying a
+  // discount code and then paying with Apple Pay was being shown — and
+  // asked to approve via Face/Touch ID — the pre-discount total, because
+  // the button had already been created before the code was entered and
+  // never refreshed. Whether or not Square's charge itself matched the
+  // discounted amount, showing/authorizing the wrong number is the bug;
+  // this keeps the wallet's own total honest by recreating it whenever
+  // the real total changes, at the cost of the button briefly
+  // disappearing and re-rendering on those (infrequent) changes.
   React.useEffect(() => {
     if (!squareReady) return;
     let cancelled = false;
@@ -471,14 +480,18 @@ export default function CheckoutPage() {
     // setters — safe to omit here so this doesn't re-attach on every
     // keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [squareReady]);
+  }, [squareReady, grandTotal]);
 
   // Express checkout at the top of Step 1 — mounted independently of the
   // Step 2 wallets/card above, since Step 1 doesn't need Square's card
   // element and (unlike Step 2) has no address on file yet: requestContact
   // has each wallet's own sheet collect it instead. Gated on step === 1 the
   // same way Step 2's card is gated on step === 2 — the containers aren't
-  // in the DOM at all while the other step is showing.
+  // in the DOM at all while the other step is showing. Also depends on
+  // grandTotal for the same reason as the Step 2 effect above — a
+  // discount applied on Step 1 (the order summary's code field is visible
+  // there too) needs these buttons to re-declare their total, not keep
+  // showing/authorizing whatever was true before the code was entered.
   React.useEffect(() => {
     if (step !== 1) return;
     let cancelled = false;
@@ -519,12 +532,10 @@ export default function CheckoutPage() {
     // stable setters — safe to omit here so this doesn't re-attach on
     // every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [step, grandTotal]);
 
-  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 ? 0 : 5);
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
   const discountTotal = subtotal - total;
-  const grandTotal = discountedTotal + shippingCost;
 
   // Apple Pay/Google Pay's button click handler is attached once (see the
   // wallet mount effect above) and can fire long after that — reading

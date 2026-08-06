@@ -67,6 +67,11 @@ export default function CartDrawer({
   const latestRef = React.useRef({});
   latestRef.current = { cart, grandTotal, shippingCost, discountCode: appliedDiscount?.code };
 
+  // Re-declares the wallet buttons' total whenever grandTotal changes
+  // (discount applied/removed) — otherwise Apple Pay's on-device sheet
+  // kept showing/authorizing whatever total was true when the drawer
+  // first opened, not the discounted one, even though the code was
+  // already accepted.
   React.useEffect(() => {
     if (!open || cart.length === 0) return undefined;
     let cancelled = false;
@@ -101,7 +106,7 @@ export default function CartDrawer({
       setGoogleAvailable(false);
       setWalletMessage('');
     };
-  }, [open, cart.length]);
+  }, [open, cart.length, grandTotal]);
 
   const handleWalletPay = async (methodRef, label) => {
     if (!methodRef.current) return;

@@ -228,13 +228,11 @@ export default function Offer3Page() {
   // mount this early either way because handleWalletPay (below) still
   // validates email/shipping are filled in before it lets a click actually
   // proceed to tokenize() — the button existing isn't the same as the
-  // button working. Each pre-declares a total when created (whatever
-  // grandTotal is at that moment, which won't yet include shipping if the
-  // address isn't entered yet); known limitation: that displayed total
-  // doesn't live-update as scent/quantity/discount changes afterward
-  // (recreating the buttons on every total change would flicker them) —
-  // the amount actually charged is always read fresh from latestRef at
-  // tokenize time, so this is a display lag, not a billing bug. Afterpay
+  // button working. Also re-declares each button's total whenever
+  // grandTotal changes (scent/quantity/discount/shipping) — Apple Pay's
+  // on-device sheet otherwise kept showing/authorizing whatever total was
+  // true when the button first mounted, which a shopper who applied a
+  // discount code afterward would never see reflected. Afterpay
   // additionally has its own order-amount eligibility range — outside it,
   // createAfterpayButton fails the same way an unsupported browser/device
   // does for Apple/Google Pay, and the button just doesn't appear.
@@ -300,7 +298,7 @@ export default function Offer3Page() {
     // setters — safe to omit here so this doesn't re-attach on every
     // keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [squareReady]);
+  }, [squareReady, grandTotal]);
 
   // Same abandoned-checkout capture as /checkout — fires once the shopper
   // leaves the email field, so someone who lands here from an ad and

@@ -4,13 +4,43 @@ import Head from 'next/head';
 import Header from '../components/Header';
 import CartDrawer from '../components/CartDrawer';
 import ProductVisual from '../components/ProductVisual';
-import Marquee from '../components/Marquee';
 import Footer from '../components/Footer';
 import Seo, { SITE_URL } from '../components/Seo';
 import { getFeaturedProducts } from '../lib/products';
 import { useCart } from '../lib/useCart';
 import { useAllReviews } from '../lib/useReviews';
 import { T, S } from '../lib/theme';
+
+// Minimal line-art icons for the trust badges — matching the site's thin-
+// stroke aesthetic (see ProductVisual's SVG fallbacks) rather than emoji
+// or generic checkmarks, so the badges read as designed, not default.
+const iconProps = { width: 26, height: 26, viewBox: '0 0 24 24', fill: 'none', stroke: T.ink, strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+function AwardIcon() {
+  return (
+    <svg {...iconProps}>
+      <circle cx="12" cy="8" r="5.5" />
+      <path d="M8.5 12.5 7 21l5-2.5L17 21l-1.5-8.5" />
+    </svg>
+  );
+}
+function ShieldCheckIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M12 2.5 4.5 5.5V11c0 5 3.2 8.4 7.5 10.5 4.3-2.1 7.5-5.5 7.5-10.5V5.5L12 2.5Z" />
+      <path d="M8.5 12 11 14.5l4.5-5" />
+    </svg>
+  );
+}
+function TruckIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="2" y="7" width="12" height="9" />
+      <path d="M14 10h4l3.5 3.5V16h-7.5" />
+      <circle cx="6.5" cy="18.5" r="1.6" />
+      <circle cx="17" cy="18.5" r="1.6" />
+    </svg>
+  );
+}
 
 // SiteNavigationElement + WebSite structured data — the standard signal
 // Google uses (alongside actual site structure/click-through data) to
@@ -37,6 +67,11 @@ const BENEFITS = [
   ['Smoother texture', "Walnut grain buffs away rough, uneven, dull skin — what's left feels like a compliment."],
   ['Lit-from-within glow', 'Shea, jojoba & rosehip hydrate while you exfoliate, so you rinse off glowing, not stripped.'],
   ['Made for the booty', 'Formulated for butt, thighs & hips — the spots most body scrubs completely ignore.'],
+];
+
+const CONCERNS = [
+  'Hyperpigmentation', 'Acne & breakouts', 'Keratosis pilaris', 'Stretch marks',
+  'Bumpy or rough skin', 'Friction irritation',
 ];
 
 const GALLERY_IMAGES = [
@@ -104,8 +139,8 @@ export default function HomePage() {
         <div className="hero-bg" style={heroBg}>
           <div style={heroContent}>
             <span style={{ ...S.label, display: 'block', marginBottom: 26, color: T.white }}>Walnut grain body scrub</span>
-            <h1 style={heroH1}>Skin so soft it's <span style={{ ...S.it, color: T.white }}>basically a flex.</span></h1>
-            <p style={heroSub}>The scrub that's not here to "fix" your body — just to make it feel ridiculously good. Your booty's new hype girl.</p>
+            <h1 style={heroH1}>Award Winning <span style={{ ...S.it, color: T.white }}>Skincare</span> for your Butt</h1>
+            <p style={heroSub}>Clean and effective skincare for your butt's unique skincare needs.</p>
             {siteReviews.count > 0 && (
               <div style={hrate}>
                 <span style={{ letterSpacing: '2px', color: T.honey }}>{'★'.repeat(Math.round(siteReviews.average))}{'☆'.repeat(5 - Math.round(siteReviews.average))}</span>
@@ -123,23 +158,53 @@ export default function HomePage() {
       {/* TRUST BADGES — borrows the credibility signals competitors lean on
           (review volume, guarantee, free shipping) right where a first-time
           visitor lands, before they've scrolled to the dedicated reviews
-          section further down. */}
+          section further down. Custom minimal line icons (not emoji/generic
+          checkmarks) so each badge reads as a deliberate card, not a list. */}
       <section style={trustBar}>
         <div className="trust-row" style={trustRow}>
           {siteReviews.count > 0 && (
             <div style={trustItem}>
-              <span style={{ color: T.honey, letterSpacing: '1.5px' }}>{'★'.repeat(Math.round(siteReviews.average))}{'☆'.repeat(5 - Math.round(siteReviews.average))}</span>
-              <span>{siteReviews.average.toFixed(1)} · {siteReviews.count}+ reviews</span>
+              <AwardIcon />
+              <div>
+                <div style={trustItemTitle}>{siteReviews.average.toFixed(1)} rating</div>
+                <div style={trustItemSub}>{siteReviews.count}+ reviews</div>
+              </div>
             </div>
           )}
           <div style={trustItem}>
-            <span aria-hidden="true">✓</span>
-            <span>30-day money-back guarantee</span>
+            <ShieldCheckIcon />
+            <div>
+              <div style={trustItemTitle}>30-day guarantee</div>
+              <div style={trustItemSub}>Money back, no hassle</div>
+            </div>
           </div>
           <div style={trustItem}>
-            <span aria-hidden="true">✓</span>
-            <span>Free shipping over $50</span>
+            <TruckIcon />
+            <div>
+              <div style={trustItemTitle}>Free shipping</div>
+              <div style={trustItemSub}>On orders over $50</div>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* MADE FOR YOU — speaks directly to the specific skin concerns that
+          bring someone to a booty-scrub site in the first place, instead of
+          only generic "glow" language. */}
+      <section style={{ ...band, padding: '80px 0', textAlign: 'center' }}>
+        <div style={S.wrap}>
+          <p style={S.label}>You're in the right place</p>
+          <h2 style={{ ...S.h2, marginTop: 14 }}>
+            We're made for you if <span style={S.it}>you deal with:</span>
+          </h2>
+          <div className="concerns-grid" style={concernsGrid}>
+            {CONCERNS.map((c) => (
+              <div key={c} style={concernChip}>{c}</div>
+            ))}
+          </div>
+          <p style={{ fontSize: 14, color: T.soft, marginTop: 30 }}>
+            ...and more. If it's on your butt, thighs, or hips, it's on our radar.
+          </p>
         </div>
       </section>
 
@@ -289,7 +354,6 @@ export default function HomePage() {
         </form>
       </section>
 
-      <Marquee />
       <Footer />
 
       <CartDrawer {...c} onClose={() => c.setOpen(false)} />
@@ -337,9 +401,20 @@ const heroSub = { fontSize: 17, color: 'rgba(244,237,227,0.9)', maxWidth: '40ch'
 const hrate = { display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: 'rgba(244,237,227,0.9)', marginBottom: 30 };
 const heroBtn = { ...S.btnFill, background: T.oat, color: T.ink };
 const heroLink = { ...S.link, color: T.oat, borderBottom: 'none' };
-const trustBar = { padding: '20px 32px', background: T.shell, borderBottom: `1px solid ${T.line}` };
-const trustRow = { maxWidth: T.maxw, margin: '0 auto', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '14px 36px' };
-const trustItem = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontFamily: T.sans, color: T.ink, whiteSpace: 'nowrap' };
+const trustBar = { padding: '36px 32px', background: T.shell, borderBottom: `1px solid ${T.line}` };
+const trustRow = { maxWidth: T.maxw, margin: '0 auto', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16 };
+const trustItem = {
+  display: 'flex', alignItems: 'center', gap: 14, fontFamily: T.sans, color: T.ink,
+  background: T.white, border: `1px solid ${T.line}`, borderRadius: 16, padding: '16px 22px',
+  boxShadow: T.shadowSm, flex: '1 1 220px', maxWidth: 320,
+};
+const trustItemTitle = { fontSize: 15, fontWeight: 700 };
+const trustItemSub = { fontSize: 12, color: T.soft, marginTop: 2 };
+const concernsGrid = { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 40 };
+const concernChip = {
+  fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.ink,
+  background: T.shell, border: `1px solid ${T.line}`, borderRadius: 999, padding: '12px 22px',
+};
 const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, overflow: 'hidden', padding: '16px 0', background: T.shell };
 const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink };
 const band = { padding: '90px 0' };

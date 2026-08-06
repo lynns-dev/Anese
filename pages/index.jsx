@@ -14,7 +14,7 @@ import { T, S } from '../lib/theme';
 // Minimal line-art icons for the trust badges — matching the site's thin-
 // stroke aesthetic (see ProductVisual's SVG fallbacks) rather than emoji
 // or generic checkmarks, so the badges read as designed, not default.
-const iconProps = { width: 26, height: 26, viewBox: '0 0 24 24', fill: 'none', stroke: T.ink, strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+const iconProps = { width: 32, height: 32, viewBox: '0 0 24 24', fill: 'none', stroke: T.ink, strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
 function AwardIcon() {
   return (
     <svg {...iconProps}>
@@ -210,10 +210,8 @@ export default function HomePage() {
       </section>
 
       {/* COLLECTION */}
-      <section id="shop" style={band}>
+      <section id="shop" style={{ ...band, paddingTop: 30 }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={S.label}>The collection</p>
-          <h2 style={{ ...S.h2, marginTop: 12 }}>Glow that's <span style={S.it}>earned in the shower.</span></h2>
           <div className="col-grid" style={colGrid}>
             {featured.map((p) => (
               <div key={p.id} className="col-item" style={pcard}>
@@ -255,6 +253,7 @@ export default function HomePage() {
       {/* BENEFITS */}
       <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
+          <img src="/images/anese-tiger-icon.png" alt="" style={concernIcon} />
           <p style={S.label}>Why you'll love it</p>
           <h2 style={{ ...S.h2, marginTop: 12 }}>Skin that <span style={S.it}>actually glows.</span></h2>
           <div className="ben-grid" style={benGrid}>
@@ -395,7 +394,7 @@ const trustItem = {
 };
 const trustItemTitle = { fontSize: 15, fontWeight: 700 };
 const trustItemSub = { fontSize: 12, color: T.soft, marginTop: 2 };
-const concernIcon = { width: 48, height: 48, margin: '0 auto 18px', display: 'block' };
+const concernIcon = { width: 60, height: 60, margin: '0 auto 18px', display: 'block' };
 const concernsGrid = { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 40 };
 const concernChip = {
   fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.ink,

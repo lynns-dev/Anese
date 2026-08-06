@@ -18,11 +18,20 @@ function Tracking() {
   const router = useRouter();
   const cart = useCart();
   const sessionIdRef = React.useRef(null);
+  // Last field they actually focused on the current page, kept around
+  // through a blur so admin's live view shows what they were last doing
+  // instead of it going blank the instant they click away — cleared on
+  // navigation since a field name from the previous page isn't meaningful.
+  const lastActiveFieldRef = React.useRef(null);
   const isAdmin = router.pathname.startsWith('/admin');
 
   React.useEffect(() => {
     sessionIdRef.current = getSessionId();
   }, []);
+
+  React.useEffect(() => {
+    lastActiveFieldRef.current = null;
+  }, [router.pathname]);
 
   // Meta Pixel — never on /admin, that traffic isn't customer activity.
   React.useEffect(() => {
@@ -94,6 +103,23 @@ function Tracking() {
       return Math.min(100, Math.max(0, Math.round(pct)));
     };
 
+    // Which field they last focused on this page, e.g. for the live admin
+    // view during checkout — same "sample on the 10s tick" approach as
+    // scrollPercent() above rather than wiring up focus/blur listeners.
+    // Square's card input lives in a cross-origin iframe, so this can only
+    // ever see the plain HTML fields (name, address, email, etc.), never
+    // card number/expiry/CVC. Sticks around through a blur (see
+    // lastActiveFieldRef above) so the admin view shows what they were last
+    // doing rather than going blank the moment they click away.
+    const activeFieldLabel = () => {
+      const el = document.activeElement;
+      if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
+        const label = el.placeholder || el.getAttribute('aria-label') || el.name || el.id || null;
+        if (label) lastActiveFieldRef.current = label;
+      }
+      return lastActiveFieldRef.current;
+    };
+
     const sendHeartbeat = () => {
       if (!sessionIdRef.current) return;
       const { source, campaign } = describeTrafficSource(getStoredAttribution(), document.referrer);
@@ -107,6 +133,7 @@ function Tracking() {
           source,
           campaign,
           scrollPct: scrollPercent(),
+          activeField: activeFieldLabel(),
         }),
         keepalive: true,
       }).catch(() => {});

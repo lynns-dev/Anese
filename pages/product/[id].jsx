@@ -408,6 +408,29 @@ export default function ProductPage({ product }) {
         </div>
       </section>
 
+      {/* RECEIPTS — moved up right under the hero (was much further down,
+          after benefits/timeline) so before/after proof is one of the first
+          things a shopper sees, not something they have to scroll past
+          several sections to reach. */}
+      {isScrub && RECEIPTS.length > 0 && (
+        <section style={{ ...band, padding: '70px 0', borderTop: `1px solid ${T.line}` }}>
+          <div style={{ ...S.wrap, textAlign: 'center' }}>
+            <p style={S.label}>The receipts</p>
+            <h2 style={{ ...S.h2, marginTop: 14 }}>Real people. <span style={S.it}>Real glow-ups.</span></h2>
+            <p style={{ fontSize: 17, color: T.soft, maxWidth: '48ch', margin: '18px auto 0' }}>
+              We're not here to gatekeep results.
+              <br />
+              <small style={{ fontSize: 13, fontStyle: 'italic' }}>Individual results vary — but the hype is real.</small>
+            </p>
+            <div className="receipts-grid" style={receiptsGrid}>
+              {RECEIPTS.map((src, i) => (
+                <div key={i} style={receiptCard}><img src={src} alt="Before and after" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover' }} /></div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* TICKER */}
       <div style={ticker}>
         <div className="ticker-track" style={tickerTrack}>
@@ -454,26 +477,6 @@ export default function ProductPage({ product }) {
               </div>
             </div>
           </section>
-
-          {/* RECEIPTS */}
-          {RECEIPTS.length > 0 && (
-            <section style={band}>
-              <div style={{ ...S.wrap, textAlign: 'center' }}>
-                <p style={S.label}>The receipts</p>
-                <h2 style={{ ...S.h2, marginTop: 14 }}>Real people. <span style={S.it}>Real glow-ups.</span></h2>
-                <p style={{ fontSize: 17, color: T.soft, maxWidth: '48ch', margin: '18px auto 0' }}>
-                  We're not here to gatekeep results.
-                  <br />
-                  <small style={{ fontSize: 13, fontStyle: 'italic' }}>Individual results vary — but the hype is real.</small>
-                </p>
-                <div className="receipts-grid" style={receiptsGrid}>
-                  {RECEIPTS.map((src, i) => (
-                    <div key={i} style={receiptCard}><img src={src} alt="Before and after" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover' }} /></div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
 
           {/* HOW TO */}
           <section style={{ ...band, background: T.ink, color: T.oat }}>

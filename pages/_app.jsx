@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRouter } from 'next/router';
+import LoadingScreen from '../components/LoadingScreen';
 import { CartProvider, useCart } from '../lib/useCart';
 import { loadPixel, fbTrack } from '../lib/fbPixel';
 import { loadClarity } from '../lib/clarity';
@@ -121,10 +122,29 @@ function Tracking() {
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
+  // Route-change loading screen — shown between routeChangeStart and
+  // routeChangeComplete/Error, not on the very first page load (that's
+  // covered by each page's own hydration/skeleton state, and showing this
+  // overlay before the router has done anything would just flash).
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const start = () => setLoading(true);
+    const done = () => setLoading(false);
+    router.events.on('routeChangeStart', start);
+    router.events.on('routeChangeComplete', done);
+    router.events.on('routeChangeError', done);
+    return () => {
+      router.events.off('routeChangeStart', start);
+      router.events.off('routeChangeComplete', done);
+      router.events.off('routeChangeError', done);
+    };
+  }, [router]);
 
   return (
     <CartProvider>
       <Tracking />
+      {loading && <LoadingScreen />}
       <div key={router.asPath} className="page-fade">
         <Component {...pageProps} />
       </div>

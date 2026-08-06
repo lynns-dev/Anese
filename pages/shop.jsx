@@ -31,7 +31,7 @@ export default function ShopPage() {
             Shop <span style={S.it}>ANESE.</span>
           </h1>
           <p style={{ color: T.soft, fontSize: 15, marginTop: 14, maxWidth: '46ch', marginLeft: 'auto', marginRight: 'auto' }}>
-            A small, considered wardrobe of scent — featherlight powders, pressed into skin instead of sprayed into the air.
+            A small, considered lineup of booty and body care — made to buff, smooth, and moisturize the spots most routines skip.
           </p>
         </div>
       </section>

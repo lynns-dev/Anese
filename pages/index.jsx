@@ -193,6 +193,7 @@ export default function HomePage() {
           only generic "glow" language. */}
       <section style={{ ...band, padding: '80px 0', textAlign: 'center' }}>
         <div style={S.wrap}>
+          <img src="/images/anese-tiger-icon.png" alt="" style={concernIcon} />
           <p style={S.label}>You're in the right place</p>
           <h2 style={{ ...S.h2, marginTop: 14 }}>
             We're made for you if <span style={S.it}>you deal with:</span>
@@ -394,6 +395,7 @@ const trustItem = {
 };
 const trustItemTitle = { fontSize: 15, fontWeight: 700 };
 const trustItemSub = { fontSize: 12, color: T.soft, marginTop: 2 };
+const concernIcon = { width: 48, height: 48, margin: '0 auto 18px', display: 'block' };
 const concernsGrid = { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 40 };
 const concernChip = {
   fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.ink,

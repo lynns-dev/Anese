@@ -208,17 +208,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* TICKER */}
-      <div style={ticker}>
-        <div className="ticker-track" style={tickerTrack}>
-          {['softer', 'smoother', 'glowier', 'touchable', 'confident', 'softer', 'smoother', 'glowier', 'touchable', 'confident'].map((w, i) => (
-            <React.Fragment key={i}>
-              <span>{w}</span><em style={{ color: T.ink, fontStyle: 'italic', margin: '0 22px' }}>✶</em>
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-
       {/* COLLECTION */}
       <section id="shop" style={band}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
@@ -359,11 +348,6 @@ export default function HomePage() {
       <CartDrawer {...c} onClose={() => c.setOpen(false)} />
 
       <style jsx>{`
-        .ticker-track { animation: anese-ticker 22s linear infinite; }
-        @keyframes anese-ticker {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
         .col-grid { grid-template-columns: repeat(4, 1fr); }
         .lifestyle-duo { grid-template-columns: 1fr 1fr; }
         .ben-grid { grid-template-columns: repeat(3, 1fr); }
@@ -415,8 +399,6 @@ const concernChip = {
   fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.ink,
   background: T.shell, border: `1px solid ${T.line}`, borderRadius: 999, padding: '12px 22px',
 };
-const ticker = { borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, overflow: 'hidden', padding: '16px 0', background: T.shell };
-const tickerTrack = { display: 'inline-block', whiteSpace: 'nowrap', fontFamily: T.serif, fontSize: 22, color: T.ink };
 const band = { padding: '90px 0' };
 const colGrid = { display: 'grid', marginTop: 50, gap: 24 };
 const lifestyleDuo = { display: 'grid', gap: 24, paddingTop: 0, paddingBottom: 90 };

@@ -54,7 +54,7 @@ export default function ShopPage() {
                   </div>
                 )}
                 <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, marginBottom: 14 }}>
-                  ${p.price} <span style={{ fontSize: 13, fontWeight: 400, color: T.soft }}>· {p.size}</span>
+                  ${p.price}
                 </div>
                 <button style={{ ...S.btnFill, width: '100%', justifyContent: 'center' }} onClick={() => c.add(p)}>Add to cart</button>
               </div>

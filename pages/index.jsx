@@ -145,7 +145,7 @@ export default function HomePage() {
                 </Link>
                 <div style={pcardText}>
                   <Link href={`/product/${p.id}`} style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 16 }}>{p.name}</Link>
-                  <div style={{ ...pnotes, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{p.tagline}</div>
+                  <div style={{ ...pnotes, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{p.tagline}</div>
                   {reviewsByProduct[p.id]?.count > 0 && (
                     <div style={{ ...ratingRow, fontSize: 12 }}>
                       <span style={{ letterSpacing: '1.5px', color: T.ink }}>{'★'.repeat(Math.round(reviewsByProduct[p.id].average))}{'☆'.repeat(5 - Math.round(reviewsByProduct[p.id].average))}</span>

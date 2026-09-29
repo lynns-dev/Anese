@@ -81,9 +81,11 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
       <style jsx>{`
         .desktop-links { display: flex; }
         .hamburger-btn { display: none; }
+        .mobile-menu { display: none; }
         @media (max-width: 680px) {
           .desktop-links { display: none; }
           .hamburger-btn { display: flex; }
+          .mobile-menu { display: flex; }
           .reviews-link { display: none; }
         }
         .mobile-menu > :global(a:not(:last-child)) { border-bottom: 1px solid ${T.line}; }
@@ -115,14 +117,14 @@ const styles = {
     fontFamily: T.sans, fontSize: 12, letterSpacing: '0.06em', color: T.ink,
   },
   navLink: {
-    fontFamily: T.sans, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase',
+    fontFamily: T.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
     transition: 'color .35s ease',
   },
   // 48x48 hit area (Material/WCAG minimum) around the same small visual
   // icon — the icon itself stays 22x16, centered, so the header doesn't
   // look any different, but the actual tappable region is much bigger.
   hamburgerBtn: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     width: 48, height: 48, margin: '-16px -13px', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
   },
   hamburgerIcon: {
@@ -131,7 +133,7 @@ const styles = {
   },
   hamburgerLine: { display: 'block', width: '100%', height: 1, transition: 'background .35s ease' },
   cartBtn: {
-    fontFamily: T.sans, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase',
+    fontFamily: T.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
     background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color .35s ease',
   },
   logoLink: { flex: '0 0 auto' },
@@ -139,7 +141,7 @@ const styles = {
   mobileMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0,
     background: T.white, borderBottom: `1px solid ${T.line}`,
-    display: 'flex', flexDirection: 'column', padding: '4px 40px',
+    flexDirection: 'column', padding: '4px 40px',
   },
   // display:block + vertical padding (not just gap between them) gives each
   // link a >=48px-tall tap target instead of just its 13px text line.

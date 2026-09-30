@@ -160,7 +160,7 @@ function attributionSource(order) {
 }
 
 const ORDER_STATUS_COLORS = {
-  paid: { color: '#1a7a3c', background: 'rgba(26,122,60,0.1)' },
+  paid: { color: T.ink, background: T.blush },
   refunded: { color: '#a13d2b', background: 'rgba(161,61,43,0.1)' },
   cancelled: { color: T.soft, background: T.paper },
   archived: { color: T.soft, background: T.paper },
@@ -200,6 +200,9 @@ export default function AdminDashboard() {
   const [showArchived, setShowArchived] = React.useState(false);
   const [orderActionBusy, setOrderActionBusy] = React.useState({});
   const [orderActionError, setOrderActionError] = React.useState({});
+  const [trackingForms, setTrackingForms] = React.useState({});
+  const [trackingBusy, setTrackingBusy] = React.useState({});
+  const [trackingMessage, setTrackingMessage] = React.useState({});
 
   const loadOrders = React.useCallback(() => {
     setOrdersLoading(true);
@@ -218,6 +221,48 @@ export default function AdminDashboard() {
     () => (showArchived ? orders : orders.filter((o) => o.status !== 'archived')),
     [orders, showArchived]
   );
+
+  const getTrackingForm = (order) =>
+    trackingForms[order.id] ?? {
+      carrier: order.carrier || '',
+      trackingNumber: order.trackingNumber || '',
+      trackingUrl: order.trackingUrl || '',
+    };
+
+  const setTrackingField = (orderId, field, value) => {
+    setTrackingForms((prev) => ({
+      ...prev,
+      [orderId]: { ...(prev[orderId] ?? getTrackingForm({ id: orderId })), [field]: value },
+    }));
+  };
+
+  const handleSaveTracking = async (order) => {
+    const form = getTrackingForm(order);
+    if (!form.trackingNumber.trim()) {
+      setTrackingMessage((prev) => ({ ...prev, [order.id]: 'Enter a tracking number.' }));
+      return;
+    }
+    setTrackingBusy((prev) => ({ ...prev, [order.id]: true }));
+    setTrackingMessage((prev) => ({ ...prev, [order.id]: '' }));
+    try {
+      const res = await fetch('/api/admin/orders/tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, ...form }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not save tracking.');
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
+      setTrackingMessage((prev) => ({
+        ...prev,
+        [order.id]: data.emailSent ? 'Saved — customer emailed.' : `Saved, but the email didn't send: ${data.emailError}`,
+      }));
+    } catch (err) {
+      setTrackingMessage((prev) => ({ ...prev, [order.id]: err.message }));
+    } finally {
+      setTrackingBusy((prev) => ({ ...prev, [order.id]: false }));
+    }
+  };
 
   const handleRefundOrder = async (order) => {
     if (!confirm(`Refund $${Number(order.amount).toFixed(2)} for this order? This can't be undone.`)) return;
@@ -506,7 +551,10 @@ export default function AdminDashboard() {
 
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-          <span style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 22, letterSpacing: '0.2em' }}>ANESE admin</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 56, width: 'auto' }} />
+            <span style={{ ...S.label, fontSize: 10, paddingLeft: 14, borderLeft: `1px solid ${T.line}` }}>Admin</span>
+          </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <a href="/" target="_blank" rel="noopener noreferrer" style={S.btnOutline}>View website</a>
             <button onClick={handleLogout} style={S.btnOutline}>Sign out</button>
@@ -1094,6 +1142,67 @@ export default function AdminDashboard() {
                           ))}
                         </div>
 
+                        <div style={formLabel}>Tracking</div>
+                        <div style={{ marginBottom: 20 }}>
+                          {o.trackingNumber && (
+                            <div style={{ fontSize: 12, color: T.soft, marginBottom: 10 }}>
+                              Shipped {o.shippedAt ? new Date(o.shippedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                            <input
+                              placeholder="Carrier (optional)"
+                              value={getTrackingForm(o).carrier}
+                              onChange={(e) => setTrackingField(o.id, 'carrier', e.target.value)}
+                              style={{ ...formInput, width: 160 }}
+                            />
+                            <input
+                              placeholder="Tracking number"
+                              value={getTrackingForm(o).trackingNumber}
+                              onChange={(e) => setTrackingField(o.id, 'trackingNumber', e.target.value)}
+                              style={{ ...formInput, width: 200 }}
+                            />
+                            <input
+                              placeholder="Tracking URL (optional)"
+                              value={getTrackingForm(o).trackingUrl}
+                              onChange={(e) => setTrackingField(o.id, 'trackingUrl', e.target.value)}
+                              style={{ ...formInput, flex: 1, minWidth: 200 }}
+                            />
+                          </div>
+                          <button
+                            disabled={Boolean(trackingBusy[o.id])}
+                            onClick={() => handleSaveTracking(o)}
+                            style={{ ...S.btnOutline, opacity: trackingBusy[o.id] ? 0.5 : 1 }}
+                          >
+                            {trackingBusy[o.id] ? 'Saving…' : o.trackingNumber ? 'Update & re-email customer' : 'Save & email customer'}
+                          </button>
+                          {trackingMessage[o.id] && (
+                            <p style={{ fontSize: 12, color: T.ink, marginTop: 8 }}>{trackingMessage[o.id]}</p>
+                          )}
+                        </div>
+
+                        <div style={formLabel}>Emails sent to customer</div>
+                        <div style={{ marginBottom: 20 }}>
+                          {(o.emailLog || []).length === 0 ? (
+                            <div style={{ fontSize: 13, color: T.soft }}>None recorded for this order.</div>
+                          ) : (
+                            o.emailLog.map((e, idx) => (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, padding: '6px 0', borderBottom: `1px solid ${T.line}` }}>
+                                <span>
+                                  {EMAIL_TYPE_LABELS[e.type] || e.type} → {e.to || 'no address'}
+                                  {!e.ok && e.error && <span style={{ display: 'block', fontSize: 12, color: '#a13d2b' }}>{e.error}</span>}
+                                </span>
+                                <span style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                  <span style={{ fontWeight: 700, color: e.ok ? T.ink : '#a13d2b' }}>{e.ok ? 'Sent' : 'Failed'}</span>
+                                  <span style={{ display: 'block', fontSize: 11, color: T.soft }}>
+                                    {new Date(e.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                  </span>
+                                </span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
                         {orderActionError[o.id] && (
                           <p style={{ fontSize: 12, color: '#a13d2b', marginBottom: 12 }}>{orderActionError[o.id]}</p>
                         )}
@@ -1134,6 +1243,12 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {/* Browsers don't give buttons/inputs/selects the page font by
+          default, so any control here without its own fontFamily fell back
+          to the system font instead of the site's Figtree. */}
+      <style jsx global>{`
+        button, input, select, textarea { font-family: inherit; }
+      `}</style>
       <style jsx>{`
         .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
         .funnel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -1162,8 +1277,8 @@ export default function AdminDashboard() {
         }
         .live-dot {
           width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-          background: #22c55e;
-          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+          background: ${T.clay};
+          box-shadow: 0 0 0 0 rgba(245, 184, 211, 0.7);
           animation: live-pulse 2s infinite;
         }
         .live-dot-idle {
@@ -1172,9 +1287,9 @@ export default function AdminDashboard() {
           animation: none;
         }
         @keyframes live-pulse {
-          0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-          70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(245, 184, 211, 0.7); }
+          70% { box-shadow: 0 0 0 8px rgba(245, 184, 211, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 184, 211, 0); }
         }
       `}</style>
     </div>
@@ -1279,6 +1394,12 @@ const deleteBtn = {
   fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', border: `1px solid ${T.line}`,
   background: 'none', padding: '8px 12px', cursor: 'pointer', fontFamily: T.sans, flexShrink: 0, color: '#a13d2b',
 };
+// Labels for order.emailLog entries (lib/emailPlatform.js's emailLogEntry).
+const EMAIL_TYPE_LABELS = {
+  order_confirmation: 'Order confirmation',
+  order_shipped: 'Shipped / tracking',
+};
+
 const formInput = {
   width: '100%', height: 44, padding: '0 12px', border: `1px solid ${T.line}`, background: T.white,
   fontFamily: T.sans, fontSize: 14, color: T.ink, outline: 'none', boxSizing: 'border-box',

@@ -34,7 +34,7 @@ export default function ShippingPolicy() {
       <PolicySection title="Lost, delayed, or damaged packages">
         <p>
           If your order hasn't arrived within the expected window, or arrives damaged, email us at{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a> with your
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a> with your
           order number and we'll help sort it out.
         </p>
       </PolicySection>

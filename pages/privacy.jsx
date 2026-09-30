@@ -79,7 +79,7 @@ export default function PrivacyPolicy() {
         <p>
           Depending on where you live, you may have the right to access, correct, or delete the personal information
           we hold about you, or to opt out of marketing communications. To make a request, email us at{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a>.
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>.
         </p>
       </PolicySection>
 
@@ -97,7 +97,7 @@ export default function PrivacyPolicy() {
       <PolicySection title="Contact">
         <p>
           Questions about this policy? Email{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a>.
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>.
         </p>
       </PolicySection>
     </PolicyLayout>

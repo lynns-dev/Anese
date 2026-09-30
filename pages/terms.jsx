@@ -66,7 +66,7 @@ export default function TermsOfService() {
       <PolicySection title="Contact">
         <p>
           Questions about these terms? Email{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a>.
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>.
         </p>
       </PolicySection>
     </PolicyLayout>

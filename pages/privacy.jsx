@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
   return (
     <PolicyLayout title="Privacy Policy" updated="July 2026">
       <p>
-        This policy explains what information ANESE ("we," "us") collects when you visit anesepuff.com or place an
+        This policy explains what information ANESE ("we," "us") collects when you visit aneseskin.com or place an
         order, how we use it, and the choices you have. By using this site, you agree to the collection and use of
         information as described here.
       </p>
@@ -79,7 +79,7 @@ export default function PrivacyPolicy() {
         <p>
           Depending on where you live, you may have the right to access, correct, or delete the personal information
           we hold about you, or to opt out of marketing communications. To make a request, email us at{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a>.
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>.
         </p>
       </PolicySection>
 
@@ -97,7 +97,7 @@ export default function PrivacyPolicy() {
       <PolicySection title="Contact">
         <p>
           Questions about this policy? Email{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a>.
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>.
         </p>
       </PolicySection>
     </PolicyLayout>

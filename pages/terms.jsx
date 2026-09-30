@@ -5,7 +5,7 @@ export default function TermsOfService() {
   return (
     <PolicyLayout title="Terms & Conditions" updated="July 2026">
       <p>
-        These terms govern your use of anesepuff.com and any purchase you make from us. By using this site or placing
+        These terms govern your use of aneseskin.com and any purchase you make from us. By using this site or placing
         an order, you agree to these terms.
       </p>
 
@@ -66,7 +66,7 @@ export default function TermsOfService() {
       <PolicySection title="Contact">
         <p>
           Questions about these terms? Email{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a>.
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>.
         </p>
       </PolicySection>
     </PolicyLayout>

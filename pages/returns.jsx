@@ -23,7 +23,7 @@ export default function ReturnPolicy() {
       <PolicySection title="Damaged or defective items">
         <p>
           If your order arrives damaged or defective, email us at{' '}
-          <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a> within 14
+          <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a> within 14
           days of delivery with your order number and a photo, and we'll send a replacement or refund at no cost to
           you.
         </p>
@@ -31,7 +31,7 @@ export default function ReturnPolicy() {
 
       <PolicySection title="How to start a return">
         <p>
-          Email <a href="mailto:hello@anesepuff.com" style={{ textDecoration: 'underline' }}>hello@anesepuff.com</a>{' '}
+          Email <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>{' '}
           with your order number and we'll send return instructions. Please don't send anything back before hearing
           from us.
         </p>

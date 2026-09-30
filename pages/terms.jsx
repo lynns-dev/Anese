@@ -5,7 +5,7 @@ export default function TermsOfService() {
   return (
     <PolicyLayout title="Terms & Conditions" updated="July 2026">
       <p>
-        These terms govern your use of anesepuff.com and any purchase you make from us. By using this site or placing
+        These terms govern your use of aneseskin.com and any purchase you make from us. By using this site or placing
         an order, you agree to these terms.
       </p>
 

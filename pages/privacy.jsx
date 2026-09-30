@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
   return (
     <PolicyLayout title="Privacy Policy" updated="July 2026">
       <p>
-        This policy explains what information ANESE ("we," "us") collects when you visit anesepuff.com or place an
+        This policy explains what information ANESE ("we," "us") collects when you visit aneseskin.com or place an
         order, how we use it, and the choices you have. By using this site, you agree to the collection and use of
         information as described here.
       </p>

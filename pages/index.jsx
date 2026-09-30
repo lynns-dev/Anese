@@ -10,6 +10,9 @@ import { getFeaturedProducts } from '../lib/products';
 import { useCart } from '../lib/useCart';
 import { useAllReviews } from '../lib/useReviews';
 import { T, S } from '../lib/theme';
+import {
+  ConcernExplorer, IngredientExplorer, UgcVideoStrip, QuizBand, Faq, HOME_FAQS, Lightbox, HomeSectionsStyles,
+} from '../components/HomeSections';
 
 // Minimal line-art icons for the trust badges — matching the site's thin-
 // stroke aesthetic (see ProductVisual's SVG fallbacks) rather than emoji
@@ -61,7 +64,7 @@ const HOME_JSON_LD = {
   ],
 };
 
-const BANNER_MESSAGES = ['Free shipping $50+', '15% off with code FIRST15'];
+const BANNER_MESSAGES = ['Free shipping $50+', '15% off with code FIRST15', 'Free silk bag on orders $50+', 'Not sure where to start? Take the 60-second quiz'];
 
 const BENEFITS = [
   ['Smoother texture', "Walnut grain buffs away rough, uneven, dull skin — what's left feels like a compliment."],
@@ -69,9 +72,11 @@ const BENEFITS = [
   ['Made for the booty', 'Formulated for butt, thighs & hips — the spots most body scrubs completely ignore.'],
 ];
 
-const CONCERNS = [
-  'Hyperpigmentation', 'Acne & breakouts', 'Keratosis pilaris', 'Stretch marks',
-  'Bumpy or rough skin', 'Friction irritation',
+const UGC_VIDEOS = [
+  '/videos/anese-ugc-1.mp4',
+  '/videos/anese-ugc-2.mp4',
+  '/videos/anese-ugc-3.mp4',
+  '/videos/anese-ugc-4.mp4',
 ];
 
 const GALLERY_IMAGES = [
@@ -94,6 +99,8 @@ export default function HomePage() {
   }, [reviewsByProduct]);
   const [bannerIndex, setBannerIndex] = React.useState(0);
   const [scrolled, setScrolled] = React.useState(false);
+  const [lightboxIndex, setLightboxIndex] = React.useState(null);
+  const closeLightbox = React.useCallback(() => setLightboxIndex(null), []);
 
   React.useEffect(() => {
     const id = setInterval(() => {
@@ -188,24 +195,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* MADE FOR YOU — speaks directly to the specific skin concerns that
-          bring someone to a booty-scrub site in the first place, instead of
-          only generic "glow" language. */}
+      {/* SHOP BY CONCERN — the concerns that bring someone to a booty-scrub
+          site in the first place, each clickable to the product that fits. */}
       <section style={{ ...band, padding: '80px 0', textAlign: 'center' }}>
         <div style={S.wrap}>
           <img src="/images/anese-tiger-icon.png" alt="" style={concernIcon} />
           <p style={S.label}>You're in the right place</p>
           <h2 style={{ ...S.h2, marginTop: 14 }}>
-            We're made for you if <span style={S.it}>you deal with:</span>
+            What are you <span style={S.it}>working on?</span>
           </h2>
-          <div className="concerns-grid" style={concernsGrid}>
-            {CONCERNS.map((c) => (
-              <div key={c} style={concernChip}>{c}</div>
-            ))}
-          </div>
-          <p style={{ fontSize: 14, color: T.soft, marginTop: 30 }}>
-            ...and more. If it's on your butt, thighs, or hips, it's on our radar.
-          </p>
+          <ConcernExplorer onAdd={(p) => c.add(p)} />
         </div>
       </section>
 
@@ -240,13 +239,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* LIFESTYLE DUO */}
-      <section className="lifestyle-duo" style={{ ...S.wrap, ...lifestyleDuo }}>
-        <div style={lifestyleCol}>
-          <img src="/images/anese-lifestyle-1.png" alt="Anese lifestyle" style={lifestyleImg} />
-        </div>
-        <div style={lifestyleCol}>
-          <img src="/images/anese-lifestyle-3.png" alt="Anese lifestyle" style={lifestyleImg} />
+      {/* CUSTOMER VIDEOS */}
+      <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
+        <div style={{ ...S.wrap, textAlign: 'center' }}>
+          <p style={S.label}>See it in action</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Scoop, scrub, <span style={S.it}>glow.</span></h2>
+          <UgcVideoStrip videos={UGC_VIDEOS} />
+          <div style={{ marginTop: 36 }}>
+            <Link href="/product/that-booty-tho" style={S.btnOutline}>Shop That Booty Tho.</Link>
+          </div>
         </div>
       </section>
 
@@ -268,19 +269,34 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* INGREDIENTS */}
+      <section style={band}>
+        <div style={{ ...S.wrap, textAlign: 'center' }}>
+          <p style={S.label}>What's inside</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Ingredients that <span style={S.it}>earn their spot.</span></h2>
+          <IngredientExplorer />
+        </div>
+      </section>
+
       {/* GALLERY */}
       <section id="before-after" style={band}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
           <p style={S.label}>As worn</p>
           <h2 style={{ ...S.h2, marginTop: 12 }}>Real skin, <span style={S.it}>real glow.</span></h2>
+          <p style={{ fontSize: 14, color: T.soft, marginTop: 12 }}>Tap any photo to take a closer look.</p>
           <div className="gal-grid" style={galGrid}>
             {GALLERY_IMAGES.map((src, i) => (
-              <div key={i} style={galCard}>
+              <button key={i} className="gal-card-btn" onClick={() => setLightboxIndex(i)} aria-label={`View photo ${i + 1}`} style={galCard}>
                 <img src={src} alt="Anese customer" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              </div>
+              </button>
             ))}
           </div>
         </div>
+      </section>
+
+      {/* QUIZ */}
+      <section style={{ ...S.wrap, paddingTop: 20, paddingBottom: 90 }}>
+        <QuizBand />
       </section>
 
       {/* REVIEWS */}
@@ -332,6 +348,15 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section id="faq" style={{ ...band, textAlign: 'center' }}>
+        <div style={S.wrap}>
+          <p style={S.label}>Good questions</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Asked <span style={S.it}>&amp; answered.</span></h2>
+          <Faq items={HOME_FAQS} />
+        </div>
+      </section>
+
       {/* NEWSLETTER */}
       <section style={{ ...band, textAlign: 'center' }}>
         <p style={S.label}>The list</p>
@@ -346,10 +371,11 @@ export default function HomePage() {
       <Footer />
 
       <CartDrawer {...c} onClose={() => c.setOpen(false)} />
+      <Lightbox images={GALLERY_IMAGES} index={lightboxIndex} onClose={closeLightbox} onIndex={setLightboxIndex} />
+      <HomeSectionsStyles />
 
       <style jsx>{`
         .col-grid { grid-template-columns: repeat(4, 1fr); }
-        .lifestyle-duo { grid-template-columns: 1fr 1fr; }
         .ben-grid { grid-template-columns: repeat(3, 1fr); }
         .gal-grid { grid-template-columns: repeat(4, 1fr); }
         .rev-grid { grid-template-columns: repeat(3, 1fr); }
@@ -364,7 +390,6 @@ export default function HomePage() {
         }
         @media (max-width: 680px) {
           .col-grid { grid-template-columns: 1fr; }
-          .lifestyle-duo { grid-template-columns: 1fr; }
           .hero-bg { background-position: 18% 30% !important; }
         }
       `}</style>
@@ -395,16 +420,8 @@ const trustItem = {
 const trustItemTitle = { fontSize: 15, fontWeight: 700 };
 const trustItemSub = { fontSize: 12, color: T.soft, marginTop: 2 };
 const concernIcon = { width: 100, height: 100, margin: '0 auto 18px', display: 'block' };
-const concernsGrid = { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 40 };
-const concernChip = {
-  fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.ink,
-  background: T.shell, border: `1px solid ${T.line}`, borderRadius: 999, padding: '12px 22px',
-};
 const band = { padding: '90px 0' };
 const colGrid = { display: 'grid', marginTop: 50, gap: 24 };
-const lifestyleDuo = { display: 'grid', gap: 24, paddingTop: 0, paddingBottom: 90 };
-const lifestyleCol = { aspectRatio: '16/9', overflow: 'hidden', background: T.white };
-const lifestyleImg = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 const pcard = { textAlign: 'center', overflow: 'hidden' };
 const badge = { position: 'absolute', top: 14, left: 14, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: T.clay, padding: '5px 10px', zIndex: 1, borderRadius: 30, fontWeight: 600 };
 const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overflow: 'hidden', width: '100%', background: T.white };
@@ -414,7 +431,7 @@ const ratingRow = { display: 'flex', alignItems: 'center', justifyContent: 'cent
 const benGrid = { display: 'grid', gap: 20, marginTop: 56, textAlign: 'left' };
 const benCard = { background: T.oat, borderRadius: 24, padding: '38px 32px' };
 const galGrid = { display: 'grid', gap: 16, marginTop: 50 };
-const galCard = { overflow: 'hidden', aspectRatio: '4/5', boxShadow: T.shadowSm };
+const galCard = { overflow: 'hidden', aspectRatio: '4/5', boxShadow: T.shadowSm, padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', display: 'block', width: '100%' };
 const revGrid = { display: 'grid', gap: 22, marginTop: 48, textAlign: 'left' };
 const rev = { padding: '30px 28px', background: T.oat, borderRadius: 20 };
 const ritGrid = { display: 'grid', gap: 44, marginTop: 54 };

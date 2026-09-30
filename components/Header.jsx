@@ -2,6 +2,9 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { T } from '../lib/theme';
+import { getFeaturedProducts } from '../lib/products';
+
+const megaProducts = getFeaturedProducts().slice(0, 4);
 
 export default function Header({ cartCount = 0, onCartClick, overlay = false, scrolled = false }) {
   const router = useRouter();
@@ -26,7 +29,36 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
       <div style={styles.nav}>
         <div style={styles.side}>
           <div className="desktop-links" style={styles.desktopLinks}>
-            <Link href="/shop" style={{ ...styles.navLink, color: linkColor, opacity: active('/shop') ? 1 : 0.7 }}>Shop</Link>
+            {/* Hover mega menu: product tiles plus quick routes into the
+                shop, so the top nav itself is somewhere to browse. */}
+            <div className="shop-nav">
+              <Link href="/shop" style={{ ...styles.navLink, color: linkColor, opacity: active('/shop') ? 1 : 0.7 }}>Shop</Link>
+              <div className="shop-mega" style={styles.mega}>
+                <div style={styles.megaInner}>
+                  <div style={styles.megaLinks}>
+                    <div style={styles.megaHeading}>Shop</div>
+                    <Link href="/shop" style={styles.megaLink}>All products</Link>
+                    <Link href="/product/that-booty-tho" style={styles.megaLink}>Bestseller: That Booty Tho.</Link>
+                    <Link href="/product/glazed-set" style={styles.megaLink}>Sets &amp; bundles</Link>
+                    <div style={{ ...styles.megaHeading, marginTop: 18 }}>Discover</div>
+                    <Link href="/quiz" style={styles.megaLink}>Find my routine</Link>
+                    <Link href="/booty-acne" style={styles.megaLink}>Booty acne guide</Link>
+                    <a href="/#before-after" style={styles.megaLink}>Before &amp; after</a>
+                  </div>
+                  <div style={styles.megaProducts}>
+                    {megaProducts.map((p) => (
+                      <Link key={p.id} href={`/product/${p.id}`} className="mega-card" style={styles.megaCard}>
+                        <span style={styles.megaImgWrap}>
+                          <img src={p.images[0]} alt="" style={styles.megaImg} />
+                        </span>
+                        <span style={styles.megaName}>{p.name}</span>
+                        <span style={styles.megaPrice}>${p.price}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
             {/* Hover dropdown — currently a single entry (Booty Acne), but
                 built as a menu rather than a flat link since more concern
                 landing pages are the obvious next addition here. */}
@@ -89,6 +121,10 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
           .reviews-link { display: none; }
         }
         .mobile-menu > :global(a:not(:last-child)) { border-bottom: 1px solid ${T.line}; }
+        .shop-mega { opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .2s ease .12s, transform .2s ease .12s, visibility 0s linear .32s; }
+        .shop-nav:hover .shop-mega, .shop-nav:focus-within .shop-mega { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+        .mega-card img { transition: transform .4s ease; }
+        .mega-card:hover img { transform: scale(1.05); }
         .concern-dropdown { opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity .2s ease, transform .2s ease, visibility .2s; }
         .concern-nav:hover .concern-dropdown, .concern-nav:focus-within .concern-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
       `}</style>
@@ -116,6 +152,23 @@ const styles = {
     display: 'block', padding: '10px 12px', borderRadius: 6,
     fontFamily: T.sans, fontSize: 12, letterSpacing: '0.06em', color: T.ink,
   },
+  mega: {
+    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
+    background: T.white, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`,
+  },
+  megaInner: {
+    maxWidth: T.maxw, margin: '0 auto', padding: '28px 40px 32px',
+    display: 'grid', gridTemplateColumns: '220px 1fr', gap: 40,
+  },
+  megaLinks: { display: 'flex', flexDirection: 'column', gap: 10 },
+  megaHeading: { fontFamily: T.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.ink, marginBottom: 2 },
+  megaLink: { fontFamily: T.sans, fontSize: 14, color: T.ink },
+  megaProducts: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 },
+  megaCard: { display: 'flex', flexDirection: 'column', gap: 6, color: T.ink },
+  megaImgWrap: { display: 'block', background: T.white, border: `1px solid ${T.line}`, aspectRatio: '1 / 1', overflow: 'hidden' },
+  megaImg: { width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 10, boxSizing: 'border-box' },
+  megaName: { fontFamily: T.sans, fontSize: 13, fontWeight: 600, marginTop: 4 },
+  megaPrice: { fontFamily: T.sans, fontSize: 13, color: T.soft },
   navLink: {
     fontFamily: T.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
     transition: 'color .35s ease',

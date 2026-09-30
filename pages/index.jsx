@@ -251,16 +251,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* LIFESTYLE DUO */}
-      <section className="lifestyle-duo" style={{ ...S.wrap, ...lifestyleDuo }}>
-        <div style={lifestyleCol}>
-          <img src="/images/anese-lifestyle-1.png" alt="Anese lifestyle" style={lifestyleImg} />
-        </div>
-        <div style={lifestyleCol}>
-          <img src="/images/anese-lifestyle-3.png" alt="Anese lifestyle" style={lifestyleImg} />
-        </div>
-      </section>
-
       {/* BENEFITS */}
       <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
@@ -386,7 +376,6 @@ export default function HomePage() {
 
       <style jsx>{`
         .col-grid { grid-template-columns: repeat(4, 1fr); }
-        .lifestyle-duo { grid-template-columns: 1fr 1fr; }
         .ben-grid { grid-template-columns: repeat(3, 1fr); }
         .gal-grid { grid-template-columns: repeat(4, 1fr); }
         .rev-grid { grid-template-columns: repeat(3, 1fr); }
@@ -401,7 +390,6 @@ export default function HomePage() {
         }
         @media (max-width: 680px) {
           .col-grid { grid-template-columns: 1fr; }
-          .lifestyle-duo { grid-template-columns: 1fr; }
           .hero-bg { background-position: 18% 30% !important; }
         }
       `}</style>
@@ -434,9 +422,6 @@ const trustItemSub = { fontSize: 12, color: T.soft, marginTop: 2 };
 const concernIcon = { width: 100, height: 100, margin: '0 auto 18px', display: 'block' };
 const band = { padding: '90px 0' };
 const colGrid = { display: 'grid', marginTop: 50, gap: 24 };
-const lifestyleDuo = { display: 'grid', gap: 24, paddingTop: 0, paddingBottom: 90 };
-const lifestyleCol = { aspectRatio: '16/9', overflow: 'hidden', background: T.white };
-const lifestyleImg = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 const pcard = { textAlign: 'center', overflow: 'hidden' };
 const badge = { position: 'absolute', top: 14, left: 14, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: T.clay, padding: '5px 10px', zIndex: 1, borderRadius: 30, fontWeight: 600 };
 const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overflow: 'hidden', width: '100%', background: T.white };

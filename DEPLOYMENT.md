@@ -106,6 +106,33 @@ Without this token set, admin behaves exactly as before — a numeric id is show
 
 ---
 
+## Step 3 (optional): Customer order emails
+
+Order confirmation and "your order has shipped" emails are sent through the
+separate email app (`lynns-dev/email`, the same one Veil uses), styled with
+its Anese template. Every order in admin → Orders shows the emails that
+customer was sent, with Sent/Failed and the time, so you can confirm they
+went out. The shipped email is sent when you save a tracking number on an
+order.
+
+**Order matters:** deploy the email app's Anese template first. An older
+email app ignores the Anese brand and would send Veil-styled shipping emails.
+
+1. In the email app's Vercel project, set `ANESE_FROM_EMAIL` (e.g.
+   `orders@aneseskin.com`, on a domain verified in Resend), and optionally
+   `ANESE_SUPPORT_EMAIL` / `ANESE_PHYSICAL_ADDRESS` for the footer.
+2. In this project's Vercel env vars, set:
+   - `EMAIL_APP_URL`: the email app's URL (e.g. `https://mail.veilpuff.com`)
+   - `EMAIL_APP_WEBHOOK_SECRET`: the same value as the email app's
+     `STOREFRONT_WEBHOOK_SECRET`
+3. Redeploy, place a test order with your own email, and check the order's
+   "Emails sent to customer" section in admin.
+
+Until these are set, orders still go through normally; their email history
+shows "Failed — Email app is not configured".
+
+Shop Pay orders are skipped: Shopify sends its own confirmation for those.
+
 ## Step 3: Connect Your Domain (Squarespace)
 
 1. In Vercel, go to "Settings" → "Domains"

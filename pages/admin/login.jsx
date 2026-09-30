@@ -42,7 +42,7 @@ export default function AdminLogin() {
         <meta name="apple-mobile-web-app-title" content="ANESE Admin" />
       </Head>
       <form onSubmit={handleSubmit} style={{ width: 320, padding: 40, background: T.white, border: `1px solid ${T.line}` }}>
-        <span style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 22, letterSpacing: '0.3em', display: 'block', marginBottom: 24, textAlign: 'center' }}>ANESE</span>
+        <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 48, width: 'auto', margin: '0 auto 20px' }} />
         <p style={{ ...S.label, marginBottom: 16, textAlign: 'center' }}>Admin</p>
         <input
           type="password"
@@ -65,6 +65,9 @@ export default function AdminLogin() {
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
+      <style jsx global>{`
+        button, input, select, textarea { font-family: inherit; }
+      `}</style>
     </div>
   );
 }

@@ -160,7 +160,7 @@ function attributionSource(order) {
 }
 
 const ORDER_STATUS_COLORS = {
-  paid: { color: '#1a7a3c', background: 'rgba(26,122,60,0.1)' },
+  paid: { color: T.ink, background: T.blush },
   refunded: { color: '#a13d2b', background: 'rgba(161,61,43,0.1)' },
   cancelled: { color: T.soft, background: T.paper },
   archived: { color: T.soft, background: T.paper },
@@ -551,7 +551,10 @@ export default function AdminDashboard() {
 
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-          <span style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 22, letterSpacing: '0.2em' }}>ANESE admin</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 56, width: 'auto' }} />
+            <span style={{ ...S.label, fontSize: 10, paddingLeft: 14, borderLeft: `1px solid ${T.line}` }}>Admin</span>
+          </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <a href="/" target="_blank" rel="noopener noreferrer" style={S.btnOutline}>View website</a>
             <button onClick={handleLogout} style={S.btnOutline}>Sign out</button>
@@ -1240,6 +1243,12 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {/* Browsers don't give buttons/inputs/selects the page font by
+          default, so any control here without its own fontFamily fell back
+          to the system font instead of the site's Figtree. */}
+      <style jsx global>{`
+        button, input, select, textarea { font-family: inherit; }
+      `}</style>
       <style jsx>{`
         .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
         .funnel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -1268,8 +1277,8 @@ export default function AdminDashboard() {
         }
         .live-dot {
           width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-          background: #22c55e;
-          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+          background: ${T.clay};
+          box-shadow: 0 0 0 0 rgba(245, 184, 211, 0.7);
           animation: live-pulse 2s infinite;
         }
         .live-dot-idle {
@@ -1278,9 +1287,9 @@ export default function AdminDashboard() {
           animation: none;
         }
         @keyframes live-pulse {
-          0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-          70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(245, 184, 211, 0.7); }
+          70% { box-shadow: 0 0 0 8px rgba(245, 184, 211, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 184, 211, 0); }
         }
       `}</style>
     </div>

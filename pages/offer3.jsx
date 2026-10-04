@@ -433,7 +433,7 @@ export default function Offer3Page() {
       </Head>
 
       {discountApplied && (
-        <div style={{ background: T.ink, color: T.white, textAlign: 'center', padding: '10px 16px', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+        <div style={{ background: T.coral, color: T.ink, fontWeight: 500, textAlign: 'center', padding: '10px 16px', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
           Your 15% discount has been applied &mdash; code {DISCOUNT_CODE}
         </div>
       )}

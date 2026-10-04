@@ -18,6 +18,7 @@ export default function RitualsPage() {
       eyebrow="Everyday showers, slightly upgraded"
       title={<>The shower is the only meeting <span style={S.it}>we never cancel.</span></>}
       intro="No 10-step routine. Just a few small rituals that fit the showers you're already taking."
+      image={{ src: '/images/anese-rituals-sunlit.jpg', alt: 'A woman with her hair wrapped in a pink towel, moisturizing her legs after a shower', position: '20% 30%' }}
     >
       <section style={{ ...S.wrap, paddingBottom: 90 }}>
         <RitualCards detailed />

@@ -11,7 +11,7 @@ import { HomeSectionsStyles } from './HomeSections';
 import { useCart } from '../lib/useCart';
 import { T, S } from '../lib/theme';
 
-export default function PageShell({ seo, icon, eyebrow, title, intro, children }) {
+export default function PageShell({ seo, icon, eyebrow, title, intro, image, children }) {
   const c = useCart();
   return (
     <div>
@@ -25,6 +25,17 @@ export default function PageShell({ seo, icon, eyebrow, title, intro, children }
           {intro && <p style={{ color: T.soft, fontSize: 16, marginTop: 16, maxWidth: '50ch', marginLeft: 'auto', marginRight: 'auto' }}>{intro}</p>}
         </div>
       </section>
+      {/* Optional wide photo under the intro: { src, alt, position }. */}
+      {image && (
+        <div style={{ ...S.wrap, paddingBottom: 56 }}>
+          <img
+            src={image.src}
+            alt={image.alt || ''}
+            className="page-banner"
+            style={{ width: '100%', height: 460, objectFit: 'cover', objectPosition: image.position || 'center', display: 'block' }}
+          />
+        </div>
+      )}
       {typeof children === 'function' ? children(c) : children}
       <Footer />
       <CartDrawer {...c} onClose={() => c.setOpen(false)} />

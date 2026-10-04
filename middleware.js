@@ -10,6 +10,9 @@ export const config = {
     // Every storefront page load — see storefrontResponse below. Static
     // files and API routes are left out.
     '/((?!api|_next|admin|.*\\..*).*)',
+    // In-site navigation fetches page data here instead of the page itself,
+    // so the geo-blocked pages below are guarded on this route too.
+    '/_next/data/:path*',
   ],
 };
 
@@ -39,15 +42,45 @@ function isBlockedReferrer(req) {
   }
 }
 
-function blockedResponse() {
+function blockedResponse({ rememberBlock = true } = {}) {
   const res = new NextResponse(
     '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Not available</title></head>'
     + '<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fff;color:#111;font-family:system-ui,sans-serif">'
     + '<p style="font-size:15px">This page isn’t available.</p></body></html>',
     { status: 403, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } },
   );
-  res.cookies.set(BLOCKED_COOKIE, '1', { path: '/', maxAge: BLOCKED_COOKIE_MAX_AGE, sameSite: 'lax' });
+  if (rememberBlock) {
+    res.cookies.set(BLOCKED_COOKIE, '1', { path: '/', maxAge: BLOCKED_COOKIE_MAX_AGE, sameSite: 'lax' });
+  }
   return res;
+}
+
+// Pages closed to visitors outside the US, however they arrive. The Reddit
+// thread above links straight to this product, and click-farm workers who
+// open it from the Reddit app (or paste the link) send no referrer, so the
+// referrer block can't see them — but they all come from outside the US,
+// and the store only ships within it (lib/ipFilter.js). Add a path here to
+// close another page the same way; remove one to reopen it.
+const GEO_BLOCKED_PATHS = ['/product/that-booty-tho'];
+
+// Search and ad-review crawlers are let through so the page still gets
+// indexed and Meta/Google don't flag an ad's landing page as broken when
+// their reviewer happens to fetch it from outside the US.
+const ALLOWED_CRAWLER_UA_RE = /facebookexternalhit|facebot|meta-externalagent|facebookcatalog|googlebot|adsbot-google|google-inspectiontool|mediapartners-google|bingbot|pinterestbot/i;
+
+function pagePath(pathname) {
+  // /_next/data/<buildId>/product/that-booty-tho.json -> /product/that-booty-tho
+  const data = pathname.match(/^\/_next\/data\/[^/]+(\/.*)\.json$/);
+  if (!data) return pathname;
+  return data[1] === '/index' ? '/' : data[1];
+}
+
+function isGeoBlocked(req) {
+  const path = pagePath(req.nextUrl.pathname).replace(/\/+$/, '') || '/';
+  if (!GEO_BLOCKED_PATHS.includes(path)) return false;
+  if (ALLOWED_CRAWLER_UA_RE.test(req.headers.get('user-agent') || '')) return false;
+  const country = req.geo?.country || req.headers.get('x-vercel-ip-country');
+  return isOutsideServiceAreaCountry(country);
 }
 
 // Tells the page which country the visitor is browsing from (Vercel's edge
@@ -66,9 +99,16 @@ function setGeoTag(req, res) {
 }
 
 function storefrontResponse(req) {
-  if (isBlockedReferrer(req) || req.cookies.get(BLOCKED_COOKIE)?.value === '1') {
+  const isPageData = req.headers.has('x-nextjs-data') || req.nextUrl.pathname.startsWith('/_next/data/');
+  // Page-data requests only need the geo check; the referrer on them is the
+  // site itself, and the block cookie was already applied on the page load.
+  if (!isPageData && (isBlockedReferrer(req) || req.cookies.get(BLOCKED_COOKIE)?.value === '1')) {
     return blockedResponse();
   }
+  // Not remembered with a cookie: the same browser may be legitimately in
+  // the US another day (travel, a VPN switched off).
+  if (isGeoBlocked(req)) return blockedResponse({ rememberBlock: false });
+  if (isPageData) return NextResponse.next();
   return setGeoTag(req, NextResponse.next());
 }
 

@@ -20,14 +20,12 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
 
   return (
     <header
+      className={transparent && !lightText ? 'hdr-glow' : undefined}
       style={{
         ...styles.header,
         position: overlay ? (scrolled ? 'fixed' : 'absolute') : 'sticky',
-        // Over a light photo the dark nav text would vanish wherever the
-        // header crosses the busy part of the image, so it gets a soft,
-        // see-through white wash instead of being fully transparent.
-        background: transparent ? (lightText ? 'transparent' : 'rgba(255,255,255,0.62)') : 'rgba(255,255,255,0.96)',
-        backdropFilter: transparent ? (lightText ? 'none' : 'blur(8px)') : 'blur(10px)',
+        background: transparent ? 'transparent' : 'rgba(255,255,255,0.96)',
+        backdropFilter: transparent ? 'none' : 'blur(10px)',
         borderBottom: transparent ? '1px solid transparent' : `1px solid ${T.line}`,
         transition: 'background .35s ease, border-color .35s ease',
       }}
@@ -112,6 +110,13 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
         .desktop-links { display: flex; }
         .hamburger-btn { display: none; }
         .mobile-menu { display: none; }
+        /* Fully transparent over a light photo: a faint white glow keeps the
+           dark nav text readable where it crosses busier parts of the image. */
+        .hdr-glow :global(a), .hdr-glow :global(button) {
+          text-shadow: 0 0 2px rgba(255,255,255,0.9), 0 0 12px rgba(255,255,255,0.85);
+          opacity: 1 !important;
+        }
+        .hdr-glow :global(.shop-mega) :global(a) { text-shadow: none; }
         .desktop-links :global(a), :global(.quiz-link) { white-space: nowrap; }
         @media (max-width: 1020px) {
           .desktop-links { display: none; }

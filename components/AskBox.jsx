@@ -117,7 +117,6 @@ export default function AskBox({ mode = 'question', dark = false }) {
         disabled={state === 'sending'}
         style={{
           ...S.btnFill, alignSelf: 'flex-start', height: 50,
-          ...(dark ? { background: T.white, color: T.ink } : {}),
           opacity: state === 'sending' ? 0.6 : 1,
         }}
       >

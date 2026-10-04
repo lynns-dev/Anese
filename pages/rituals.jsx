@@ -38,7 +38,7 @@ export default function RitualsPage() {
             ))}
           </div>
           <div style={{ marginTop: 44 }}>
-            <Link href="/product/that-booty-tho" style={{ ...S.btnFill, background: T.white, color: T.ink, textDecoration: 'none' }}>Shop That Booty Tho.</Link>
+            <Link href="/product/that-booty-tho" style={{ ...S.btnFill, textDecoration: 'none' }}>Shop That Booty Tho.</Link>
           </div>
         </div>
       </section>

@@ -395,7 +395,7 @@ export default function HomePage() {
   );
 }
 
-const announce = { textAlign: 'center', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.oat, background: T.ink, padding: '10px 20px', overflow: 'hidden' };
+const announce = { textAlign: 'center', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.ink, background: T.coral, fontWeight: 500, padding: '10px 20px', overflow: 'hidden' };
 const heroWrap = { position: 'relative' };
 const heroBg = {
   position: 'relative', height: '88vh', minHeight: 560,

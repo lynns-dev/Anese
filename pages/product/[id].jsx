@@ -867,6 +867,6 @@ const stickyBarInner = {
 const stickyQtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.dline}`, height: 40 };
 const stickyQtyBtn = { width: 32, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: T.oat };
 const stickyAddBtn = {
-  ...S.btnFill, background: T.oat, color: T.ink, height: 40, padding: '0 22px',
+  ...S.btnFill, height: 40, padding: '0 22px',
   whiteSpace: 'nowrap', flexShrink: 0,
 };

@@ -220,4 +220,4 @@ const stickyBar = { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 150
 const stickyBarInner = { maxWidth: T.maxw, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, padding: '0 32px' };
 const stickyQtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.dline}`, height: 40 };
 const stickyQtyBtn = { width: 32, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: T.oat };
-const stickyAddBtn = { ...S.btnFill, background: T.oat, color: T.ink, height: 40, padding: '0 22px', whiteSpace: 'nowrap', flexShrink: 0 };
+const stickyAddBtn = { ...S.btnFill, height: 40, padding: '0 22px', whiteSpace: 'nowrap', flexShrink: 0 };

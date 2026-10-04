@@ -3,7 +3,6 @@ import Link from 'next/link';
 import Head from 'next/head';
 import Header from '../components/Header';
 import CartDrawer from '../components/CartDrawer';
-import ProductVisual from '../components/ProductVisual';
 import Footer from '../components/Footer';
 import Seo, { SITE_URL } from '../components/Seo';
 import { getFeaturedProducts } from '../lib/products';
@@ -15,7 +14,8 @@ import {
 } from '../components/HomeSections';
 import AskBox from '../components/AskBox';
 import NewsletterSignup from '../components/NewsletterSignup';
-import { ANNOUNCEMENTS, HOW_TO, PRODUCT_ONE_LINERS } from '../lib/brandContent';
+import ProductGrid from '../components/ProductGrid';
+import { ANNOUNCEMENTS, HOW_TO } from '../lib/brandContent';
 
 // Minimal line-art icons for the trust badges — matching the site's thin-
 // stroke aesthetic (see ProductVisual's SVG fallbacks) rather than emoji
@@ -202,37 +202,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* COLLECTION */}
-      <section id="shop" style={{ ...band, paddingTop: 30 }}>
-        <div style={{ ...S.wrap, textAlign: 'center' }}>
+      {/* COLLECTION — full-bleed tiled grid */}
+      <section id="shop" style={{ padding: '30px 0 90px' }}>
+        <div style={{ ...S.wrap, textAlign: 'center', marginBottom: 44 }}>
           <p style={S.label}>The lineup</p>
           <h2 style={{ ...S.h2, marginTop: 12 }}>Small routine. <span style={S.it}>Big shower energy.</span></h2>
-          <div className="col-grid" style={colGrid}>
-            {featured.map((p) => (
-              <div key={p.id} className="col-item" style={pcard}>
-                <Link href={`/product/${p.id}`} style={pimg}>
-                  {p.badge && <span style={badge}>{p.badge}</span>}
-                  <ProductVisual id={p.id} images={p.images} alt={p.name} width={104} />
-                </Link>
-                <div style={pcardText}>
-                  <Link href={`/product/${p.id}`} style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 16 }}>{p.name}</Link>
-                  <div style={{ ...pnotes, fontSize: 13 }}>{PRODUCT_ONE_LINERS[p.id] || p.tagline}</div>
-                  {reviewsByProduct[p.id]?.count > 0 && (
-                    <div style={{ ...ratingRow, fontSize: 12 }}>
-                      <span style={{ letterSpacing: '1.5px', color: T.ink }}>{'★'.repeat(Math.round(reviewsByProduct[p.id].average))}{'☆'.repeat(5 - Math.round(reviewsByProduct[p.id].average))}</span>
-                      {' '}{reviewsByProduct[p.id].average.toFixed(1)} ({reviewsByProduct[p.id].count})
-                    </div>
-                  )}
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
-                    ${p.price}
-                  </div>
-                  <button style={{ ...S.btnFill, width: '100%', marginTop: 18 }} onClick={() => c.add(p)}>Add to shower</button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 40 }}><Link href="/shop" style={S.link}>Shop everything</Link></div>
         </div>
+        <ProductGrid products={featured} onAdd={(p) => c.add(p)} reviews={reviewsByProduct} />
+        <div style={{ marginTop: 34, textAlign: 'center' }}><Link href="/shop" style={S.link}>Shop everything</Link></div>
       </section>
 
       {/* HONEST DEMO */}
@@ -392,19 +369,16 @@ export default function HomePage() {
       <HomeSectionsStyles />
 
       <style jsx>{`
-        .col-grid { grid-template-columns: repeat(4, 1fr); }
         .gal-grid { grid-template-columns: repeat(4, 1fr); }
         .rev-grid { grid-template-columns: repeat(3, 1fr); }
         .rit-grid { grid-template-columns: repeat(3, 1fr); }
 
         @media (max-width: 880px) {
-          .col-grid { grid-template-columns: repeat(2, 1fr); }
           .gal-grid { grid-template-columns: 1fr 1fr; }
           .rev-grid { grid-template-columns: 1fr; }
           .rit-grid { grid-template-columns: 1fr; gap: 34px; }
         }
         @media (max-width: 680px) {
-          .col-grid { grid-template-columns: 1fr; }
           /* Phones: keep the model in frame and fade the bottom to white so
              the copy reads below her. */
           .hero-bg {
@@ -448,13 +422,6 @@ const trustItemTitle = { fontSize: 15, fontWeight: 700 };
 const trustItemSub = { fontSize: 12, color: T.soft, marginTop: 2 };
 const concernIcon = { width: 100, height: 100, margin: '0 auto 18px', display: 'block' };
 const band = { padding: '90px 0' };
-const colGrid = { display: 'grid', marginTop: 50, gap: 24 };
-const pcard = { textAlign: 'center', overflow: 'hidden' };
-const badge = { position: 'absolute', top: 14, left: 14, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: T.clay, padding: '5px 10px', zIndex: 1, borderRadius: 30, fontWeight: 600 };
-const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overflow: 'hidden', width: '100%', background: T.white };
-const pcardText = { padding: '20px 24px 28px' };
-const pnotes = { fontSize: 12, color: T.soft, margin: '6px 0 6px' };
-const ratingRow = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: T.soft, marginBottom: 8, fontFamily: T.sans };
 const galGrid = { display: 'grid', gap: 16, marginTop: 50 };
 const galCard = { overflow: 'hidden', aspectRatio: '4/5', boxShadow: T.shadowSm, padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', display: 'block', width: '100%' };
 const revGrid = { display: 'grid', gap: 22, marginTop: 48, textAlign: 'left' };

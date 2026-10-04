@@ -205,7 +205,7 @@ export function QuizBand() {
   return (
     <div className="quiz-band" style={quizBand}>
       <div style={quizImgWrap}>
-        <img src="/images/anese-lifestyle-2.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
+        <img src="/images/anese-quiz-towel.jpg" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '62% top', display: 'block' }} />
       </div>
       <div style={quizText}>
         <p style={S.label}>Not sure where to start?</p>
@@ -311,6 +311,7 @@ export function HomeSectionsStyles() {
         .video-strip video { scroll-snap-align: start; }
       }
       @media (max-width: 560px) {
+        .page-banner { height: 300px !important; }
         .ritual-grid, .myth-grid { grid-template-columns: 1fr !important; }
       }
       @media (max-width: 640px) {

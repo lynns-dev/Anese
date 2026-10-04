@@ -6,22 +6,28 @@ import { getFeaturedProducts } from '../lib/products';
 
 const megaProducts = getFeaturedProducts().slice(0, 4);
 
-export default function Header({ cartCount = 0, onCartClick, overlay = false, scrolled = false }) {
+// overlayTone: 'light' = white text/logo over a dark photo; 'dark' = ink
+// text/logo over a light photo (the transparent state only).
+export default function Header({ cartCount = 0, onCartClick, overlay = false, scrolled = false, overlayTone = 'light' }) {
   const router = useRouter();
   const active = (p) => router.pathname === p;
   const [menuOpen, setMenuOpen] = React.useState(false);
   const closeMenu = () => setMenuOpen(false);
 
   const transparent = overlay && !scrolled;
-  const linkColor = transparent ? T.white : T.ink;
+  const lightText = transparent && overlayTone !== 'dark';
+  const linkColor = lightText ? T.white : T.ink;
 
   return (
     <header
       style={{
         ...styles.header,
         position: overlay ? (scrolled ? 'fixed' : 'absolute') : 'sticky',
-        background: transparent ? 'transparent' : 'rgba(255,255,255,0.96)',
-        backdropFilter: transparent ? 'none' : 'blur(10px)',
+        // Over a light photo the dark nav text would vanish wherever the
+        // header crosses the busy part of the image, so it gets a soft,
+        // see-through white wash instead of being fully transparent.
+        background: transparent ? (lightText ? 'transparent' : 'rgba(255,255,255,0.62)') : 'rgba(255,255,255,0.96)',
+        backdropFilter: transparent ? (lightText ? 'none' : 'blur(8px)') : 'blur(10px)',
         borderBottom: transparent ? '1px solid transparent' : `1px solid ${T.line}`,
         transition: 'background .35s ease, border-color .35s ease',
       }}
@@ -79,7 +85,7 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
         </div>
         <Link href="/" style={styles.logoLink}>
           <img
-            src={transparent ? '/images/anese-logo-white-transparent.png' : '/images/anese_logo_transparent.png'}
+            src={lightText ? '/images/anese-logo-white-transparent.png' : '/images/anese_logo_transparent.png'}
             alt="anese"
             style={styles.logoImg}
           />

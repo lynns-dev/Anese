@@ -423,7 +423,7 @@ const heroBg = {
   boxShadow: 'inset 0 -320px 220px -120px rgba(30,22,18,0.55)',
 };
 const heroContent = { position: 'relative', maxWidth: T.maxw, width: '100%', margin: '0 auto', padding: '0 32px 72px', color: T.oat };
-const heroH1 = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(36px,5.2vw,66px)', lineHeight: 1.02, marginBottom: 20, color: T.oat, maxWidth: '19ch' };
+const heroH1 = { fontFamily: T.serif, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(40px,5.8vw,74px)', lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 20, color: T.oat, maxWidth: '19ch' };
 const heroSub = { fontSize: 17, color: 'rgba(255,255,255,0.92)', maxWidth: '46ch', marginBottom: 30 };
 const sectionIntro = { fontSize: 15, color: T.soft, maxWidth: '52ch', margin: '16px auto 0' };
 const heroBtn = { ...S.btnFill, background: T.white, color: T.ink, textDecoration: 'none' };

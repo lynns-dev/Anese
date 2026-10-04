@@ -134,7 +134,10 @@ export default function HomePage() {
           }}
         >
           {BANNER_MESSAGES.map((msg, i) => (
-            <span key={i} style={{ width: `${100 / BANNER_MESSAGES.length}%` }}>{msg}</span>
+            <span key={i} className="announce-msg" style={{ width: `${100 / BANNER_MESSAGES.length}%` }}>
+              <span className="announce-long">{msg.text}</span>
+              <span className="announce-short">{msg.short}</span>
+            </span>
           ))}
         </div>
       </div>
@@ -369,6 +372,13 @@ export default function HomePage() {
       <HomeSectionsStyles />
 
       <style jsx>{`
+        .announce-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px; box-sizing: border-box; }
+        .announce-short { display: none; }
+        @media (max-width: 640px) {
+          .announce-long { display: none; }
+          .announce-short { display: inline; }
+          .announce-msg { letter-spacing: 0.14em; }
+        }
         .gal-grid { grid-template-columns: repeat(4, 1fr); }
         .rev-grid { grid-template-columns: repeat(3, 1fr); }
         .rit-grid { grid-template-columns: repeat(3, 1fr); }
@@ -384,9 +394,9 @@ export default function HomePage() {
           .hero-bg {
             align-items: flex-end !important;
             height: auto !important; min-height: 92vh !important;
-            background-image: linear-gradient(to bottom, rgba(255,255,255,0) 30%, rgba(255,255,255,0.92) 62%, #fff 80%), url(/images/anese-hero-towel.jpg) !important;
-            background-position: center, 78% top !important;
-            background-size: cover, auto 70% !important;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0) 38%, rgba(255,255,255,0.88) 64%, #fff 82%), url(/images/anese-hero-towel.jpg) !important;
+            background-position: center, 72% center !important;
+            background-size: cover, cover !important;
             background-repeat: no-repeat !important;
           }
         }
@@ -401,7 +411,7 @@ const heroBg = {
   position: 'relative', height: '88vh', minHeight: 560,
   // Model on the right, plain white wall on the left — the copy sits on
   // the wall in dark text (see the dark overlayTone on the Header above).
-  backgroundImage: 'url(/images/anese-hero-towel.jpg)', backgroundSize: 'cover', backgroundPosition: '62% 30%',
+  backgroundImage: 'url(/images/anese-hero-towel.jpg)', backgroundSize: 'cover', backgroundPosition: 'center',
   backgroundColor: '#f4efea',
   display: 'flex', alignItems: 'center',
 };

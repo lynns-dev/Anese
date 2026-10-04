@@ -140,19 +140,19 @@ export default function HomePage() {
       </div>
       {/* HERO */}
       <section style={heroWrap}>
-        <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} overlay scrolled={scrolled} />
+        <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} overlay overlayTone="dark" scrolled={scrolled} />
         <div className="hero-bg" style={heroBg}>
           <div style={heroContent}>
-            <span style={{ ...S.label, display: 'block', marginBottom: 22, color: T.white }}>Butt skincare, minus the awkward</span>
+            <span style={{ ...S.label, display: 'block', marginBottom: 22 }}>Booty scrubs, serums &amp; body care</span>
             <h1 style={heroH1}>
-              Some skin questions feel awkward to ask. <span style={{ ...S.it, color: T.white }}>They don't have to be awkward here.</span>
+              Butt skincare, <span style={S.it}>minus the awkward.</span>
             </h1>
             <p style={heroSub}>
-              Butt skincare? We can talk about it. No judgment, no complicated routine. Just a little help figuring out what feels right for you.
+              Gentle scrubs and body care for your butt, thighs and hips. No judgment, no complicated routine — just a little help figuring out what feels right for you.
             </p>
             <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
-              <a href="#ask" style={heroBtn}>Ask us anything</a>
-              <Link href="/product/that-booty-tho" style={heroLink}>Shop the scrub — ${featured[0]?.price}</Link>
+              <Link href="/product/that-booty-tho" style={heroBtn}>Shop the scrub — ${featured[0]?.price}</Link>
+              <a href="#ask" style={heroLink}>Got a question? Ask us</a>
             </div>
           </div>
         </div>
@@ -405,7 +405,16 @@ export default function HomePage() {
         }
         @media (max-width: 680px) {
           .col-grid { grid-template-columns: 1fr; }
-          .hero-bg { background-position: 18% 30% !important; }
+          /* Phones: keep the model in frame and fade the bottom to white so
+             the copy reads below her. */
+          .hero-bg {
+            align-items: flex-end !important;
+            height: auto !important; min-height: 92vh !important;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0) 30%, rgba(255,255,255,0.92) 62%, #fff 80%), url(/images/anese-hero-towel.jpg) !important;
+            background-position: center, 78% top !important;
+            background-size: cover, auto 70% !important;
+            background-repeat: no-repeat !important;
+          }
         }
       `}</style>
     </div>
@@ -416,18 +425,18 @@ const announce = { textAlign: 'center', fontSize: 11, letterSpacing: '0.2em', te
 const heroWrap = { position: 'relative' };
 const heroBg = {
   position: 'relative', height: '88vh', minHeight: 560,
-  backgroundImage: 'url(/images/anese-lifestyle-hero.png)', backgroundSize: 'cover', backgroundPosition: 'center 40%',
-  display: 'flex', alignItems: 'flex-end',
-  // Darkens the bottom-left where the (now longer) headline sits so it
-  // stays readable over the photo.
-  boxShadow: 'inset 0 -320px 220px -120px rgba(30,22,18,0.55)',
+  // Model on the right, plain white wall on the left — the copy sits on
+  // the wall in dark text (see the dark overlayTone on the Header above).
+  backgroundImage: 'url(/images/anese-hero-towel.jpg)', backgroundSize: 'cover', backgroundPosition: '62% 30%',
+  backgroundColor: '#f4efea',
+  display: 'flex', alignItems: 'center',
 };
-const heroContent = { position: 'relative', maxWidth: T.maxw, width: '100%', margin: '0 auto', padding: '0 32px 72px', color: T.oat };
-const heroH1 = { fontFamily: T.serif, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(40px,5.8vw,74px)', lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 20, color: T.oat, maxWidth: '19ch' };
-const heroSub = { fontSize: 17, color: 'rgba(255,255,255,0.92)', maxWidth: '46ch', marginBottom: 30 };
+const heroContent = { position: 'relative', maxWidth: T.maxw, width: '100%', margin: '0 auto', padding: '90px 32px 40px', color: T.ink };
+const heroH1 = { fontFamily: T.serif, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(40px,5.8vw,74px)', lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 20, color: T.ink, maxWidth: '11ch' };
+const heroSub = { fontSize: 17, color: T.ink, maxWidth: '38ch', marginBottom: 30 };
 const sectionIntro = { fontSize: 15, color: T.soft, maxWidth: '52ch', margin: '16px auto 0' };
-const heroBtn = { ...S.btnFill, background: T.white, color: T.ink, textDecoration: 'none' };
-const heroLink = { ...S.link, color: T.white };
+const heroBtn = { ...S.btnFill, textDecoration: 'none' };
+const heroLink = { ...S.link, color: T.ink };
 const trustBar = { padding: '36px 32px', background: T.shell, borderBottom: `1px solid ${T.line}` };
 const trustRow = { maxWidth: T.maxw, margin: '0 auto', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16 };
 const trustItem = {

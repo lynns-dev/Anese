@@ -4,7 +4,7 @@
 
 import { incrementEvent, logEvent, logVisitor } from '../../../lib/analyticsStore';
 import { sendCapiEvent, getRequestUserData } from '../../../lib/metaCapi';
-import { isExcludedIp } from '../../../lib/ipFilter';
+import { isExcludedIp, isOutsideServiceArea } from '../../../lib/ipFilter';
 
 const ALLOWED = ['pageview', 'addtocart', 'checkout_start', 'checkout_payment', 'checkout_review'];
 // Logged to the timestamped recent-events feed for the live-activity view.
@@ -34,6 +34,10 @@ export default async function handler(req, res) {
 
   const { event, productName, eventId, contentId, contentIds, contents, value, url, sessionId, email, phone, source, campaign, path } = req.body || {};
   if (ALLOWED.includes(event) && !isExcludedIp(req)) {
+    // Outside the US (lib/ipFilter.js): still listed in admin's Visitors tab,
+    // flagged, so unusual traffic stays visible — but kept out of the funnel
+    // counters, the activity feed, and Meta's server-side events.
+    const outside = isOutsideServiceArea(req);
     // The Meta send and the KV analytics writes are started together and
     // kept in separate try/catch blocks on purpose. They used to sit in one
     // sequential try: the KV counter went first, so a transient KV failure
@@ -42,7 +46,7 @@ export default async function handler(req, res) {
     // dashboard number taking down an ad-optimization signal. Running them
     // concurrently also means Meta isn't waiting behind two KV round-trips.
     const capiEventName = CAPI_EVENT_NAMES[event];
-    const capiSend = capiEventName && eventId
+    const capiSend = capiEventName && eventId && !outside
       ? sendCapiEvent({
           eventName: capiEventName,
           eventId,
@@ -68,8 +72,8 @@ export default async function handler(req, res) {
       : null;
 
     try {
-      await incrementEvent(event, sessionId);
-      if (LOGGED.includes(event)) {
+      if (!outside) await incrementEvent(event, sessionId);
+      if (!outside && LOGGED.includes(event)) {
         await logEvent(event, {
           ...(productName ? { productName } : {}),
           ...(sessionId ? { sessionId } : {}),
@@ -89,6 +93,7 @@ export default async function handler(req, res) {
           path: clip(path, 200),
           city: city ? decodeURIComponent(city) : null,
           country,
+          ...(outside ? { outsideServiceArea: true } : {}),
         });
       }
     } catch (err) {

@@ -1259,7 +1259,7 @@ export default function AdminDashboard() {
 
       {/* Browsers don't give buttons/inputs/selects the page font by
           default, so any control here without its own fontFamily fell back
-          to the system font instead of the site's Figtree. */}
+          to the system font instead of the site's Jost. */}
       <style jsx global>{`
         button, input, select, textarea { font-family: inherit; }
       `}</style>

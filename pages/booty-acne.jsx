@@ -179,7 +179,7 @@ export default function BootyAcneLanding() {
               <span style={{ width: 30, textAlign: 'center', fontSize: 14, fontWeight: 500, color: T.oat }}>{quantity}</span>
               <button onClick={() => setQuantity((q) => q + 1)} style={stickyQtyBtn} aria-label="Increase quantity">+</button>
             </div>
-            <button onClick={handleAdd} style={stickyAddBtn}>Add to cart</button>
+            <button onClick={handleAdd} style={stickyAddBtn}>Add to shower</button>
           </div>
         </div>
       </div>

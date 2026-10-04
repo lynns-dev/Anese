@@ -19,6 +19,11 @@ function buildSitemap() {
     ...PRODUCTS.map((p) =>
       urlEntry(`/product/${p.id}`, p.id === 'that-booty-tho' ? '0.9' : '0.7', 'weekly')
     ),
+    urlEntry('/questions', '0.8', 'weekly'),
+    urlEntry('/rituals', '0.7', 'weekly'),
+    urlEntry('/stories', '0.7', 'weekly'),
+    urlEntry('/quiz', '0.6', 'monthly'),
+    urlEntry('/booty-acne', '0.6', 'monthly'),
     urlEntry('/terms', '0.2', 'yearly'),
     urlEntry('/privacy', '0.2', 'yearly'),
     urlEntry('/returns', '0.2', 'yearly'),

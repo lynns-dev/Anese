@@ -14,12 +14,13 @@ const COLUMNS = [
     ],
   },
   {
-    heading: 'Discover',
+    heading: 'Let’s talk',
     links: [
+      ['/questions', 'Ask us anything'],
+      ['/rituals', 'Shower rituals'],
+      ['/stories', 'Real stories'],
       ['/quiz', 'Find my routine'],
       ['/booty-acne', 'Booty acne guide'],
-      ['/#before-after', 'Before & after'],
-      ['/#reviews', 'Reviews'],
     ],
   },
   {
@@ -43,7 +44,9 @@ export default function Footer() {
           <p style={{ fontFamily: T.serif, fontSize: 24, lineHeight: 1.15, margin: '14px 0 10px', maxWidth: '18ch' }}>
             Skincare that hypes you up, <span style={{ fontStyle: 'italic' }}>never tears you down.</span>
           </p>
-          <p style={{ fontSize: 13, color: T.soft }}>Free shipping on orders $50+ · Ships within 1 business day</p>
+          <p style={{ fontSize: 13, color: T.soft }}>
+            Questions? We actually like them. <a href="mailto:help@prettysbrands.com" style={{ textDecoration: 'underline' }}>help@prettysbrands.com</a>
+          </p>
         </div>
         {COLUMNS.map((col) => (
           <nav key={col.heading} aria-label={col.heading}>

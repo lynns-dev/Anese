@@ -40,9 +40,12 @@ export default function SuccessPage() {
       <Header cartCount={0} onCartClick={() => {}} />
       <section style={{ maxWidth: 640, margin: '0 auto', padding: '120px 40px', textAlign: 'center' }}>
         <p style={S.label}>Thank you</p>
-        <h1 style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(38px,5vw,60px)', margin: '16px 0 20px' }}>Your ritual is <span style={S.it}>on its way.</span></h1>
-        <p style={{ color: T.soft, fontSize: 16, marginBottom: 34 }}>We’ve received your order and sent a confirmation to your email.</p>
-        <Link href="/" style={S.btnOutline}>Return home</Link>
+        <h1 style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(38px,5vw,60px)', margin: '16px 0 20px' }}>Your order's in. <span style={S.it}>Your butt has been notified.</span></h1>
+        <p style={{ color: T.soft, fontSize: 16, marginBottom: 34 }}>We’ve received your order and it usually ships within 1 business day. Questions in the meantime? We actually like them.</p>
+        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/rituals" style={S.btnOutline}>Plan your first shower ritual</Link>
+          <Link href="/" style={S.btnOutline}>Return home</Link>
+        </div>
       </section>
       <Marquee />
       <Footer />

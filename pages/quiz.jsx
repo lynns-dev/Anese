@@ -113,7 +113,7 @@ export default function QuizPage() {
               <div style={{ fontSize: 14, color: T.soft, margin: '8px 0 4px' }}>{result.tagline}</div>
               <div style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 20, color: T.ink, margin: '14px 0 22px' }}>${result.price}</div>
               <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button style={S.btnFill} onClick={() => c.add(result)}>Add to cart</button>
+                <button style={S.btnFill} onClick={() => c.add(result)}>Add to shower</button>
                 <Link href={`/product/${result.id}`} style={S.btnOutline}>See details</Link>
               </div>
             </div>

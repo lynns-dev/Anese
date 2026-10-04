@@ -10,90 +10,51 @@ import React from 'react';
 import Link from 'next/link';
 import { getProductById } from '../lib/products';
 import { T, S } from '../lib/theme';
+import { QUESTION_TOPICS, RITUALS, MYTHS, DEMO_STEPS } from '../lib/brandContent';
 
-// ---------- Shop by concern ----------
-
-const CONCERN_RECS = [
-  {
-    concern: 'Acne & breakouts',
-    product: 'that-booty-tho',
-    why: 'Regular, gentle exfoliation clears away the dead skin and buildup that can leave booty skin congested and bumpy.',
-    tip: 'Scrub 2–3x a week — not daily. Over-scrubbing irritates breakout-prone skin.',
-    more: { href: '/booty-acne', label: 'Read the booty acne guide' },
-  },
-  {
-    concern: 'Hyperpigmentation',
-    product: 'glazed-set',
-    why: 'Scrub buffs away dull surface skin; Booty Glaze follows with a smoothing, glowing finish — the full routine for more even-looking skin over time.',
-    tip: 'Consistency beats intensity. Give any routine a few weeks before judging tone changes.',
-  },
-  {
-    concern: 'Keratosis pilaris',
-    product: 'that-booty-tho-6oz',
-    why: 'Finely milled walnut grain smooths the rough, "strawberry skin" feel while shea, jojoba and rosehip keep skin from drying out.',
-    tip: 'Rough texture is a long game — the 6oz tub lasts through a proper routine.',
-  },
-  {
-    concern: 'Bumpy or rough skin',
-    product: 'that-booty-tho',
-    why: 'Walnut grain buffs rough, uneven texture, and the oils mean you rinse off soft rather than stripped.',
-    tip: 'Follow with a moisturizer while skin is still damp to lock in the smooth feel.',
-  },
-  {
-    concern: 'Stretch marks',
-    product: 'cream-dream-set',
-    why: "Nothing erases stretch marks — but deeply moisturized skin looks and feels softer. Cocoa butter cloud cream melts in without the greasy weigh-down.",
-    tip: 'Apply right after showering, while skin is still damp.',
-  },
-  {
-    concern: 'Dry, dull skin',
-    product: 'hold-my-drink',
-    why: 'Sugar polishes away dry, flaky texture while coconut leaves skin soft, glowing and smelling like vacation.',
-    tip: 'Great on legs and arms too — anywhere below the neck.',
-  },
-];
+// ---------- Things people ask us ----------
 
 export function ConcernExplorer({ onAdd }) {
   const [active, setActive] = React.useState(0);
-  const rec = CONCERN_RECS[active];
-  const product = getProductById(rec.product);
+  const topic = QUESTION_TOPICS[active];
+  const product = getProductById(topic.product);
 
   return (
     <div>
-      <div className="concern-tabs" role="tablist" aria-label="Skin concerns" style={concernTabs}>
-        {CONCERN_RECS.map((c, i) => (
+      <div className="concern-tabs" role="tablist" aria-label="Questions people ask" style={concernTabs}>
+        {QUESTION_TOPICS.map((t, i) => (
           <button
-            key={c.concern}
+            key={t.tab}
             role="tab"
             aria-selected={i === active}
             onClick={() => setActive(i)}
             style={{ ...concernTab, ...(i === active ? concernTabActive : {}) }}
           >
-            {c.concern}
+            {t.tab}
           </button>
         ))}
       </div>
 
       {product && (
-        <div key={rec.concern} className="concern-panel fade-in" role="tabpanel" style={concernPanel}>
+        <div key={topic.tab} className="concern-panel fade-in" role="tabpanel" style={concernPanel}>
           <Link href={`/product/${product.id}`} style={concernImgWrap}>
             <img src={product.images[0]} alt={product.name} style={concernImg} />
           </Link>
           <div style={{ textAlign: 'left' }}>
-            <p style={{ ...S.label, fontSize: 10 }}>For {rec.concern.toLowerCase()}</p>
-            <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 34, lineHeight: 1.05, margin: '10px 0 14px' }}>
-              {product.name}
+            <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 32, lineHeight: 1.1, margin: '0 0 14px' }}>
+              &ldquo;{topic.question}&rdquo;
             </h3>
-            <p style={{ fontSize: 15, color: T.ink, marginBottom: 14 }}>{rec.why}</p>
-            <p style={{ fontSize: 13, color: T.soft, marginBottom: 22, paddingLeft: 12, borderLeft: `2px solid ${T.clay}` }}>
-              <strong style={{ fontWeight: 600 }}>Tip:</strong> {rec.tip}
+            <p style={{ fontSize: 15, color: T.ink, marginBottom: 16 }}>{topic.answer}</p>
+            <p style={{ fontSize: 14, marginBottom: 14 }}>
+              <strong style={{ fontWeight: 700 }}>Try:</strong> {product.name} — ${product.price}
+              {topic.productNote && <span style={{ color: T.soft }}>. {topic.productNote}</span>}
             </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <button style={{ ...S.btnFill, height: 50 }} onClick={() => onAdd(product)}>
-                Add to cart — ${product.price}
-              </button>
-              <Link href={`/product/${product.id}`} style={S.link}>Details</Link>
-              {rec.more && <Link href={rec.more.href} style={S.link}>{rec.more.label}</Link>}
+            <p style={{ fontSize: 13, color: T.soft, marginBottom: 22, paddingLeft: 12, borderLeft: `2px solid ${T.clay}` }}>
+              <strong style={{ fontWeight: 600 }}>Honest tip:</strong> {topic.tip}
+            </p>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button style={{ ...S.btnFill, height: 50 }} onClick={() => onAdd(product)}>Add to shower</button>
+              {topic.more && <Link href={topic.more.href} style={S.link}>{topic.more.label}</Link>}
             </div>
           </div>
         </div>
@@ -105,42 +66,12 @@ export function ConcernExplorer({ onAdd }) {
 // ---------- Ingredient explorer ----------
 
 const INGREDIENTS = [
-  {
-    name: 'Walnut grain',
-    in: 'That Booty Tho.',
-    what: 'Finely milled walnut shell — the exfoliant.',
-    does: 'Physically buffs away dead, rough surface skin so texture feels smoother and skin looks brighter.',
-  },
-  {
-    name: 'Shea butter',
-    in: 'That Booty Tho.',
-    what: 'A rich plant butter from the shea nut.',
-    does: 'Cushions the scrub and softens skin while you exfoliate, so it never feels raw afterwards.',
-  },
-  {
-    name: 'Jojoba oil',
-    in: 'That Booty Tho.',
-    what: "A lightweight oil that's close to skin's own natural oils.",
-    does: 'Hydrates without feeling heavy, leaving skin soft and supple.',
-  },
-  {
-    name: 'Rosehip oil',
-    in: 'That Booty Tho.',
-    what: 'A nourishing oil pressed from rose seeds.',
-    does: 'Helps skin look more radiant and even — the "glow" part of the routine.',
-  },
-  {
-    name: 'Sugar + coconut',
-    in: 'Hold my Drink.',
-    what: 'Sugar crystals whipped with coconut.',
-    does: 'Sugar polishes away dry flakes; coconut leaves skin soft with a warm, sweet scent.',
-  },
-  {
-    name: 'Cocoa butter',
-    in: 'Cream Dream Set',
-    what: 'A classic, deeply moisturizing butter.',
-    does: 'Whipped with coconut oil into a cloud-light cream that melts in without a greasy finish.',
-  },
+  { name: 'Walnut grain', in: 'That Booty Tho.', what: 'The scrubby part.', does: 'Buffs rough, dull surface skin so it feels smoother.' },
+  { name: 'Shea butter', in: 'That Booty Tho.', what: 'The cushion.', does: 'Softens skin while you scrub, so it never feels raw.' },
+  { name: 'Jojoba oil', in: 'That Booty Tho.', what: 'The lightweight one.', does: 'Hydrates without feeling heavy.' },
+  { name: 'Rosehip oil', in: 'That Booty Tho.', what: 'The glow-getter.', does: 'Helps skin look radiant and even.' },
+  { name: 'Sugar + coconut', in: 'Hold my Drink.', what: 'The vacation.', does: 'Polishes away flakes and leaves skin soft and sweet-smelling.' },
+  { name: 'Cocoa butter', in: 'Cream Dream Set', what: 'The cozy one.', does: 'Rich moisture, whipped light, no greasy finish.' },
 ];
 
 export function IngredientExplorer() {
@@ -210,6 +141,64 @@ export function UgcVideoStrip({ videos }) {
   );
 }
 
+export function DemoSteps() {
+  return (
+    <ol className="demo-steps" style={demoSteps}>
+      {DEMO_STEPS.map(([h, p], i) => (
+        <li key={h} style={{ textAlign: 'left' }}>
+          <div style={{ fontFamily: T.serif, fontSize: 22, marginBottom: 4 }}>
+            <span style={{ color: T.soft, marginRight: 8 }}>{i + 1}.</span>{h}
+          </div>
+          <p style={{ fontSize: 14, color: T.soft, margin: 0 }}>{p}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// ---------- Shower rituals ----------
+
+export function RitualCards({ detailed = false }) {
+  return (
+    <div className="ritual-grid" style={ritualGrid}>
+      {RITUALS.map((r) => {
+        const product = getProductById(r.product);
+        return (
+          <div key={r.name} style={ritualCard}>
+            <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, lineHeight: 1.1, marginBottom: 10 }}>{r.name}</h3>
+            <p style={{ fontSize: 15, color: T.ink, marginBottom: detailed ? 18 : 0 }}>{r.line}</p>
+            {detailed && (
+              <>
+                <ol style={{ paddingLeft: 18, margin: '0 0 18px', fontSize: 14, color: T.soft, lineHeight: 1.7 }}>
+                  {r.steps.map((step) => <li key={step}>{step}</li>)}
+                </ol>
+                {product && <Link href={`/product/${product.id}`} style={S.link}>Uses {product.name}</Link>}
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------- Myth vs. fact ----------
+
+export function MythFacts() {
+  return (
+    <div className="myth-grid" style={mythGrid}>
+      {MYTHS.map(([myth, fact]) => (
+        <div key={myth} style={mythCard}>
+          <p style={{ ...S.label, fontSize: 10, color: T.soft }}>Myth</p>
+          <p style={{ fontSize: 16, textDecoration: 'line-through', textDecorationColor: T.clay, textDecorationThickness: 2, margin: '6px 0 18px' }}>{myth}</p>
+          <p style={{ ...S.label, fontSize: 10 }}>Fact</p>
+          <p style={{ fontFamily: T.serif, fontSize: 24, lineHeight: 1.2, marginTop: 6 }}>{fact}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------- Quiz band ----------
 
 export function QuizBand() {
@@ -221,10 +210,10 @@ export function QuizBand() {
       <div style={quizText}>
         <p style={S.label}>Not sure where to start?</p>
         <h2 style={{ ...S.h2, marginTop: 14, fontSize: 'clamp(34px,4.4vw,52px)' }}>
-          Find your <span style={S.it}>perfect routine.</span>
+          Let's figure out <span style={S.it}>what feels right.</span>
         </h2>
         <p style={{ fontSize: 15, color: T.soft, margin: '18px 0 28px', maxWidth: '38ch' }}>
-          Two quick questions and we'll match you with the right product for your skin goals.
+          Two quick questions, one honest recommendation. No 10-step routine, promise.
         </p>
         <Link href="/quiz" style={{ ...S.btnFill, textDecoration: 'none' }}>Take the quiz</Link>
       </div>
@@ -234,14 +223,7 @@ export function QuizBand() {
 
 // ---------- FAQ ----------
 
-export const HOME_FAQS = [
-  ['How often should I use the scrub?', '2–3x a week is the sweet spot, depending on your skin. A small scoop goes a long way.'],
-  ['Is it too rough?', "No — the texture is balanced to be gritty enough to exfoliate but gentle enough that you're not left raw. We're buffing, not sanding."],
-  ['Where can I use it?', 'Booty, thighs, hips, arms, legs — anywhere below the neck.'],
-  ['How long does shipping take?', 'Orders usually ship within 1 business day and most arrive within 3–5 business days. We currently ship within the US only.'],
-  ['How much is shipping?', 'A flat $5, and free on orders of $50 or more.'],
-  ['What is your return policy?', 'Unopened, unused products can be returned within 30 days of delivery for a full refund. Opened items are final sale for hygiene reasons unless they arrived damaged or defective.'],
-];
+export { FAQS as HOME_FAQS } from '../lib/brandContent';
 
 export function Faq({ items }) {
   const [open, setOpen] = React.useState(0);
@@ -324,8 +306,12 @@ export function HomeSectionsStyles() {
         .concern-panel { grid-template-columns: 1fr !important; }
         .ing-layout { grid-template-columns: 1fr !important; }
         .quiz-band { grid-template-columns: 1fr !important; }
+        .ritual-grid, .myth-grid, .demo-steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         .video-strip { grid-template-columns: repeat(4, 62vw) !important; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
         .video-strip video { scroll-snap-align: start; }
+      }
+      @media (max-width: 560px) {
+        .ritual-grid, .myth-grid { grid-template-columns: 1fr !important; }
       }
       @media (max-width: 640px) {
         .concern-tabs { flex-wrap: nowrap !important; justify-content: flex-start !important; overflow-x: auto; padding-bottom: 6px; }
@@ -361,6 +347,11 @@ const ingBtn = {
 const ingBtnActive = { paddingLeft: 14, fontStyle: 'italic' };
 const ingCard = { background: T.blush, padding: '44px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' };
 
+const demoSteps = { listStyle: 'none', padding: 0, margin: '28px 0 0', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 };
+const ritualGrid = { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginTop: 44, textAlign: 'left' };
+const ritualCard = { background: T.white, border: `1px solid ${T.line}`, padding: '28px 24px' };
+const mythGrid = { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginTop: 44, textAlign: 'left' };
+const mythCard = { background: T.blush, padding: '28px 24px' };
 const videoStrip = { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, marginTop: 42 };
 const videoItem = { width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', display: 'block', background: T.blush };
 

@@ -11,26 +11,30 @@ import { useCart } from '../lib/useCart';
 import { useAllReviews } from '../lib/useReviews';
 import { T, S } from '../lib/theme';
 import {
-  ConcernExplorer, IngredientExplorer, UgcVideoStrip, QuizBand, Faq, HOME_FAQS, Lightbox, HomeSectionsStyles,
+  ConcernExplorer, IngredientExplorer, UgcVideoStrip, DemoSteps, RitualCards, MythFacts, QuizBand, Faq, HOME_FAQS, Lightbox, HomeSectionsStyles,
 } from '../components/HomeSections';
+import AskBox from '../components/AskBox';
+import NewsletterSignup from '../components/NewsletterSignup';
+import { ANNOUNCEMENTS, HOW_TO, PRODUCT_ONE_LINERS } from '../lib/brandContent';
 
 // Minimal line-art icons for the trust badges — matching the site's thin-
 // stroke aesthetic (see ProductVisual's SVG fallbacks) rather than emoji
 // or generic checkmarks, so the badges read as designed, not default.
 const iconProps = { width: 44, height: 44, viewBox: '0 0 24 24', fill: 'none', stroke: T.ink, strokeWidth: 1.2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
-function AwardIcon() {
+function ChatIcon() {
   return (
     <svg {...iconProps}>
-      <circle cx="12" cy="8" r="5.5" />
-      <path d="M8.5 12.5 7 21l5-2.5L17 21l-1.5-8.5" />
+      <path d="M4 5.5h16v10H10l-4.5 3.5v-3.5H4z" />
+      <path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" />
     </svg>
   );
 }
-function ShieldCheckIcon() {
+function JarIcon() {
   return (
     <svg {...iconProps}>
-      <path d="M12 2.5 4.5 5.5V11c0 5 3.2 8.4 7.5 10.5 4.3-2.1 7.5-5.5 7.5-10.5V5.5L12 2.5Z" />
-      <path d="M8.5 12 11 14.5l4.5-5" />
+      <rect x="5" y="4" width="14" height="4" rx="1" />
+      <path d="M6 8h12v10.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18.5z" />
+      <path d="M9 13h6" />
     </svg>
   );
 }
@@ -58,19 +62,13 @@ const HOME_JSON_LD = {
     { '@type': 'WebSite', name: 'ANESE', url: SITE_URL },
     {
       '@type': 'SiteNavigationElement',
-      name: ['Shop', 'That Booty Tho', 'Before & After'],
-      url: [`${SITE_URL}/shop`, `${SITE_URL}/product/that-booty-tho`, `${SITE_URL}/#before-after`],
+      name: ['Shop', 'That Booty Tho', 'Ask Us Anything', 'Shower Rituals', 'Real Stories'],
+      url: [`${SITE_URL}/shop`, `${SITE_URL}/product/that-booty-tho`, `${SITE_URL}/questions`, `${SITE_URL}/rituals`, `${SITE_URL}/stories`],
     },
   ],
 };
 
-const BANNER_MESSAGES = ['Free shipping $50+', '15% off with code FIRST15', 'Free silk bag on orders $50+', 'Not sure where to start? Take the 60-second quiz'];
-
-const BENEFITS = [
-  ['Smoother texture', "Walnut grain buffs away rough, uneven, dull skin — what's left feels like a compliment."],
-  ['Lit-from-within glow', 'Shea, jojoba & rosehip hydrate while you exfoliate, so you rinse off glowing, not stripped.'],
-  ['Made for the booty', 'Formulated for butt, thighs & hips — the spots most body scrubs completely ignore.'],
-];
+const BANNER_MESSAGES = ANNOUNCEMENTS;
 
 const UGC_VIDEOS = [
   '/videos/anese-ugc-1.mp4',
@@ -145,72 +143,70 @@ export default function HomePage() {
         <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} overlay scrolled={scrolled} />
         <div className="hero-bg" style={heroBg}>
           <div style={heroContent}>
-            <span style={{ ...S.label, display: 'block', marginBottom: 26, color: T.white }}>Walnut grain body scrub</span>
-            <h1 style={heroH1}>Award Winning <span style={{ ...S.it, color: T.white }}>Skincare</span> for your Butt</h1>
-            <p style={heroSub}>Clean and effective skincare for your butt's unique skincare needs.</p>
-            {siteReviews.count > 0 && (
-              <div style={hrate}>
-                <span style={{ letterSpacing: '2px', color: T.honey }}>{'★'.repeat(Math.round(siteReviews.average))}{'☆'.repeat(5 - Math.round(siteReviews.average))}</span>
-                {' '}{siteReviews.average.toFixed(1)} · {siteReviews.count} review{siteReviews.count === 1 ? '' : 's'}
-              </div>
-            )}
+            <span style={{ ...S.label, display: 'block', marginBottom: 22, color: T.white }}>Butt skincare, minus the awkward</span>
+            <h1 style={heroH1}>
+              Some skin questions feel awkward to ask. <span style={{ ...S.it, color: T.white }}>They don't have to be awkward here.</span>
+            </h1>
+            <p style={heroSub}>
+              Butt skincare? We can talk about it. No judgment, no complicated routine. Just a little help figuring out what feels right for you.
+            </p>
             <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button style={heroBtn} onClick={() => c.add(featured[0])}>Shop — ${featured[0]?.price}</button>
-              <a href="#shop" style={heroLink}>Meet the scrub</a>
+              <a href="#ask" style={heroBtn}>Ask us anything</a>
+              <Link href="/product/that-booty-tho" style={heroLink}>Shop the scrub — ${featured[0]?.price}</Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* TRUST BADGES — borrows the credibility signals competitors lean on
-          (review volume, guarantee, free shipping) right where a first-time
-          visitor lands, before they've scrolled to the dedicated reviews
-          section further down. Custom minimal line icons (not emoji/generic
-          checkmarks) so each badge reads as a deliberate card, not a list. */}
+      {/* REASSURANCE STRIP */}
       <section style={trustBar}>
         <div className="trust-row" style={trustRow}>
-          {siteReviews.count > 0 && (
-            <div style={trustItem}>
-              <AwardIcon />
-              <div>
-                <div style={trustItemTitle}>{siteReviews.average.toFixed(1)} rating</div>
-                <div style={trustItemSub}>{siteReviews.count}+ reviews</div>
-              </div>
-            </div>
-          )}
           <div style={trustItem}>
-            <ShieldCheckIcon />
+            <ChatIcon />
             <div>
-              <div style={trustItemTitle}>30-day guarantee</div>
-              <div style={trustItemSub}>Money back, no hassle</div>
+              <div style={trustItemTitle}>No judgment, ever</div>
+              <div style={trustItemSub}>Bumps, breakouts, texture: totally normal. Totally talkable.</div>
             </div>
           </div>
           <div style={trustItem}>
             <TruckIcon />
             <div>
-              <div style={trustItemTitle}>Free shipping</div>
-              <div style={trustItemSub}>On orders over $50</div>
+              <div style={trustItemTitle}>Ships in 1 business day</div>
+              <div style={trustItemSub}>Free on orders $50+</div>
+            </div>
+          </div>
+          <div style={trustItem}>
+            <JarIcon />
+            <div>
+              <div style={trustItemTitle}>Simple routine</div>
+              <div style={trustItemSub}>One scoop, 2–3 times a week. That's it.</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SHOP BY CONCERN — the concerns that bring someone to a booty-scrub
-          site in the first place, each clickable to the product that fits. */}
+      {/* THINGS PEOPLE ASK US — real questions, straight answers, and the
+          product that fits each one. */}
       <section style={{ ...band, padding: '80px 0', textAlign: 'center' }}>
         <div style={S.wrap}>
           <img src="/images/anese-tiger-icon.png" alt="" style={concernIcon} />
-          <p style={S.label}>You're in the right place</p>
+          <p style={S.label}>You're not the only one</p>
           <h2 style={{ ...S.h2, marginTop: 14 }}>
-            What are you <span style={S.it}>working on?</span>
+            Things people <span style={S.it}>ask us about.</span>
           </h2>
+          <p style={sectionIntro}>Real questions, straight answers. Tap one and we'll tell you what we'd tell a friend.</p>
           <ConcernExplorer onAdd={(p) => c.add(p)} />
+          <p style={{ fontSize: 14, marginTop: 30 }}>
+            Don't see your question? <a href="#ask" style={S.link}>Ask us. Anonymous if you want.</a>
+          </p>
         </div>
       </section>
 
       {/* COLLECTION */}
       <section id="shop" style={{ ...band, paddingTop: 30 }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
+          <p style={S.label}>The lineup</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Small routine. <span style={S.it}>Big shower energy.</span></h2>
           <div className="col-grid" style={colGrid}>
             {featured.map((p) => (
               <div key={p.id} className="col-item" style={pcard}>
@@ -220,7 +216,7 @@ export default function HomePage() {
                 </Link>
                 <div style={pcardText}>
                   <Link href={`/product/${p.id}`} style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 16 }}>{p.name}</Link>
-                  <div style={{ ...pnotes, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{p.tagline}</div>
+                  <div style={{ ...pnotes, fontSize: 13 }}>{PRODUCT_ONE_LINERS[p.id] || p.tagline}</div>
                   {reviewsByProduct[p.id]?.count > 0 && (
                     <div style={{ ...ratingRow, fontSize: 12 }}>
                       <span style={{ letterSpacing: '1.5px', color: T.ink }}>{'★'.repeat(Math.round(reviewsByProduct[p.id].average))}{'☆'.repeat(5 - Math.round(reviewsByProduct[p.id].average))}</span>
@@ -230,60 +226,65 @@ export default function HomePage() {
                   <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
                     ${p.price}
                   </div>
-                  <button style={{ ...S.btnFill, width: '100%', marginTop: 18 }} onClick={() => c.add(p)}>Add to cart</button>
+                  <button style={{ ...S.btnFill, width: '100%', marginTop: 18 }} onClick={() => c.add(p)}>Add to shower</button>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 40 }}><Link href="/shop" style={S.link}>View all</Link></div>
+          <div style={{ marginTop: 40 }}><Link href="/shop" style={S.link}>Shop everything</Link></div>
         </div>
       </section>
 
-      {/* CUSTOMER VIDEOS */}
+      {/* HONEST DEMO */}
       <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={S.label}>See it in action</p>
-          <h2 style={{ ...S.h2, marginTop: 12 }}>Scoop, scrub, <span style={S.it}>glow.</span></h2>
+          <p style={S.label}>No filters, slightly wet</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>What it <span style={S.it}>actually</span> looks like.</h2>
+          <p style={sectionIntro}>How much to scoop, how it feels and how it rinses. Unedited, so there are no surprises.</p>
           <UgcVideoStrip videos={UGC_VIDEOS} />
-          <div style={{ marginTop: 36 }}>
+          <DemoSteps />
+          <div style={{ marginTop: 40 }}>
             <Link href="/product/that-booty-tho" style={S.btnOutline}>Shop That Booty Tho.</Link>
           </div>
         </div>
       </section>
 
-      {/* BENEFITS */}
-      <section style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
+      {/* SHOWER RITUALS */}
+      <section style={band}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
           <img src="/images/anese-cloud-icon.png" alt="" style={concernIcon} />
-          <p style={S.label}>Why you'll love it</p>
-          <h2 style={{ ...S.h2, marginTop: 12 }}>Skin that <span style={S.it}>actually glows.</span></h2>
-          <div className="ben-grid" style={benGrid}>
-            {BENEFITS.map(([h, p], i) => (
-              <div key={i} style={benCard}>
-                <div style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
-                <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, marginBottom: 8, lineHeight: 1.05 }}>{h}</div>
-                <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{p}</p>
-              </div>
-            ))}
-          </div>
+          <p style={S.label}>Everyday showers, slightly upgraded</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>The shower is the only meeting <span style={S.it}>we never cancel.</span></h2>
+          <RitualCards />
+          <div style={{ marginTop: 36 }}><Link href="/rituals" style={S.link}>See all rituals</Link></div>
         </div>
       </section>
 
       {/* INGREDIENTS */}
       <section style={band}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={S.label}>What's inside</p>
+          <p style={S.label}>No secrets</p>
           <h2 style={{ ...S.h2, marginTop: 12 }}>Ingredients that <span style={S.it}>earn their spot.</span></h2>
+          <p style={sectionIntro}>Short list, real reasons. Here's what each one does, in plain English.</p>
           <IngredientExplorer />
+        </div>
+      </section>
+
+      {/* MYTH VS FACT */}
+      <section style={{ ...band, paddingTop: 0 }}>
+        <div style={{ ...S.wrap, textAlign: 'center' }}>
+          <p style={S.label}>The honest version</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Straight answers. <span style={S.it}>No scare tactics.</span></h2>
+          <MythFacts />
         </div>
       </section>
 
       {/* GALLERY */}
       <section id="before-after" style={band}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={S.label}>As worn</p>
-          <h2 style={{ ...S.h2, marginTop: 12 }}>Real skin, <span style={S.it}>real glow.</span></h2>
-          <p style={{ fontSize: 14, color: T.soft, marginTop: 12 }}>Tap any photo to take a closer look.</p>
+          <p style={S.label}>Real people, real showers</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>Real skin, <span style={S.it}>in real life.</span></h2>
+          <p style={sectionIntro}>Customer photos, unfiltered. Tap any photo to take a closer look.</p>
           <div className="gal-grid" style={galGrid}>
             {GALLERY_IMAGES.map((src, i) => (
               <button key={i} className="gal-card-btn" onClick={() => setLightboxIndex(i)} aria-label={`View photo ${i + 1}`} style={galCard}>
@@ -291,21 +292,42 @@ export default function HomePage() {
               </button>
             ))}
           </div>
+          <div style={{ marginTop: 36, display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/stories" style={S.link}>Read more stories</Link>
+            <Link href="/stories#share" style={S.link}>Share yours</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ASK US ANYTHING */}
+      <section id="ask" style={{ ...band, background: T.ink, color: T.white, textAlign: 'center' }}>
+        <div style={S.wrap}>
+          <p style={{ ...S.label, color: T.white }}>No awkward questions</p>
+          <h2 style={{ ...S.h2, color: T.white, marginTop: 12 }}>Asking for a friend? <span style={{ ...S.it, color: T.white }}>We'll answer for your friend.</span></h2>
+          <p style={{ ...sectionIntro, color: 'rgba(255,255,255,0.8)' }}>
+            Type it, send it, and we'll answer honestly. Anonymous if you want. Our favorites get shared (without your name) so the next person doesn't have to wonder.
+          </p>
+          <AskBox mode="question" dark />
+          <div style={{ marginTop: 26 }}><Link href="/questions" style={{ ...S.link, color: T.white }}>Browse answered questions</Link></div>
         </div>
       </section>
 
       {/* QUIZ */}
-      <section style={{ ...S.wrap, paddingTop: 20, paddingBottom: 90 }}>
+      <section style={{ ...S.wrap, paddingTop: 90, paddingBottom: 90 }}>
         <QuizBand />
       </section>
 
       {/* REVIEWS */}
       <section id="reviews" style={{ ...band, background: T.shell, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ ...S.wrap, textAlign: 'center' }}>
-          <p style={S.label}>The verdict</p>
-          <h2 style={{ ...S.h2, marginTop: 12 }}>Loved by <span style={S.it}>thousands.</span></h2>
+          <p style={S.label}>In their words</p>
           {siteReviews.count === 0 ? (
-            <p style={{ color: T.soft, fontSize: 14, marginTop: 42 }}>No reviews yet — be the first to share yours on any product page.</p>
+            <h2 style={{ ...S.h2, marginTop: 12 }}>Be the first to <span style={S.it}>say something.</span></h2>
+          ) : (
+            <h2 style={{ ...S.h2, marginTop: 12 }}>What customers <span style={S.it}>are saying.</span></h2>
+          )}
+          {siteReviews.count === 0 ? (
+            <p style={{ color: T.soft, fontSize: 15, marginTop: 24 }}>No reviews yet. Tried it? Tell us how it went, honestly — the good, the meh, all of it. Leave yours on any product page.</p>
           ) : (
             <>
               <div style={{ marginTop: 42 }}>
@@ -333,11 +355,7 @@ export default function HomePage() {
           <p style={{ ...S.label, color: T.white }}>The ritual</p>
           <h2 style={{ ...S.h2, color: T.oat, marginTop: 12 }}>How to <span style={{ ...S.it, color: T.white }}>scrub it.</span></h2>
           <div className="rit-grid" style={ritGrid}>
-            {[
-              ['1', 'Hop in the shower', "On wet skin, scoop two moist fingers' worth onto your target area."],
-              ['2', 'Massage in circles', 'Work it into booty, thighs, hips — wherever you want the glow.'],
-              ['3', 'Rinse & repeat', "2–3x a week. A small scoop goes a long way."],
-            ].map(([n, h, p], i) => (
+            {HOW_TO.map(([h, p], i) => [String(i + 1), h, p]).map(([n, h, p], i) => (
               <div key={i}>
                 <div style={{ fontFamily: T.serif, fontSize: 44, color: T.white, lineHeight: 0.8 }}>{n}</div>
                 <h4 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 24, margin: '14px 0 6px' }}>{h}</h4>
@@ -359,13 +377,12 @@ export default function HomePage() {
 
       {/* NEWSLETTER */}
       <section style={{ ...band, textAlign: 'center' }}>
-        <p style={S.label}>The list</p>
-        <h2 style={{ ...S.h2, marginTop: 12 }}>One tub away, <span style={S.it}>told softly.</span></h2>
-        <p style={{ color: T.soft, fontSize: 15, margin: '16px auto 28px', maxWidth: '40ch' }}>Early access, restock alerts, 15% off your first order.</p>
-        <form style={newsForm} onSubmit={(e) => e.preventDefault()}>
-          <input type="email" placeholder="Email address" aria-label="email" style={newsInput} />
-          <button type="submit" style={newsSubmit}>Subscribe</button>
-        </form>
+        <div style={S.wrap}>
+          <p style={S.label}>Shower Thoughts</p>
+          <h2 style={{ ...S.h2, marginTop: 12 }}>One honest skin email a week. <span style={S.it}>No guilt trips.</span></h2>
+          <p style={{ color: T.soft, fontSize: 15, margin: '16px auto 28px', maxWidth: '44ch' }}>Answers to real questions, new rituals and early access, plus 15% off your first order.</p>
+          <NewsletterSignup />
+        </div>
       </section>
 
       <Footer />
@@ -376,14 +393,12 @@ export default function HomePage() {
 
       <style jsx>{`
         .col-grid { grid-template-columns: repeat(4, 1fr); }
-        .ben-grid { grid-template-columns: repeat(3, 1fr); }
         .gal-grid { grid-template-columns: repeat(4, 1fr); }
         .rev-grid { grid-template-columns: repeat(3, 1fr); }
         .rit-grid { grid-template-columns: repeat(3, 1fr); }
 
         @media (max-width: 880px) {
           .col-grid { grid-template-columns: repeat(2, 1fr); }
-          .ben-grid { grid-template-columns: 1fr; }
           .gal-grid { grid-template-columns: 1fr 1fr; }
           .rev-grid { grid-template-columns: 1fr; }
           .rit-grid { grid-template-columns: 1fr; gap: 34px; }
@@ -403,13 +418,16 @@ const heroBg = {
   position: 'relative', height: '88vh', minHeight: 560,
   backgroundImage: 'url(/images/anese-lifestyle-hero.png)', backgroundSize: 'cover', backgroundPosition: 'center 40%',
   display: 'flex', alignItems: 'flex-end',
+  // Darkens the bottom-left where the (now longer) headline sits so it
+  // stays readable over the photo.
+  boxShadow: 'inset 0 -320px 220px -120px rgba(30,22,18,0.55)',
 };
 const heroContent = { position: 'relative', maxWidth: T.maxw, width: '100%', margin: '0 auto', padding: '0 32px 72px', color: T.oat };
-const heroH1 = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(40px,6.5vw,78px)', lineHeight: 0.98, marginBottom: 20, color: T.oat, maxWidth: '17ch' };
-const heroSub = { fontSize: 17, color: 'rgba(244,237,227,0.9)', maxWidth: '40ch', marginBottom: 26 };
-const hrate = { display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: 'rgba(244,237,227,0.9)', marginBottom: 30 };
-const heroBtn = { ...S.btnFill, background: T.oat, color: T.ink };
-const heroLink = { ...S.link, color: T.oat, borderBottom: 'none' };
+const heroH1 = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(36px,5.2vw,66px)', lineHeight: 1.02, marginBottom: 20, color: T.oat, maxWidth: '19ch' };
+const heroSub = { fontSize: 17, color: 'rgba(255,255,255,0.92)', maxWidth: '46ch', marginBottom: 30 };
+const sectionIntro = { fontSize: 15, color: T.soft, maxWidth: '52ch', margin: '16px auto 0' };
+const heroBtn = { ...S.btnFill, background: T.white, color: T.ink, textDecoration: 'none' };
+const heroLink = { ...S.link, color: T.white };
 const trustBar = { padding: '36px 32px', background: T.shell, borderBottom: `1px solid ${T.line}` };
 const trustRow = { maxWidth: T.maxw, margin: '0 auto', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16 };
 const trustItem = {
@@ -428,13 +446,8 @@ const pimg = { position: 'relative', aspectRatio: '1/1', display: 'block', overf
 const pcardText = { padding: '20px 24px 28px' };
 const pnotes = { fontSize: 12, color: T.soft, margin: '6px 0 6px' };
 const ratingRow = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: T.soft, marginBottom: 8, fontFamily: T.sans };
-const benGrid = { display: 'grid', gap: 20, marginTop: 56, textAlign: 'left' };
-const benCard = { background: T.oat, borderRadius: 24, padding: '38px 32px' };
 const galGrid = { display: 'grid', gap: 16, marginTop: 50 };
 const galCard = { overflow: 'hidden', aspectRatio: '4/5', boxShadow: T.shadowSm, padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', display: 'block', width: '100%' };
 const revGrid = { display: 'grid', gap: 22, marginTop: 48, textAlign: 'left' };
 const rev = { padding: '30px 28px', background: T.oat, borderRadius: 20 };
 const ritGrid = { display: 'grid', gap: 44, marginTop: 54 };
-const newsForm = { display: 'flex', maxWidth: 420, margin: '0 auto', borderBottom: `1px solid ${T.ink}`, alignItems: 'center' };
-const newsInput = { flex: 1, height: 52, border: 'none', background: 'transparent', color: T.ink, padding: '0 4px', fontSize: 15, fontFamily: T.sans, outline: 'none' };
-const newsSubmit = { background: 'none', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.sans, color: T.ink };

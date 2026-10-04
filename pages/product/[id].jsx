@@ -363,7 +363,7 @@ export default function ProductPage({ product }) {
                 <span style={qtyValue}>{quantity}</span>
                 <button onClick={() => setQuantity((q) => q + 1)} style={qtyBtn} aria-label="Increase quantity">+</button>
               </div>
-              <button style={{ ...S.btnFill, flex: 1 }} onClick={handleAdd}>Add to cart</button>
+              <button style={{ ...S.btnFill, flex: 1 }} onClick={handleAdd}>Add to shower</button>
             </div>
 
             <p style={badgeRow}>
@@ -650,7 +650,7 @@ export default function ProductPage({ product }) {
         <p style={{ fontSize: 18, margin: '16px 0 34px', color: 'rgba(255,255,255,0.9)' }}>
           {isScrub ? 'Soft, smooth, glowing, confident.' : product.description}
         </p>
-        <button onClick={handleAdd} style={{ ...S.btnFill, padding: '0 52px' }}>Add to cart — ${unitPrice}</button>
+        <button onClick={handleAdd} style={{ ...S.btnFill, padding: '0 52px' }}>Add to shower — ${unitPrice}</button>
         <p style={{ marginTop: 18, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>
           Free shipping over $50
         </p>
@@ -677,7 +677,7 @@ export default function ProductPage({ product }) {
                 <span style={{ ...qtyValue, color: T.oat }}>{quantity}</span>
                 <button onClick={() => setQuantity((q) => q + 1)} style={stickyQtyBtn} aria-label="Increase quantity">+</button>
               </div>
-              <button onClick={handleAdd} style={stickyAddBtn}>Add to cart</button>
+              <button onClick={handleAdd} style={stickyAddBtn}>Add to shower</button>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { parseCsv } from '../../lib/csv';
 import WorldMap from '../../components/WorldMap';
 import { describeAdPlacement } from '../../lib/attribution';
 import { T, S } from '../../lib/theme';
+import AdminInbox from '../../components/AdminInbox';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -197,6 +198,7 @@ export default function AdminDashboard() {
   const [ordersLoading, setOrdersLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState('dashboard');
   const [expandedOrderId, setExpandedOrderId] = React.useState(null);
+  const [inboxNew, setInboxNew] = React.useState(0);
   const [showArchived, setShowArchived] = React.useState(false);
   const [orderActionBusy, setOrderActionBusy] = React.useState({});
   const [orderActionError, setOrderActionError] = React.useState({});
@@ -573,6 +575,12 @@ export default function AdminDashboard() {
             style={{ ...tabBtn, ...(activeTab === 'orders' ? tabBtnActive : {}) }}
           >
             Orders ({orders.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('inbox')}
+            style={{ ...tabBtn, ...(activeTab === 'inbox' ? tabBtnActive : {}) }}
+          >
+            Inbox{inboxNew > 0 ? ` (${inboxNew})` : ''}
           </button>
         </div>
 
@@ -1052,6 +1060,12 @@ export default function AdminDashboard() {
         </Section>
         </>
         )}
+
+        {/* Mounted (hidden) on every tab so the new-message count in the
+            tab label is right before the tab is opened. */}
+        <div style={{ display: activeTab === 'inbox' ? 'block' : 'none' }}>
+          <AdminInbox onCount={setInboxNew} />
+        </div>
 
         {activeTab === 'orders' && (
         <Section

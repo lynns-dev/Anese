@@ -287,7 +287,7 @@ export default function CartDrawer({
         )}
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          {cart.length === 0 && <p style={{ color: T.soft, fontSize: 14 }}>Your cart is empty.</p>}
+          {cart.length === 0 && <p style={{ color: T.soft, fontSize: 14 }}>Nothing here yet. Your shower is waiting.</p>}
           {cart.map((item) => (
             <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '18px 0', borderBottom: `1px solid ${T.line}` }}>
               <div style={{ display: 'flex', gap: 14 }}>

@@ -40,10 +40,10 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
                     <Link href="/shop" style={styles.megaLink}>All products</Link>
                     <Link href="/product/that-booty-tho" style={styles.megaLink}>Bestseller: That Booty Tho.</Link>
                     <Link href="/product/glazed-set" style={styles.megaLink}>Sets &amp; bundles</Link>
-                    <div style={{ ...styles.megaHeading, marginTop: 18 }}>Discover</div>
+                    <div style={{ ...styles.megaHeading, marginTop: 18 }}>Not sure?</div>
                     <Link href="/quiz" style={styles.megaLink}>Find my routine</Link>
+                    <Link href="/questions" style={styles.megaLink}>Ask us anything</Link>
                     <Link href="/booty-acne" style={styles.megaLink}>Booty acne guide</Link>
-                    <a href="/#before-after" style={styles.megaLink}>Before &amp; after</a>
                   </div>
                   <div style={styles.megaProducts}>
                     {megaProducts.map((p) => (
@@ -59,17 +59,9 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
                 </div>
               </div>
             </div>
-            {/* Hover dropdown — currently a single entry (Booty Acne), but
-                built as a menu rather than a flat link since more concern
-                landing pages are the obvious next addition here. */}
-            <div className="concern-nav" style={styles.concernNav}>
-              <span style={{ ...styles.navLink, color: linkColor, cursor: 'default' }}>Shop by Concern</span>
-              <div className="concern-dropdown" style={styles.concernDropdown}>
-                <Link href="/booty-acne" style={styles.concernDropdownLink}>Booty Acne</Link>
-              </div>
-            </div>
-            <Link href="/quiz" style={{ ...styles.navLink, color: linkColor, opacity: active('/quiz') ? 1 : 0.7 }}>Find My Routine</Link>
-            <a href="/#before-after" style={{ ...styles.navLink, color: linkColor }}>Before & After</a>
+            <Link href="/questions" style={{ ...styles.navLink, color: linkColor, opacity: active('/questions') ? 1 : 0.7 }}>Ask Us Anything</Link>
+            <Link href="/rituals" style={{ ...styles.navLink, color: linkColor, opacity: active('/rituals') ? 1 : 0.7 }}>Shower Rituals</Link>
+            <Link href="/stories" style={{ ...styles.navLink, color: linkColor, opacity: active('/stories') ? 1 : 0.7 }}>Real Stories</Link>
           </div>
           <button
             className="hamburger-btn"
@@ -93,7 +85,7 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
           />
         </Link>
         <div style={{ ...styles.side, justifyContent: 'flex-end' }}>
-          <a href="/#reviews" className="reviews-link" style={{ ...styles.navLink, color: linkColor }}>Reviews</a>
+          <Link href="/quiz" className="quiz-link" style={{ ...styles.navLink, color: linkColor, opacity: active('/quiz') ? 1 : 0.7 }}>Find My Routine</Link>
           <button onClick={onCartClick} style={{ ...styles.cartBtn, color: linkColor }} aria-label="Open cart">
             Cart{cartCount > 0 ? ` (${cartCount})` : ''}
           </button>
@@ -103,10 +95,10 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
       {menuOpen && (
         <div className="mobile-menu" style={styles.mobileMenu}>
           <Link href="/shop" onClick={closeMenu} style={styles.mobileMenuLink}>Shop</Link>
-          <Link href="/booty-acne" onClick={closeMenu} style={styles.mobileMenuLink}>Booty Acne</Link>
+          <Link href="/questions" onClick={closeMenu} style={styles.mobileMenuLink}>Ask Us Anything</Link>
+          <Link href="/rituals" onClick={closeMenu} style={styles.mobileMenuLink}>Shower Rituals</Link>
+          <Link href="/stories" onClick={closeMenu} style={styles.mobileMenuLink}>Real Stories</Link>
           <Link href="/quiz" onClick={closeMenu} style={styles.mobileMenuLink}>Find My Routine</Link>
-          <a href="/#before-after" onClick={closeMenu} style={styles.mobileMenuLink}>Before & After</a>
-          <a href="/#reviews" onClick={closeMenu} style={styles.mobileMenuLink}>Reviews</a>
         </div>
       )}
 
@@ -114,19 +106,18 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
         .desktop-links { display: flex; }
         .hamburger-btn { display: none; }
         .mobile-menu { display: none; }
-        @media (max-width: 680px) {
+        .desktop-links :global(a), :global(.quiz-link) { white-space: nowrap; }
+        @media (max-width: 1020px) {
           .desktop-links { display: none; }
           .hamburger-btn { display: flex; }
+          :global(.quiz-link) { display: none; }
           .mobile-menu { display: flex; }
-          .reviews-link { display: none; }
         }
         .mobile-menu > :global(a:not(:last-child)) { border-bottom: 1px solid ${T.line}; }
         .shop-mega { opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .2s ease .12s, transform .2s ease .12s, visibility 0s linear .32s; }
         .shop-nav:hover .shop-mega, .shop-nav:focus-within .shop-mega { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
         .mega-card img { transition: transform .4s ease; }
         .mega-card:hover img { transform: scale(1.05); }
-        .concern-dropdown { opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity .2s ease, transform .2s ease, visibility .2s; }
-        .concern-nav:hover .concern-dropdown, .concern-nav:focus-within .concern-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
       `}</style>
     </header>
   );
@@ -141,17 +132,7 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   },
   side: { display: 'flex', gap: 30, flex: 1, alignItems: 'center' },
-  desktopLinks: { gap: 30, alignItems: 'center' },
-  concernNav: { position: 'relative', paddingBottom: 14, marginBottom: -14 },
-  concernDropdown: {
-    position: 'absolute', top: '100%', left: 0, minWidth: 160,
-    background: T.white, border: `1px solid ${T.line}`, borderRadius: 8,
-    padding: 6, boxShadow: T.shadowSm, zIndex: 10,
-  },
-  concernDropdownLink: {
-    display: 'block', padding: '10px 12px', borderRadius: 6,
-    fontFamily: T.sans, fontSize: 12, letterSpacing: '0.06em', color: T.ink,
-  },
+  desktopLinks: { gap: 26, alignItems: 'center' },
   mega: {
     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
     background: T.white, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`,

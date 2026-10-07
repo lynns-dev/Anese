@@ -81,7 +81,7 @@ export default function ProductGrid({ products, onAdd, reviews = {} }) {
         .pgrid-add {
           position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 3;
           height: 46px; border: none; cursor: pointer;
-          background: ${T.coral}; color: ${T.ink};
+          background: ${T.btn}; color: ${T.btnText};
           font-family: ${T.sans}; font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
           opacity: 0; transform: translateY(10px); transition: opacity .3s ease, transform .3s ease;
         }

@@ -12,6 +12,7 @@ import { loadCheckoutProgress, saveCheckoutProgress, clearCheckoutProgress } fro
 import { setCheckoutStep } from '../lib/checkoutStage';
 import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
+import { renderAmazonPayButton } from '../lib/amazonPayClient';
 
 // Live checkout — charges through QuickBooks Payments (card only: its API
 // has no Apple Pay / Google Pay support). The Square version, with those
@@ -412,6 +413,32 @@ export default function CheckoutPage({ qbEnvironment }) {
     }).catch(() => {});
   };
 
+  // Amazon Pay (lib/amazonPayClient.js) — an alternative to the card form
+  // on Step 2, shown only once Amazon's button has actually rendered (it
+  // stays hidden unless the AMAZON_PAY_* env vars are set). Same Meta
+  // event-id handoff as the card path: the id generated here rides through
+  // Amazon and back to /success's browser Purchase.
+  const amazonOrderRef = React.useRef(null);
+  amazonOrderRef.current = { email, shipping, cart, grandTotal };
+  const [amazonPayReady, setAmazonPayReady] = React.useState(false);
+  React.useEffect(() => {
+    if (step !== 2) return undefined;
+    let cancelled = false;
+    renderAmazonPayButton('amazon-pay-button', {
+      getOrder: () => {
+        const { email, shipping, cart, grandTotal } = amazonOrderRef.current;
+        rememberIdentity({ email, phone: shipping.phone });
+        return {
+          amount: grandTotal, items: cart, email, shipping,
+          eventId: generateEventId(), url: window.location.href,
+          attribution: getStoredAttribution(), sessionId: getSessionId(), storeName: 'ANESE',
+        };
+      },
+      onError: setError,
+    }).then((ok) => { if (!cancelled) setAmazonPayReady(ok); }).catch(() => {});
+    return () => { cancelled = true; setAmazonPayReady(false); };
+  }, [step]);
+
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) return;
     setDiscountMessage('Checking…');
@@ -645,6 +672,14 @@ export default function CheckoutPage({ qbEnvironment }) {
               <section style={{ marginTop: 28 }}>
                 <h1 style={stepTitle}>How do you want to pay?</h1>
                 <p style={{ fontSize: 13, color: T.soft, marginTop: 10 }}>All transactions are secure and encrypted.</p>
+
+                {/* Amazon renders its own button into this container once
+                    it's configured; until then it stays empty and takes no
+                    space, and the "or" line only shows alongside it. */}
+                <div style={{ marginTop: 20 }}>
+                  <div id="amazon-pay-button" />
+                  {amazonPayReady && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
+                </div>
 
                 <div style={{ ...paymentList, marginTop: 20 }}>
                   <div style={accordionRow}>

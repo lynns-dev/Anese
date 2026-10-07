@@ -536,6 +536,10 @@ export default function AdminDashboard() {
           >
             Inbox{inboxNew > 0 ? ` (${inboxNew})` : ''}
           </button>
+          {/* Email marketing lives on its own page (pages/admin/email.jsx). */}
+          <a href="/admin/email" style={{ ...tabBtn, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+            Email
+          </a>
         </div>
 
         {activeTab === 'dashboard' && (
@@ -1407,7 +1411,7 @@ const deleteBtn = {
   fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', border: `1px solid ${T.line}`,
   background: 'none', padding: '8px 12px', cursor: 'pointer', fontFamily: T.sans, flexShrink: 0, color: '#a13d2b',
 };
-// Labels for order.emailLog entries (lib/emailPlatform.js's emailLogEntry).
+// Labels for order.emailLog entries (lib/email/orderHooks.js's emailLogEntry).
 const EMAIL_TYPE_LABELS = {
   order_confirmation: 'Order confirmation',
   order_shipped: 'Shipped / tracking',

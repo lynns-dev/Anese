@@ -6,6 +6,7 @@ import AddressFields from '../components/AddressFields';
 import { useCart } from '../lib/useCart';
 import { tokenizeCard } from '../lib/qbPayments';
 import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
+import { captureCheckoutEmail } from '../lib/emailPlatform';
 import { firstTimeThisSession, cartSignature } from '../lib/funnelTracking';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
@@ -416,6 +417,9 @@ export default function CheckoutPage({ qbEnvironment }) {
       }),
       keepalive: true,
     }).catch(() => {});
+    // Starts the abandoned-checkout email flow if they opted in
+    // (lib/emailPlatform.js -> lib/email/).
+    captureCheckoutEmail({ email, consent: newsletter, cartValue: total, items: cart });
   };
 
   // Amazon Pay (lib/amazonPayClient.js) — an alternative to the card form

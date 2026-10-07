@@ -33,7 +33,7 @@ export default function NewsletterSignup() {
   };
 
   if (state === 'done') {
-    return <p className="fade-in" style={{ fontFamily: T.serif, fontSize: 26, marginTop: 8 }}>You're in. Check your inbox for 15% off.</p>;
+    return <p className="fade-in" style={{ fontFamily: T.serif, fontSize: 21, marginTop: 8 }}>You're in. Check your inbox for 15% off.</p>;
   }
 
   return (

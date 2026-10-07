@@ -724,7 +724,7 @@ export default function CheckoutQbBackupPage() {
               )}
               <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 16, marginTop: 6 }}>
                 <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
-                <span style={{ fontFamily: T.sans, fontSize: 24 }}>${grandTotal.toFixed(2)}</span>
+                <span style={{ fontFamily: T.sans, fontSize: 20 }}>${grandTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -1098,7 +1098,7 @@ export default function CheckoutQbBackupPage() {
           )}
           <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 16, marginTop: 6 }}>
             <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
-            <span style={{ fontFamily: T.sans, fontSize: 24 }}>${grandTotal.toFixed(2)}</span>
+            <span style={{ fontFamily: T.sans, fontSize: 20 }}>${grandTotal.toFixed(2)}</span>
           </div>
 
           <FeaturedReviews reviews={FEATURED_REVIEWS} />
@@ -1208,7 +1208,7 @@ const secureNote = { display: 'flex', alignItems: 'center', justifyContent: 'cen
 
 // Large, readable step heading — replaces the old small-caps section
 // titles for the 3-step flow's single big question per screen.
-const stepTitle = { fontFamily: T.sans, fontWeight: 800, fontSize: 28, margin: 0, color: T.ink, lineHeight: 1.2 };
+const stepTitle = { fontFamily: T.sans, fontWeight: 800, fontSize: 22, margin: 0, color: T.ink, lineHeight: 1.2 };
 // letterSpacing dropped from 0.12em to 0.04em — 0.12em on 11px uppercase
 // text read as too spread out, especially on narrow mobile widths.
 const fieldGroupLabel = {

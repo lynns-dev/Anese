@@ -31,8 +31,8 @@ export default function RitualsPage() {
           <div className="howto-grid" style={howGrid}>
             {HOW_TO.map(([h, p], i) => (
               <div key={h}>
-                <div style={{ fontFamily: T.serif, fontSize: 44, lineHeight: 0.8 }}>{i + 1}</div>
-                <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 24, margin: '14px 0 6px' }}>{h}</h3>
+                <div style={{ fontFamily: T.serif, fontSize: 32, lineHeight: 0.8 }}>{i + 1}</div>
+                <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 20, margin: '14px 0 6px' }}>{h}</h3>
                 <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', maxWidth: '30ch', margin: '0 auto' }}>{p}</p>
               </div>
             ))}

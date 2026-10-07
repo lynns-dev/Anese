@@ -12,7 +12,7 @@ export default function NotFound() {
       <Header />
       <section style={{ maxWidth: 640, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
         <p style={S.label}>404</p>
-        <h1 style={{ ...S.h2, fontSize: 'clamp(36px,5vw,58px)', margin: '16px 0 18px' }}>
+        <h1 style={{ ...S.h2, fontSize: 'clamp(28px,3vw,36px)', margin: '16px 0 18px' }}>
           This page wandered off. <span style={S.it}>Like our motivation on leg day.</span>
         </h1>
         <p style={{ color: T.soft, fontSize: 16, marginBottom: 32 }}>Let's get you somewhere useful.</p>

@@ -190,9 +190,9 @@ export default function SignupPopup({ enabled = true }) {
         .signup-logo { height: 48px; width: auto; }
         .signup-close {
           position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
-          border: none; background: none; font-size: 34px; line-height: 1; cursor: pointer; color: ${T.ink}; padding: 4px 8px;
+          border: none; background: none; font-size: 28px; line-height: 1; cursor: pointer; color: ${T.ink}; padding: 4px 8px;
         }
-        .signup-lede { font-family: ${T.serif}; font-weight: 300; font-size: 24px; line-height: 1.4; margin: 28px 0 0; }
+        .signup-lede { font-family: ${T.serif}; font-weight: 300; font-size: 20px; line-height: 1.4; margin: 28px 0 0; }
         .signup-input {
           height: 56px; padding: 0 18px; border: 1px solid #9a968d; background: ${T.white}; color: ${T.ink};
           font-family: ${T.sans}; font-size: 16px; width: 100%; box-sizing: border-box; outline: none; border-radius: 0;

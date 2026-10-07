@@ -27,7 +27,7 @@ export default function ShopPage() {
         <div style={{ ...S.wrap, textAlign: 'center' }}>
           <img src="/images/anese-cloud-recline-icon.png" alt="" style={bannerIcon} />
           <p style={S.label}>The collection</p>
-          <h1 style={{ ...S.h2, fontSize: 'clamp(38px,5.6vw,64px)', marginTop: 14 }}>
+          <h1 style={{ ...S.h2, fontSize: 'clamp(28px,3vw,36px)', marginTop: 14 }}>
             Shop <span style={S.it}>ANESE.</span>
           </h1>
           <p style={{ color: T.soft, fontSize: 15, marginTop: 14, maxWidth: '46ch', marginLeft: 'auto', marginRight: 'auto' }}>

@@ -152,7 +152,7 @@ export default function BootyAcneLanding() {
       {/* CLOSING CTA */}
       <section style={closing}>
         <p style={{ ...S.label, color: T.oat }}>Booty acne, handled</p>
-        <h2 style={{ ...S.h2, marginTop: 16, color: '#fff', fontSize: 'clamp(38px,6vw,64px)' }}>
+        <h2 style={{ ...S.h2, marginTop: 16, color: '#fff', fontSize: 'clamp(28px,3vw,36px)' }}>
           Clear it up <span style={{ ...S.it, color: T.white }}>starting tonight.</span>
         </h2>
         <button onClick={handleAdd} style={{ ...S.btnFill, padding: '0 52px', marginTop: 24 }}>
@@ -203,7 +203,7 @@ export default function BootyAcneLanding() {
 
 const hero = { padding: '60px 32px 70px', maxWidth: T.maxw, margin: '0 auto' };
 const heroInner = { display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 50, alignItems: 'center' };
-const heroH1 = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(36px,5vw,58px)', lineHeight: 1.02, marginTop: 16 };
+const heroH1 = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(28px,3vw,36px)', lineHeight: 1.02, marginTop: 16 };
 const heroSub = { fontSize: 15, color: T.soft, lineHeight: 1.6, marginTop: 18, maxWidth: '46ch' };
 const heroRating = { fontSize: 14, color: T.soft, fontFamily: T.sans, marginTop: 18 };
 const heroImg = { display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.shell, borderRadius: 24, aspectRatio: '1/1' };

@@ -41,7 +41,7 @@ export function ConcernExplorer({ onAdd }) {
             <img src={product.images[0]} alt={product.name} style={concernImg} />
           </Link>
           <div style={{ textAlign: 'left' }}>
-            <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 32, lineHeight: 1.1, margin: '0 0 14px' }}>
+            <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, lineHeight: 1.1, margin: '0 0 14px' }}>
               &ldquo;{topic.question}&rdquo;
             </h3>
             <p style={{ fontSize: 15, color: T.ink, marginBottom: 16 }}>{topic.answer}</p>
@@ -96,7 +96,7 @@ export function IngredientExplorer() {
       </ul>
       <div key={ing.name} className="fade-in" style={ingCard}>
         <p style={{ ...S.label, fontSize: 10 }}>Found in {ing.in}</p>
-        <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 44, lineHeight: 1, margin: '14px 0 18px' }}>{ing.name}</h3>
+        <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 32, lineHeight: 1, margin: '14px 0 18px' }}>{ing.name}</h3>
         <p style={{ fontSize: 15, color: T.soft, marginBottom: 14 }}>{ing.what}</p>
         <p style={{ fontSize: 17, lineHeight: 1.55, color: T.ink }}>{ing.does}</p>
       </div>
@@ -165,7 +165,7 @@ export function RitualCards({ detailed = false }) {
         const product = getProductById(r.product);
         return (
           <div key={r.name} style={ritualCard}>
-            <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, lineHeight: 1.1, marginBottom: 10 }}>{r.name}</h3>
+            <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 21, lineHeight: 1.1, marginBottom: 10 }}>{r.name}</h3>
             <p style={{ fontSize: 15, color: T.ink, marginBottom: detailed ? 18 : 0 }}>{r.line}</p>
             {detailed && (
               <>
@@ -192,7 +192,7 @@ export function MythFacts() {
           <p style={{ ...S.label, fontSize: 10, color: T.soft }}>Myth</p>
           <p style={{ fontSize: 16, textDecoration: 'line-through', textDecorationColor: T.clay, textDecorationThickness: 2, margin: '6px 0 18px' }}>{myth}</p>
           <p style={{ ...S.label, fontSize: 10 }}>Fact</p>
-          <p style={{ fontFamily: T.serif, fontSize: 24, lineHeight: 1.2, marginTop: 6 }}>{fact}</p>
+          <p style={{ fontFamily: T.serif, fontSize: 20, lineHeight: 1.2, marginTop: 6 }}>{fact}</p>
         </div>
       ))}
     </div>
@@ -209,7 +209,7 @@ export function QuizBand() {
       </div>
       <div style={quizText}>
         <p style={S.label}>Not sure where to start?</p>
-        <h2 style={{ ...S.h2, marginTop: 14, fontSize: 'clamp(34px,4.4vw,52px)' }}>
+        <h2 style={{ ...S.h2, marginTop: 14, fontSize: 'clamp(26px,2.8vw,32px)' }}>
           Let's figure out <span style={S.it}>what feels right.</span>
         </h2>
         <p style={{ fontSize: 15, color: T.soft, margin: '18px 0 28px', maxWidth: '38ch' }}>
@@ -342,7 +342,7 @@ const ingLayout = { display: 'grid', gridTemplateColumns: 'minmax(0, 0.8fr) minm
 const ingList = { listStyle: 'none', margin: 0, padding: 0, borderTop: `1px solid ${T.line}` };
 const ingBtn = {
   width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  fontFamily: T.serif, fontSize: 26, fontWeight: 400, color: T.ink, background: 'none', border: 'none',
+  fontFamily: T.serif, fontSize: 21, fontWeight: 400, color: T.ink, background: 'none', border: 'none',
   borderBottom: `1px solid ${T.line}`, padding: '16px 4px', cursor: 'pointer', textAlign: 'left', transition: 'padding .2s',
 };
 const ingBtnActive = { paddingLeft: 14, fontStyle: 'italic' };
@@ -372,5 +372,5 @@ const lightbox = {
 };
 const lbBtn = {
   position: 'absolute', transform: 'translateY(-50%)', width: 48, height: 48, borderRadius: '50%',
-  background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', fontSize: 28, lineHeight: 1, cursor: 'pointer',
+  background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', fontSize: 22, lineHeight: 1, cursor: 'pointer',
 };

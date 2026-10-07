@@ -36,7 +36,7 @@ export default function StoriesPage() {
           <div className="story-grid" style={storyGrid}>
             {STORIES.map((st) => (
               <figure key={st.quote} style={storyCard}>
-                <blockquote style={{ fontFamily: T.serif, fontSize: 24, lineHeight: 1.3, margin: 0 }}>&ldquo;{st.quote}&rdquo;</blockquote>
+                <blockquote style={{ fontFamily: T.serif, fontSize: 20, lineHeight: 1.3, margin: 0 }}>&ldquo;{st.quote}&rdquo;</blockquote>
                 <figcaption style={{ fontSize: 13, marginTop: 18 }}>
                   <strong>{st.name}{st.age ? `, ${st.age}` : ''}</strong> · Uses {st.product} {st.frequency} · {st.since}
                   <div style={{ color: T.soft, fontStyle: 'italic', marginTop: 4 }}>Shared with permission</div>
@@ -46,7 +46,7 @@ export default function StoriesPage() {
           </div>
         ) : (
           <div style={{ ...storyCard, textAlign: 'center', maxWidth: 720, margin: '0 auto' }}>
-            <p style={{ fontFamily: T.serif, fontSize: 28, lineHeight: 1.25 }}>We're collecting stories right now.</p>
+            <p style={{ fontFamily: T.serif, fontSize: 22, lineHeight: 1.25 }}>We're collecting stories right now.</p>
             <p style={{ fontSize: 15, color: T.soft, marginTop: 10 }}>
               Want yours to be one of the first? Tell us about your shower routine below — the good, the meh, all of it.
             </p>

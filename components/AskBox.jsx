@@ -55,7 +55,7 @@ export default function AskBox({ mode = 'question', dark = false }) {
   if (state === 'done') {
     return (
       <div className="fade-in" style={{ ...box, borderColor: line, color: ink, textAlign: 'center', padding: '40px 28px' }}>
-        <p style={{ fontFamily: T.serif, fontSize: 30, lineHeight: 1.15 }}>{copy.done}</p>
+        <p style={{ fontFamily: T.serif, fontSize: 24, lineHeight: 1.15 }}>{copy.done}</p>
       </div>
     );
   }

@@ -149,7 +149,7 @@ export default function Offer2Page() {
         {/* HERO */}
         <section className="o2-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center', padding: '48px 0 20px' }}>
           <div>
-            <h1 style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(28px,4vw,40px)', lineHeight: 1.15, margin: 0 }}>
+            <h1 style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(24px,2.6vw,28px)', lineHeight: 1.15, margin: 0 }}>
               Still Reaching for a Bottle That Fades by <span style={S.it}>2 PM</span>?
             </h1>
             <div style={{ marginTop: 24, display: 'grid', gap: 10 }}>
@@ -204,7 +204,7 @@ export default function Offer2Page() {
         <section style={{ padding: '48px 0 20px' }}>
           {NUMBERED_SECTIONS.map(([n, h, p]) => (
             <div key={n} style={{ display: 'flex', gap: 24, alignItems: 'flex-start', padding: '24px 0', borderBottom: `1px solid ${T.line}` }}>
-              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 300, fontSize: 32, color: T.soft, flexShrink: 0, width: 48 }}>{n}</div>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 300, fontSize: 26, color: T.soft, flexShrink: 0, width: 48 }}>{n}</div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 21, margin: '0 0 8px' }}>{h}</h3>
                 <p style={{ color: T.soft, fontSize: 15, lineHeight: 1.6, margin: 0 }}>{p}</p>
@@ -251,7 +251,7 @@ export default function Offer2Page() {
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 92, height: 92, borderRadius: '50%', border: `1px solid ${T.ink}`, marginBottom: 20 }}>
             <span style={{ fontFamily: T.serif, fontSize: 12, letterSpacing: '0.08em', textAlign: 'center', lineHeight: 1.3, padding: '0 10px' }}>30-Day<br />Guarantee</span>
           </div>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(24px,3.6vw,30px)' }}>Try It Without the Risk</h2>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(22px,2.4vw,26px)' }}>Try It Without the Risk</h2>
           <p style={{ color: T.soft, fontSize: 15, marginTop: 14, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
             Every ANESE order is backed by a 30-day return policy on unopened, unused products — send it back for a full refund to your original payment method.
           </p>
@@ -261,7 +261,7 @@ export default function Offer2Page() {
         {reviewCount > 0 && (
           <section style={{ padding: '20px 0 40px' }}>
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <h2 style={{ ...S.h2, fontSize: 'clamp(24px,3.6vw,30px)' }}>What Real Customers Are Saying</h2>
+              <h2 style={{ ...S.h2, fontSize: 'clamp(22px,2.4vw,26px)' }}>What Real Customers Are Saying</h2>
               <div style={{ marginTop: 12, color: T.ink, letterSpacing: '3px', fontSize: 14 }}>{'★'.repeat(Math.round(reviewAverage))}{'☆'.repeat(5 - Math.round(reviewAverage))}</div>
               <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.soft, marginTop: 6 }}>{reviewAverage.toFixed(1)} average · {reviewCount} review{reviewCount === 1 ? '' : 's'}</div>
             </div>
@@ -284,7 +284,7 @@ export default function Offer2Page() {
 
         {/* URGENCY CLOSE */}
         <section style={{ padding: '20px 0', fontSize: 17, lineHeight: 1.7 }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(24px,3.6vw,30px)' }}>Two Ways This Goes.</h2>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(22px,2.4vw,26px)' }}>Two Ways This Goes.</h2>
           <p style={{ marginTop: 18 }}><b>Option one</b>: close this tab, and the next time you reach for perfume, you’re back to spraying, reapplying, and hoping it lasts past lunch.</p>
           <p><b>Option two</b>: claim your 15% off and find out what a jar that actually holds all day feels like — with 30 days to send it back if it’s not for you.</p>
         </section>

@@ -31,7 +31,7 @@ export default function QuestionsPage() {
                 const product = getProductById(t.product);
                 return (
                   <article key={t.question} style={qaCard}>
-                    <h2 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 28, lineHeight: 1.15, marginBottom: 14 }}>&ldquo;{t.question}&rdquo;</h2>
+                    <h2 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 22, lineHeight: 1.15, marginBottom: 14 }}>&ldquo;{t.question}&rdquo;</h2>
                     <p style={{ fontSize: 15, marginBottom: 14 }}>{t.answer}</p>
                     <p style={{ fontSize: 13, color: T.soft, paddingLeft: 12, borderLeft: `2px solid ${T.clay}`, marginBottom: 18 }}>
                       <strong style={{ fontWeight: 600 }}>Honest tip:</strong> {t.tip}

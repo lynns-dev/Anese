@@ -41,7 +41,7 @@ export default function Footer() {
       <div className="footer-grid" style={{ ...S.wrap, ...grid }}>
         <div>
           <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 56, width: 'auto', marginLeft: -8 }} />
-          <p style={{ fontFamily: T.serif, fontSize: 24, lineHeight: 1.15, margin: '14px 0 10px', maxWidth: '18ch' }}>
+          <p style={{ fontFamily: T.serif, fontSize: 20, lineHeight: 1.15, margin: '14px 0 10px', maxWidth: '18ch' }}>
             Skincare that hypes you up, <span style={{ fontStyle: 'italic' }}>never tears you down.</span>
           </p>
           <p style={{ fontSize: 13, color: T.soft }}>

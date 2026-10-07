@@ -268,7 +268,7 @@ export default function CartDrawer({
           <p style={shippingNote}>{freeShipping ? 'Free shipping' : 'Shipping and taxes calculated at checkout'}</p>
           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '14px 0 18px' }}>
             <span style={S.label}>Total</span>
-            <span style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 24 }}>${discountedTotal.toFixed(2)}</span>
+            <span style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 20 }}>${discountedTotal.toFixed(2)}</span>
           </div>
           <Link
             href="/checkout"

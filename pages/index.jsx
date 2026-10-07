@@ -311,7 +311,7 @@ export default function HomePage() {
           ) : (
             <>
               <div style={{ marginTop: 42 }}>
-                <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 56, lineHeight: 1 }}>{siteReviews.average.toFixed(1)}</div>
+                <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 36, lineHeight: 1 }}>{siteReviews.average.toFixed(1)}</div>
                 <div style={{ color: T.honey, letterSpacing: '3px', fontSize: 14, margin: '6px 0 4px' }}>{'★'.repeat(Math.round(siteReviews.average))}{'☆'.repeat(5 - Math.round(siteReviews.average))}</div>
                 <div style={{ fontSize: 12, color: T.soft }}>{siteReviews.count} review{siteReviews.count === 1 ? '' : 's'} · {siteReviews.recommendPct}% recommend</div>
               </div>
@@ -337,8 +337,8 @@ export default function HomePage() {
           <div className="rit-grid" style={ritGrid}>
             {HOW_TO.map(([h, p], i) => [String(i + 1), h, p]).map(([n, h, p], i) => (
               <div key={i}>
-                <div style={{ fontFamily: T.serif, fontSize: 44, color: T.white, lineHeight: 0.8 }}>{n}</div>
-                <h4 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 24, margin: '14px 0 6px' }}>{h}</h4>
+                <div style={{ fontFamily: T.serif, fontSize: 32, color: T.white, lineHeight: 0.8 }}>{n}</div>
+                <h4 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 20, margin: '14px 0 6px' }}>{h}</h4>
                 <p style={{ fontSize: 14, color: 'rgba(244,237,227,0.78)', maxWidth: '32ch', margin: '0 auto' }}>{p}</p>
               </div>
             ))}
@@ -416,7 +416,7 @@ const heroBg = {
   display: 'flex', alignItems: 'center',
 };
 const heroContent = { position: 'relative', maxWidth: T.maxw, width: '100%', margin: '0 auto', padding: '90px 32px 40px', color: T.ink };
-const heroH1 = { fontFamily: T.serif, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(40px,5.8vw,74px)', lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 20, color: T.ink, maxWidth: '11ch' };
+const heroH1 = { fontFamily: T.serif, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(30px,3.4vw,40px)', lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 20, color: T.ink, maxWidth: '11ch' };
 const heroSub = { fontSize: 17, color: T.ink, maxWidth: '38ch', marginBottom: 30 };
 const sectionIntro = { fontSize: 15, color: T.soft, maxWidth: '52ch', margin: '16px auto 0' };
 const heroBtn = { ...S.btnFill, textDecoration: 'none' };

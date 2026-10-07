@@ -29,12 +29,12 @@ export default function UnsubscribePage() {
       <div style={{ maxWidth: 440, padding: 40, textAlign: 'center' }}>
         {status === 'done' ? (
           <>
-            <h1 style={{ fontSize: 24, fontWeight: 700 }}>You're unsubscribed.</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700 }}>You're unsubscribed.</h1>
             <p style={{ color: T.soft, marginTop: 14 }}>You won't get any more emails from this sender.</p>
           </>
         ) : (
           <>
-            <h1 style={{ fontSize: 24, fontWeight: 700 }}>Unsubscribe from these emails?</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700 }}>Unsubscribe from these emails?</h1>
             <p style={{ color: T.soft, marginTop: 14 }}>One click and we'll stop emailing you.</p>
             <button
               onClick={onUnsubscribe}

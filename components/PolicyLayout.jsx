@@ -17,7 +17,7 @@ export default function PolicyLayout({ title, updated, children }) {
 
       <section style={{ ...S.wrap, maxWidth: 760, padding: '80px 40px 100px' }}>
         <p style={S.label}>Legal</p>
-        <h1 style={{ ...S.h2, fontSize: 'clamp(32px,4vw,48px)', marginTop: 14 }}>{title}</h1>
+        <h1 style={{ ...S.h2, fontSize: 'clamp(26px,2.8vw,32px)', marginTop: 14 }}>{title}</h1>
         {updated && <p style={{ color: T.soft, fontSize: 13, marginTop: 12 }}>Last updated {updated}</p>}
         <div style={body}>{children}</div>
       </section>

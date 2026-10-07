@@ -105,7 +105,7 @@ export default function OfferPage() {
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '0 24px' }}>
         {/* HOOK */}
         <section style={{ paddingTop: 48 }}>
-          <h1 style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(30px,5vw,44px)', lineHeight: 1.15, margin: 0 }}>
+          <h1 style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(26px,2.8vw,32px)', lineHeight: 1.15, margin: 0 }}>
             The 10-Second Ritual That Makes You Feel <span style={S.it}>Finished</span> Before You’ve Even Left the Room.
           </h1>
           <p style={{ fontSize: 17, color: T.soft, marginTop: 18, lineHeight: 1.5 }}>
@@ -169,7 +169,7 @@ export default function OfferPage() {
         {reviewCount > 0 && (
           <section style={{ padding: '20px 0 40px' }}>
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <div style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 44 }}>{reviewAverage.toFixed(1)}</div>
+              <div style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 32 }}>{reviewAverage.toFixed(1)}</div>
               <div style={{ color: T.ink, letterSpacing: '3px', fontSize: 14 }}>{'★'.repeat(Math.round(reviewAverage))}{'☆'.repeat(5 - Math.round(reviewAverage))}</div>
               <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.soft, marginTop: 6 }}>{reviewCount} review{reviewCount === 1 ? '' : 's'}</div>
             </div>
@@ -187,13 +187,13 @@ export default function OfferPage() {
 
         {/* NUMBERED BENEFITS */}
         <section style={{ padding: '20px 0' }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(26px,4vw,34px)', textAlign: 'center' }}>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(24px,2.6vw,28px)', textAlign: 'center' }}>
             5 Reasons Women Are Switching to <span style={S.it}>ANESE</span>
           </h2>
           <div style={{ marginTop: 40, display: 'grid', gap: 34 }}>
             {REASONS.map(([n, h, p]) => (
               <div key={n} style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 300, fontSize: 30, color: T.soft, flexShrink: 0, width: 44 }}>{n}</div>
+                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 300, fontSize: 24, color: T.soft, flexShrink: 0, width: 44 }}>{n}</div>
                 <div>
                   <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 20, margin: '0 0 6px' }}>{h}</h3>
                   <p style={{ color: T.soft, fontSize: 15, lineHeight: 1.6, margin: 0 }}>{p}</p>
@@ -211,12 +211,12 @@ export default function OfferPage() {
 
         {/* HOW IT WORKS */}
         <section style={{ padding: '20px 0 40px', textAlign: 'center' }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(26px,4vw,34px)' }}>Three Soft Motions.</h2>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(24px,2.6vw,28px)' }}>Three Soft Motions.</h2>
           <p style={{ color: T.soft, fontSize: 15, marginTop: 10 }}>No spray, no cloud, no guessing how much is too much.</p>
           <div style={{ marginTop: 40, display: 'grid', gap: 36, textAlign: 'left' }}>
             {RITUAL_STEPS.map(([n, h, p]) => (
               <div key={n} style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 300, fontSize: 26, color: T.soft, flexShrink: 0, width: 44 }}>{n}</div>
+                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 300, fontSize: 21, color: T.soft, flexShrink: 0, width: 44 }}>{n}</div>
                 <div>
                   <h3 style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 19, margin: '0 0 6px' }}>{h}</h3>
                   <p style={{ color: T.soft, fontSize: 15, lineHeight: 1.6, margin: 0 }}>{p}</p>
@@ -228,7 +228,7 @@ export default function OfferPage() {
 
         {/* DEEPER REVIEW / HONEST MATH */}
         <section style={{ padding: '20px 0', fontSize: 17, lineHeight: 1.7 }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(24px,3.6vw,30px)' }}>Putting It To The Test</h2>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(22px,2.4vw,26px)' }}>Putting It To The Test</h2>
           <p style={{ marginTop: 18 }}>The first thing I noticed was how little I needed. One press of the puff, swept across my collarbones, and that was it — done in the time it takes to towel off.</p>
           <p>By evening, it was still there. Not loud — I had to lean in to smell it on myself, which is exactly the point. It held through a full day without a single reapplication.</p>
           <p><b>The math is what actually sold me.</b> A bottle of the perfume I used to buy ran $150–300 and faded by afternoon. One $45 jar of ANESE carries the wear of a full bottle — close to the skin, holding all day, melting in instead of sitting on top.</p>
@@ -257,7 +257,7 @@ export default function OfferPage() {
 
         {/* GUARANTEE */}
         <section style={{ padding: '20px 0', textAlign: 'center' }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(24px,3.6vw,30px)' }}>Try It Without the Risk</h2>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(22px,2.4vw,26px)' }}>Try It Without the Risk</h2>
           <p style={{ color: T.soft, fontSize: 15, marginTop: 14, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
             Every ANESE order is backed by a 30-day return policy. If it’s not the right fit, send it back for a full refund to your original payment method — no hoops to jump through.
           </p>
@@ -265,7 +265,7 @@ export default function OfferPage() {
 
         {/* URGENCY CLOSE */}
         <section style={{ padding: '20px 0', fontSize: 17, lineHeight: 1.7 }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(24px,3.6vw,30px)' }}>Ready to Feel Finished, Every Day?</h2>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(22px,2.4vw,26px)' }}>Ready to Feel Finished, Every Day?</h2>
           <p style={{ marginTop: 18 }}>From here, you really have two options.</p>
           <p><b>Option one</b> is to close this page and keep reaching for the same bottle that fades by 2 PM.</p>
           <p><b>Option two</b> is to try the jar that’s already changed how a lot of women think about wearing scent — for less than a third of what a bottle of perfume costs.</p>

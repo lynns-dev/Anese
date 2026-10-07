@@ -71,7 +71,7 @@ export default function QuizPage() {
 
       <section style={{ maxWidth: 640, margin: '0 auto', padding: '70px 32px 100px', textAlign: 'center' }}>
         <p style={S.label}>Build your routine</p>
-        <h1 style={{ ...S.h2, marginTop: 14, fontSize: 'clamp(34px,5vw,52px)' }}>
+        <h1 style={{ ...S.h2, marginTop: 14, fontSize: 'clamp(26px,2.8vw,32px)' }}>
           Not sure where to <span style={S.it}>start?</span>
         </h1>
 
@@ -109,7 +109,7 @@ export default function QuizPage() {
               <div style={resultImg}>
                 <ProductVisual id={result.id} images={result.images} alt={result.name} width={110} />
               </div>
-              <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, marginTop: 20 }}>{result.name}</div>
+              <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 21, marginTop: 20 }}>{result.name}</div>
               <div style={{ fontSize: 14, color: T.soft, margin: '8px 0 4px' }}>{result.tagline}</div>
               <div style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 20, color: T.ink, margin: '14px 0 22px' }}>${result.price}</div>
               <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>

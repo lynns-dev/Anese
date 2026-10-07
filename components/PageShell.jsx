@@ -21,7 +21,7 @@ export default function PageShell({ seo, icon, eyebrow, title, intro, image, chi
         <div style={S.wrap}>
           {icon && <img src={icon} alt="" style={{ width: 96, height: 96, margin: '0 auto 16px', display: 'block' }} />}
           <p style={S.label}>{eyebrow}</p>
-          <h1 style={{ ...S.h2, fontSize: 'clamp(38px,5.6vw,64px)', marginTop: 14 }}>{title}</h1>
+          <h1 style={{ ...S.h2, fontSize: 'clamp(28px,3vw,36px)', marginTop: 14 }}>{title}</h1>
           {intro && <p style={{ color: T.soft, fontSize: 16, marginTop: 16, maxWidth: '50ch', marginLeft: 'auto', marginRight: 'auto' }}>{intro}</p>}
         </div>
       </section>

@@ -458,8 +458,8 @@ export default function ProductPage({ product }) {
               <div className="benefit-grid" style={benefitGrid}>
                 {BENEFITS.map(([h, p], i) => (
                   <div key={i} style={benefitCard}>
-                    <div style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
-                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, marginBottom: 8, lineHeight: 1.05 }}>{h}</div>
+                    <div style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, marginBottom: 16 }}>{String(i + 1).padStart(2, '0')}</div>
+                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 21, marginBottom: 8, lineHeight: 1.05 }}>{h}</div>
                     <p style={{ fontSize: 15, color: T.soft, margin: 0 }}>{p}</p>
                   </div>
                 ))}
@@ -476,7 +476,7 @@ export default function ProductPage({ product }) {
                 {TIMELINE.map(([when, h, p], i) => (
                   <div key={i} style={timelineCard}>
                     <div style={S.label}>{when}</div>
-                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 27, margin: '14px 0 6px' }}>{h}</div>
+                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 21, margin: '14px 0 6px' }}>{h}</div>
                     <p style={{ fontSize: 14, color: T.soft, margin: 0 }}>{p}</p>
                   </div>
                 ))}
@@ -492,8 +492,8 @@ export default function ProductPage({ product }) {
               <div className="how-grid" style={howGrid}>
                 {HOW_TO_USE.map(([h, p], i) => (
                   <div key={i} style={howCard}>
-                    <div style={{ fontFamily: T.serif, fontSize: 44, color: T.white, lineHeight: 0.8 }}>{i + 1}</div>
-                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 26, margin: '14px 0 6px' }}>{h}</div>
+                    <div style={{ fontFamily: T.serif, fontSize: 32, color: T.white, lineHeight: 0.8 }}>{i + 1}</div>
+                    <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 21, margin: '14px 0 6px' }}>{h}</div>
                     <p style={{ fontSize: 14, color: 'rgba(244,237,227,0.78)', margin: 0 }}>{p}</p>
                   </div>
                 ))}
@@ -640,7 +640,7 @@ export default function ProductPage({ product }) {
       {/* CLOSING */}
       <section style={closing}>
         <p style={{ ...S.label, color: T.oat }}>{isScrub ? 'One tub away' : 'One click away'}</p>
-        <h2 style={{ ...S.h2, marginTop: 16, color: '#fff', fontSize: 'clamp(44px,7vw,76px)' }}>
+        <h2 style={{ ...S.h2, marginTop: 16, color: '#fff', fontSize: 'clamp(30px,3.4vw,40px)' }}>
           {isScrub ? (
             <>Your booty called. <span style={{ ...S.it, color: T.white }}>It wants the scrub.</span></>
           ) : (
@@ -734,7 +734,7 @@ export default function ProductPage({ product }) {
              carry an inline marginBottom that would otherwise win over a
              plain class rule) so more of the page clears the fold. */
           .pdp-info-head { display: flex; flex-direction: column; }
-          .pdp-title { order: 1; font-size: 32px !important; margin-bottom: 8px !important; }
+          .pdp-title { order: 1; font-size: 26px !important; margin-bottom: 8px !important; }
           .pdp-subtitle { order: 2; margin-bottom: 8px !important; }
           .pdp-rating { order: 3; margin-top: 6px; margin-bottom: 10px !important; }
           .pdp-tagline { order: 4; margin-top: 4px; margin-bottom: 0; }
@@ -791,7 +791,7 @@ const pdpRating = {
   display: 'flex', alignItems: 'center', gap: 9, fontSize: 14, color: T.soft, marginBottom: 20,
   fontFamily: T.sans, width: 'fit-content',
 };
-const pdpTitle = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(40px,5vw,60px)', lineHeight: 0.98, marginBottom: 16 };
+const pdpTitle = { fontFamily: T.serif, fontWeight: 400, fontSize: 'clamp(28px,3vw,36px)', lineHeight: 0.98, marginBottom: 16 };
 const pdpSubtitle = { fontFamily: T.sans, fontWeight: 700, fontSize: 16, color: T.ink, marginBottom: 16, lineHeight: 1.4 };
 const pdpDesc = { fontSize: 14, color: T.soft, maxWidth: '42ch', marginBottom: 24, lineHeight: 1.6 };
 const pdpPrice = { fontFamily: T.sans, fontWeight: 600, fontSize: 20, marginBottom: 20 };
@@ -835,7 +835,7 @@ const ugcItem = { aspectRatio: '9/16', objectFit: 'cover', background: T.white, 
 const revGrid = { display: 'grid', gap: 22, marginTop: 54, textAlign: 'left' };
 const revCard = { background: T.oat, borderRadius: 24, padding: 34 };
 const reviewFormWrap = { marginTop: 56, paddingTop: 40, borderTop: `1px solid ${T.line}`, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' };
-const starBtn = { background: 'none', border: 'none', cursor: 'pointer', fontSize: 26, color: T.honey, lineHeight: 1, padding: 4 };
+const starBtn = { background: 'none', border: 'none', cursor: 'pointer', fontSize: 21, color: T.honey, lineHeight: 1, padding: 4 };
 const reviewInput = {
   width: '100%', height: 48, padding: '0 16px', border: `1px solid ${T.line}`, background: T.shell, borderRadius: 12,
   fontFamily: T.sans, fontSize: 14, color: T.ink, outline: 'none', boxSizing: 'border-box',

@@ -1020,7 +1020,7 @@ export default function CheckoutPage() {
           </div>
           <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 16, marginTop: 6 }}>
             <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
-            <span style={{ fontFamily: T.sans, fontSize: 24 }}>${grandTotal.toFixed(2)}</span>
+            <span style={{ fontFamily: T.sans, fontSize: 20 }}>${grandTotal.toFixed(2)}</span>
           </div>
 
           <FeaturedReviews reviews={FEATURED_REVIEWS} />

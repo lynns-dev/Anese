@@ -8,6 +8,15 @@ import { captureAttribution, getStoredAttribution, describeTrafficSource } from 
 import { getSessionId } from '../lib/session';
 import { ensureVisitorCookie, getVisitSource } from '../lib/visitTracking';
 import { getCheckoutStage } from '../lib/checkoutStage';
+import SignupPopup from '../components/SignupPopup';
+
+// The email/SMS signup popup (components/SignupPopup.jsx) is kept off
+// checkout/admin/the ad-funnel pages — those already have their own
+// single-minded call to action, and a popup mid-checkout or mid-funnel
+// would just compete with it. Its 15% off arrives as WELCOME15 in the
+// welcome email (lib/email/automationsStore.js), so that code needs to
+// exist in /admin's Discounts tab.
+const SIGNUP_POPUP_EXCLUDED_PREFIXES = ['/admin', '/checkout', '/offer', '/success', '/amazon-pay', '/unsubscribe'];
 
 const HEARTBEAT_MS = 10000;
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -165,6 +174,7 @@ export default function App({ Component, pageProps }) {
   // covered by each page's own hydration/skeleton state, and showing this
   // overlay before the router has done anything would just flash).
   const [loading, setLoading] = React.useState(false);
+  const signupPopupEnabled = !SIGNUP_POPUP_EXCLUDED_PREFIXES.some((p) => router.pathname.startsWith(p));
 
   React.useEffect(() => {
     const start = () => setLoading(true);
@@ -186,6 +196,7 @@ export default function App({ Component, pageProps }) {
       <div key={router.asPath} className="page-fade">
         <Component {...pageProps} />
       </div>
+      <SignupPopup enabled={signupPopupEnabled} />
       <style jsx global>{`
         .page-fade {
           animation: page-fade-in 0.28s ease both;

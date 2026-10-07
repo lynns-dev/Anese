@@ -17,7 +17,7 @@ export default function Document() {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..600;1,300..600&family=Jost:ital,wght@0,300..700;1,400&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..600;1,8..60,300..600&family=Inter:ital,wght@0,300..800;1,400&display=swap"
           rel="stylesheet"
         />
         <style
@@ -25,7 +25,7 @@ export default function Document() {
             __html: `
           *{margin:0;padding:0;box-sizing:border-box}
           html{scroll-behavior:smooth;color-scheme:light}
-          body{background:#FFFFFF;color:#2E2620;font-family:'Jost',sans-serif;font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+          body{background:#FFFFFF;color:#2E2620;font-family:'Inter',ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
           a{color:inherit;text-decoration:none}
           img{display:block;max-width:100%}
           ::selection{background:#2E2620;color:#FFFFFF}

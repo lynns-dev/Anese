@@ -203,7 +203,7 @@ export default function SignupPopup({ enabled = true }) {
         .signup-or::before, .signup-or::after { content: ''; flex: 1; height: 1px; background: ${T.line}; }
         .signup-sms-label { font-family: ${T.serif}; font-weight: 300; font-size: 19px; margin: 0 0 14px; }
         .signup-submit {
-          width: 100%; height: 56px; border: none; background: ${T.coral}; color: ${T.ink};
+          width: 100%; height: 56px; border: none; background: ${T.btn}; color: ${T.btnText};
           font-family: ${T.sans}; font-weight: 600; font-size: 17px; cursor: pointer;
         }
         .signup-legal { font-size: 10.5px; line-height: 1.55; color: ${T.soft}; margin: 14px 0 0; }

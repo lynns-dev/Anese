@@ -8,6 +8,7 @@ import { captureAttribution, getStoredAttribution, describeTrafficSource } from 
 import { getSessionId } from '../lib/session';
 import { ensureVisitorCookie, getVisitSource } from '../lib/visitTracking';
 import { getCheckoutStage } from '../lib/checkoutStage';
+import AdminFonts from '../components/AdminFonts';
 import SignupPopup from '../components/SignupPopup';
 
 // The email/SMS signup popup (components/SignupPopup.jsx) is kept off
@@ -192,6 +193,7 @@ export default function App({ Component, pageProps }) {
   return (
     <CartProvider>
       <Tracking />
+      {router.pathname.startsWith('/admin') && <AdminFonts />}
       {loading && <LoadingScreen />}
       <div key={router.asPath} className="page-fade">
         <Component {...pageProps} />

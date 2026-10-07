@@ -266,6 +266,27 @@ export default function AdminDashboard() {
     }
   };
 
+  // Per-order "Send to Meta" (pages/api/admin/orders/meta.js).
+  const handleSendToMeta = async (order) => {
+    const key = `meta:${order.id}`;
+    setOrderActionBusy((prev) => ({ ...prev, [key]: true }));
+    setOrderActionError((prev) => ({ ...prev, [key]: '' }));
+    try {
+      const res = await fetch('/api/admin/orders/meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const data = await res.json();
+      if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
+      if (!res.ok) throw new Error(data.error || 'Meta did not accept it.');
+    } catch (err) {
+      setOrderActionError((prev) => ({ ...prev, [key]: err.message }));
+    } finally {
+      setOrderActionBusy((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handleRefundOrder = async (order) => {
     if (!confirm(`Refund $${Number(order.amount).toFixed(2)} for this order? This can't be undone.`)) return;
     setOrderActionBusy((prev) => ({ ...prev, [order.id]: true }));
@@ -589,7 +610,6 @@ export default function AdminDashboard() {
         {/* META SERVER EVENTS — whether Meta is actually accepting the
             Conversions API sends (lib/metaCapi.js). */}
         {dashboard?.capi && <CapiStatus capi={dashboard.capi} />}
-        <MetaBackfill />
 
         {/* NOTIFICATIONS */}
         <Section title="Order notifications">
@@ -1148,19 +1168,27 @@ export default function AdminDashboard() {
                             {adset && <div style={{ fontSize: 13, color: T.soft, marginTop: 2 }}>Ad set: {adset}</div>}
                             {ad && <div style={{ fontSize: 13, color: T.soft, marginTop: 2 }}>Creative: {ad}</div>}
                           </div>
-                          {/* Whether Meta accepted this order's server-side Purchase
-                              (lib/metaPurchase.js); unsent ones are retried hourly
-                              by /api/meta/resend-purchases for 7 days. */}
-                          {o.meta && (
-                            <div>
-                              <div style={formLabel}>Meta Purchase</div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: o.meta.sent ? T.ink : '#a13d2b' }}>
-                                {o.meta.sent ? 'Sent' : `Not sent yet (${o.meta.attempts || 0} attempt${o.meta.attempts === 1 ? '' : 's'})`}
-                              </div>
-                              {!o.meta.sent && o.meta.lastError && <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 2 }}>{o.meta.lastError}</div>}
-                              <div style={{ fontSize: 11, color: T.soft, marginTop: 2 }}>Event ID {o.meta.eventId}</div>
-                            </div>
-                          )}
+                          {/* Whether Meta has this order's Purchase (lib/metaPurchase.js),
+                              with a button to send it now if not. New orders are sent
+                              automatically at checkout and retried hourly. */}
+                          <div>
+                            <div style={formLabel}>Meta</div>
+                            {o.meta?.sent ? (
+                              <div style={{ fontSize: 13, fontWeight: 700 }}>Sent</div>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={Boolean(orderActionBusy[`meta:${o.id}`])}
+                                onClick={() => handleSendToMeta(o)}
+                                style={{ ...S.btnOutline, height: 34, padding: '0 14px', opacity: orderActionBusy[`meta:${o.id}`] ? 0.5 : 1 }}
+                              >
+                                {orderActionBusy[`meta:${o.id}`] ? 'Sending…' : 'Send to Meta'}
+                              </button>
+                            )}
+                            {!o.meta?.sent && (orderActionError[`meta:${o.id}`] || o.meta?.lastError) && (
+                              <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`meta:${o.id}`] || o.meta.lastError}</div>
+                            )}
+                          </div>
                           {o.shippingProtection > 0 && (
                             <div>
                               <div style={formLabel}>Shipping protection</div>
@@ -1385,85 +1413,6 @@ function CapiStatus({ capi }) {
         )}
         <div>API version {capi.graphVersion}{capi.testMode ? ' · test mode on (META_CAPI_TEST_EVENT_CODE is set — events only show in Test Events)' : ''}</div>
       </div>
-    </Section>
-  );
-}
-
-// Admin backfill for orders placed before each order carried its own Meta
-// Purchase record (pages/api/admin/meta-backfill.js). Everything starts
-// ticked; untick any order Meta already shows, since a second send of the
-// same purchase would be counted twice.
-function MetaBackfill() {
-  const [orders, setOrders] = React.useState(null);
-  const [selected, setSelected] = React.useState({});
-  const [busy, setBusy] = React.useState(false);
-  const [message, setMessage] = React.useState('');
-
-  const load = async () => {
-    setMessage('');
-    try {
-      const res = await fetch('/api/admin/meta-backfill');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not load orders');
-      setOrders(data.orders);
-      setSelected(Object.fromEntries(data.orders.map((o) => [o.id, true])));
-    } catch (err) {
-      setMessage(err.message);
-    }
-  };
-
-  const send = async () => {
-    const orderIds = Object.keys(selected).filter((id) => selected[id]);
-    if (orderIds.length === 0) return;
-    setBusy(true);
-    setMessage('');
-    try {
-      const res = await fetch('/api/admin/meta-backfill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderIds }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Send failed');
-      const ok = data.results.filter((r) => r.sent).length;
-      const failed = data.results.filter((r) => !r.sent);
-      setMessage(`Sent ${ok} of ${data.results.length} to Meta.${failed.length ? ` Failed: ${failed.map((r) => `${r.id} (${r.error})`).join(', ')} — retried hourly.` : ''}`);
-      await load();
-    } catch (err) {
-      setMessage(err.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const count = Object.values(selected).filter(Boolean).length;
-  return (
-    <Section title="Send past orders to Meta">
-      <p style={{ fontSize: 13, color: T.soft, margin: '0 0 10px', lineHeight: 1.6 }}>
-        Paid orders from the last 7 days that were placed before every order was tracked individually. Untick any order Meta already shows as a Purchase (Events Manager), so it isn&rsquo;t counted twice. Meta only accepts orders up to 7 days old.
-      </p>
-      {orders === null ? (
-        <button type="button" onClick={load} style={S.btnOutline}>Find orders</button>
-      ) : orders.length === 0 ? (
-        <p style={{ fontSize: 14 }}>Nothing to send — every order from the last 7 days is already tracked.</p>
-      ) : (
-        <>
-          <div style={{ maxHeight: 320, overflowY: 'auto', border: `1px solid ${T.line}`, marginBottom: 12 }}>
-            {orders.map((o) => (
-              <label key={o.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', borderBottom: `1px solid ${T.line}`, fontSize: 13 }}>
-                <input type="checkbox" checked={Boolean(selected[o.id])} onChange={(e) => setSelected({ ...selected, [o.id]: e.target.checked })} />
-                <span style={{ flex: '0 0 150px' }}>{new Date(o.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
-                <span style={{ flex: '0 0 70px' }}>${Number(o.amount).toFixed(2)}</span>
-                <span style={{ flex: 1, color: T.soft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.email || 'no email'}{o.fromAd ? ' · from Meta ad' : ''}</span>
-              </label>
-            ))}
-          </div>
-          <button type="button" disabled={busy || count === 0} onClick={send} style={{ ...S.btnFill, opacity: busy || count === 0 ? 0.5 : 1 }}>
-            {busy ? 'Sending…' : `Send ${count} order${count === 1 ? '' : 's'} to Meta`}
-          </button>
-        </>
-      )}
-      {message && <p style={{ fontSize: 13, marginTop: 10 }}>{message}</p>}
     </Section>
   );
 }

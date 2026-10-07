@@ -9,6 +9,7 @@ import {
   createApplePayButton, createGooglePayButton, tokenizeWallet, tokenizeWalletWithContact,
 } from '../lib/squareClient';
 import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
+import { firstTimeThisSession, cartSignature } from '../lib/funnelTracking';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { loadCheckoutProgress, saveCheckoutProgress, clearCheckoutProgress } from '../lib/checkoutProgress';
@@ -358,6 +359,10 @@ export default function CheckoutPage() {
 
   React.useEffect(() => {
     if (!hydrated || cart.length === 0) return;
+    // Once per distinct cart per browser session (lib/funnelTracking.js),
+    // not on every load — the saved cart made each refresh or return visit
+    // count as another checkout.
+    if (!firstTimeThisSession(`checkout_start:cart:${cartSignature(cart)}`)) return;
     const eventId = generateEventId();
     fbTrack('InitiateCheckout', {
       content_ids: cart.map((i) => i.id),
@@ -381,7 +386,7 @@ export default function CheckoutPage() {
       }),
       keepalive: true,
     }).catch(() => {});
-    // Fire once per checkout page load, not on every cart mutation.
+    // Evaluated once per page load, not on every cart mutation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 

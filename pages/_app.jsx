@@ -6,6 +6,7 @@ import { loadPixel, fbTrack } from '../lib/fbPixel';
 import { loadClarity } from '../lib/clarity';
 import { captureAttribution, getStoredAttribution, describeTrafficSource } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
+import { ensureVisitorCookie, getVisitSource } from '../lib/visitTracking';
 import { getCheckoutStage } from '../lib/checkoutStage';
 
 const HEARTBEAT_MS = 10000;
@@ -27,6 +28,9 @@ function Tracking() {
 
   React.useEffect(() => {
     sessionIdRef.current = getSessionId();
+    // Long-lived visitor id for admin's Paths tab (lib/journeys.js).
+    if (!isAdmin) ensureVisitorCookie();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
@@ -77,6 +81,9 @@ function Tracking() {
       body: JSON.stringify({
         event: 'pageview', sessionId: getSessionId(),
         source, campaign, path: window.location.pathname,
+        // Where *this* visit came from (not the stored first ad click), for
+        // admin's Paths tab — lib/visitTracking.js.
+        visitSource: getVisitSource(),
       }),
       keepalive: true,
     }).catch(() => {});

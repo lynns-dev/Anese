@@ -9,6 +9,7 @@ import { tokenizeCard } from '../lib/qbPayments';
 import { PRODUCTS, getProductById } from '../lib/products';
 import { firstTimeThisSession } from '../lib/funnelTracking';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
+import { captureCheckoutEmail } from '../lib/emailPlatform';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { rememberIdentity } from '../lib/identity';
@@ -258,6 +259,10 @@ export default function Offer3Page({ qbEnvironment }) {
       }),
       keepalive: true,
     }).catch(() => {});
+    // Starts the abandoned-checkout email flow (lib/emailPlatform.js ->
+    // lib/email/). This one-page order form has no marketing checkbox, so
+    // consent follows the site-wide default — same as Veil's /offer3.
+    captureCheckoutEmail({ email, consent: true, cartValue: product.price * quantity, items: [{ id: product.id, name: product.name, quantity, price: product.price, images: product.images }] });
   };
 
   const completeOrder = async (token) => {

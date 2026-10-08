@@ -8,6 +8,7 @@ import { captureAttribution, getStoredAttribution, describeTrafficSource, fbcToS
 import { getSessionId } from '../lib/session';
 import { ensureVisitorCookie, getVisitSource } from '../lib/visitTracking';
 import { getCheckoutStage } from '../lib/checkoutStage';
+import { IDLE_LIMIT_MS } from '../lib/presence';
 import AdminFonts from '../components/AdminFonts';
 import SignupPopup from '../components/SignupPopup';
 
@@ -35,7 +36,18 @@ function Tracking() {
   // instead of it going blank the instant they click away — cleared on
   // navigation since a field name from the previous page isn't meaningful.
   const lastActiveFieldRef = React.useRef(null);
+  // When the visitor last did anything on the page (scroll, click, tap,
+  // keypress, mouse movement, coming back to the tab). The Live view counts
+  // someone as on the site only while this is recent — lib/presence.js.
+  const lastActivityRef = React.useRef(Date.now());
   const isAdmin = router.pathname.startsWith('/admin');
+
+  React.useEffect(() => {
+    const mark = () => { lastActivityRef.current = Date.now(); };
+    const events = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'wheel', 'touchstart'];
+    events.forEach((name) => window.addEventListener(name, mark, { passive: true, capture: true }));
+    return () => events.forEach((name) => window.removeEventListener(name, mark, { capture: true }));
+  }, []);
 
   React.useEffect(() => {
     sessionIdRef.current = getSessionId();
@@ -105,6 +117,11 @@ function Tracking() {
   }, [router.asPath, isAdmin]);
 
   React.useEffect(() => {
+    // The dashboard isn't a visit: an admin tab is exactly the kind of page
+    // that gets left open for days, and it used to count itself as a
+    // visitor the whole time.
+    if (isAdmin) return undefined;
+
     const currentStage = () => {
       if (router.pathname === '/success') return 'purchased';
       // Both /checkout (live Square, 2-step: Shipping -> Payment) and
@@ -148,6 +165,12 @@ function Tracking() {
 
     const sendHeartbeat = () => {
       if (!sessionIdRef.current) return;
+      // Only while someone is actually here: the tab is in front, and they
+      // have done something in the last few minutes. A page that is merely
+      // open — a background tab, a window left overnight — goes quiet, and
+      // picks back up on the next tick once they return.
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastActivityRef.current > IDLE_LIMIT_MS) return;
       const { source, campaign } = describeTrafficSource(getStoredAttribution(), document.referrer);
       fetch('/api/track/heartbeat', {
         method: 'POST',
@@ -160,15 +183,28 @@ function Tracking() {
           campaign,
           scrollPct: scrollPercent(),
           activeField: activeFieldLabel(),
+          lastActiveAt: lastActivityRef.current,
         }),
         keepalive: true,
       }).catch(() => {});
     };
 
+    // Returning to the tab is itself activity, and shows up straight away
+    // rather than on the next 10s tick.
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      lastActivityRef.current = Date.now();
+      sendHeartbeat();
+    };
+
     sendHeartbeat();
     const interval = setInterval(sendHeartbeat, HEARTBEAT_MS);
-    return () => clearInterval(interval);
-  }, [router.pathname, cart.open]);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [router.pathname, cart.open, isAdmin]);
 
   return null;
 }

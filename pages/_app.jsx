@@ -130,7 +130,7 @@ function Tracking() {
       // lag this one by a tick right after navigation, so fall back to the
       // generic 'checkout' stage for that brief window rather than showing
       // nothing.
-      if (router.pathname === '/checkout' || router.pathname === '/checkout-qb' || router.pathname === '/checkout-square') return getCheckoutStage() || 'checkout';
+      if (router.pathname === '/checkout' || router.pathname === '/checkout-qb') return getCheckoutStage() || 'checkout';
       if (cart.open) return 'cart_open';
       return 'browsing';
     };

@@ -6,86 +6,63 @@ import AddressFields from '../components/AddressFields';
 import { useCart } from '../lib/useCart';
 import { tokenizeCard } from '../lib/qbPayments';
 import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
+import { captureCheckoutEmail } from '../lib/emailPlatform';
 import { firstTimeThisSession, cartSignature } from '../lib/funnelTracking';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
-import { getIdentity, rememberIdentity } from '../lib/identity';
+import { loadCheckoutProgress, saveCheckoutProgress, clearCheckoutProgress } from '../lib/checkoutProgress';
 import { setCheckoutStep } from '../lib/checkoutStage';
+import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
+import { renderAmazonPayButton } from '../lib/amazonPayClient';
+import AfterpayButton from '../components/AfterpayButton';
+import CashAppPayButton from '../components/CashAppPayButton';
 
-// Backup checkout page on QuickBooks Payments, at a stable URL — not
-// linked from anywhere on the live site (components/CartDrawer.jsx points
-// at /checkout, which is now pages/checkout.jsx, charging through Square
-// instead). Kept as a ready-to-restore fallback: to rotate back to
-// QuickBooks, swap which file lives at pages/checkout.jsx the same way this
-// page was moved out of it. Keep this page's non-payment sections in sync
-// with checkout.jsx by hand when either one changes.
+// QuickBooks Payments version of the checkout, at a stable, unlinked URL
+// (/checkout-qb). This is the page that was live at /checkout from
+// Oct 6 to Oct 8, 2026 while Square was unavailable, kept exactly as it
+// was (card form + Amazon Pay, Afterpay, Cash App Pay; no Apple Pay /
+// Google Pay, which QuickBooks' API doesn't support). To rotate back to
+// QuickBooks, swap this file into pages/checkout.jsx. Keep the non-payment
+// sections in sync by hand with pages/checkout.jsx.
 //
-// Rebuilt as a 3-step flow (Shipping -> Payment -> Review), modeled on
-// Apple's own checkout (large touch-friendly fields/buttons, a final
-// review step with "Change" links back to earlier steps) rather than the
-// single long-scroll form this page used before — brand colors/fonts stay
-// ANESE's own (black/white, Hanken Grotesk/Fraunces), not Apple's blue.
-// Each step is real, native <form> validation (required/type="email" on
-// visible fields only — a step's inputs aren't in the DOM at all while
+// A 2-step flow (Shipping -> Payment), modeled on Apple's own checkout
+// (large touch-friendly fields/buttons) rather than the old single
+// long-scroll form — brand colors/fonts stay ANESE's own, not Apple's blue.
+// Payment is the final step: its submit button ("Place order") tokenizes
+// and charges the card directly rather than advancing to a separate review
+// step. Each step is real, native <form> validation (required/type="email"
+// on visible fields only — a step's inputs aren't in the DOM at all while
 // another step is active, so the browser only ever validates what's
-// currently on screen) rather than hand-rolled field checks, except where
-// the format needs custom parsing (card expiry).
+// currently on screen).
 //
-// No Apple Pay / Google Pay / Afterpay — QuickBooks Payments (as
-// integrated in lib/qbPayments.js / lib/qbPaymentsServer.js) is a raw
-// card-token API with no wallet support, unlike Square's Web Payments SDK.
-//
-// The card form is plain <input> elements (see CardLogoBadge/VisaLogo/etc.
-// below), not a third-party iframe — QuickBooks' tokenizeCard() call goes
-// straight from the browser to Intuit's API with the raw field values, so
-// there's no embedded SDK UI to fight with, and no separate styling
-// surface that could conflict with anything on this page.
+// No visible step indicator ("1 Shipping — 2 Payment" dots) any more — Step
+// 1's own submit and Step 2's Back button are the only way to move between
+// them. An itemized order-items panel (cart + discount code + totals) sits
+// at the top of the form column on both steps instead, so a shopper never
+// loses sight of what they're buying while filling in the form beneath it.
 //
 // Billing address is always the shipping address entered in Step 1 — no
-// separate billing-address toggle, matching the simplification already
-// made on this page; Step 2 just displays it as a read-only recap (like
-// the reference checkout's "Use my shipping address" checked state).
+// separate billing-address toggle; Step 2 just displays it as a read-only
+// recap.
 
-const EMPTY_ADDRESS = { firstName: '', lastName: '', address: '', apt: '', city: '', state: '', zip: '', phone: '' };
-const EMPTY_CARD = { number: '', expiry: '', cvc: '', name: '' };
+const EMPTY_ADDRESS = { name: '', address: '', apt: '', city: '', state: '', zip: '', phone: '' };
+const EMPTY_CARD = { number: '', expiry: '', cvc: '' };
 
-// Restores step/contact/shipping progress after a refresh so a shopper who's
-// filled in Step 1 (or further) doesn't have to start over. Deliberately
-// excludes `card` — raw card number/expiry/CVC never touch storage, even
-// sessionStorage, since that'd be typed-in payment data sitting in the
-// browser at rest.
-const CHECKOUT_PROGRESS_KEY = 'anese-checkout-progress';
-
-function loadCheckoutProgress() {
-  try {
-    const raw = sessionStorage.getItem(CHECKOUT_PROGRESS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+// Formats raw digits as "MM / YY" while typing; parseExpiry splits it back
+// out into the { expMonth, expYear } shape lib/qbPayments.js expects.
+function formatExpiry(raw) {
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
 }
 
-function saveCheckoutProgress(progress) {
-  try {
-    sessionStorage.setItem(CHECKOUT_PROGRESS_KEY, JSON.stringify(progress));
-  } catch {
-    // Storage can throw (private-browsing quota, etc.) — losing the
-    // resume-on-refresh convenience isn't worth failing checkout over.
-  }
+// Returns null if the field isn't a complete MM/YY yet.
+function parseExpiry(raw) {
+  const [month, year] = raw.split('/').map((s) => s.trim());
+  if (!month || !year || year.length !== 2) return null;
+  return { expMonth: month, expYear: `20${year}` };
 }
-
-function clearCheckoutProgress() {
-  try {
-    sessionStorage.removeItem(CHECKOUT_PROGRESS_KEY);
-  } catch {
-    // Same as above — non-fatal either way.
-  }
-}
-
-// Flat optional add-on for reshipment/refund if a package is lost, damaged,
-// or stolen in transit.
-const SHIPPING_PROTECTION_PRICE = 2.79;
 
 // Social proof shown near the order summary — static copy, not pulled from
 // lib/reviewsStore.js (those are per-product; these two are checkout-wide).
@@ -94,46 +71,11 @@ const FEATURED_REVIEWS = [
   { rating: 5, text: 'Worth the price. I want all the products now.', author: 'Kelsea Riess, Verified Buyer' },
 ];
 
-// Formats raw digits as "MM / YY" while typing; parseExpiry below splits it
-// back out into the { expMonth, expYear } shape lib/qbPayments.js expects.
-function formatExpiry(raw) {
-  const digits = raw.replace(/\D/g, '').slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
-}
-
-// Splits a "12 / 28" expiry field into { expMonth: "12", expYear: "2028" }.
-// Returns null if the field isn't a complete MM/YY yet.
-function parseExpiry(raw) {
-  const [month, year] = raw.split('/').map((s) => s.trim());
-  if (!month || !year || year.length !== 2) return null;
-  return { expMonth: month, expYear: `20${year}` };
-}
-
 function LockIcon(props) {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
       <rect x="5" y="11" width="14" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
       <path d="M8 11V7a4 4 0 1 1 8 0v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function LockIconSolid(props) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" {...props}>
-      <path d="M8 11V7a4 4 0 1 1 8 0v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-      <rect x="5" y="11" width="14" height="9" rx="1.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-function HelpIcon(props) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M9.5 9.3a2.5 2.5 0 1 1 3.3 2.36c-.6.22-1 .78-1 1.44v.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="16.8" r="0.9" fill="currentColor" />
     </svg>
   );
 }
@@ -165,29 +107,6 @@ function LeafIcon(props) {
   );
 }
 
-// ANESE's shipping-protection mark — an open-flap box with a small
-// shield-check badge overlapping its corner.
-function BoxProtectionIcon(props) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path d="M2.5 7.5l7.5-3.7 7.5 3.7-7.5 3.7-7.5-3.7Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M2.5 7.5v7.6l7.5 3.7 7.5-3.7V7.5M10 11.2v7.6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M16.3 12.6l3 1v2.1c0 1.9-1.3 3-3 3.6-1.7-.6-3-1.7-3-3.6v-2.1l3-1Z" fill="#FCFBF7" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M15.2 16.3l.9.9 1.6-1.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function InfoIcon(props) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 11v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="12" cy="7.7" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
 function CheckIcon(props) {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -196,116 +115,83 @@ function CheckIcon(props) {
   );
 }
 
-// Small, recognizable renderings of each network's real mark (not a
-// colored text pill) so the "we accept" row reads as legitimate rather
-// than placeholder-ish.
-function CardLogoBadge({ children, bg = '#fff' }) {
+// Itemized cart, discount code entry, and the full price breakdown — shown
+// once at the top of the form column on both steps (in the space the old
+// Shipping/Payment step indicator used to occupy), so a shopper never
+// loses sight of what they're buying while filling in the form beneath it.
+function OrderItemsPanel({
+  cart, subtotal, discountTotal, codeDiscountAmount, appliedDiscount, shippingCost, addressEntered,
+  grandTotal, discountCode, setDiscountCode, discountMessage, setDiscountMessage,
+  clearDiscount, handleApplyDiscount,
+}) {
   return (
-    <span
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 30, height: 20, borderRadius: 3, background: bg,
-        border: `1px solid ${T.line}`, overflow: 'hidden', flexShrink: 0,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
+    <div style={reviewCard}>
+      <div>
+        {cart.map((item) => (
+          <div key={item.id} style={summaryItem}>
+            <div style={summaryImgWrap}>
+              <ProductVisual id={item.id} images={item.images} alt={item.name} width={48} staticImage />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14 }}>{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</div>
+              <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>{item.size}</div>
+            </div>
+            <div style={{ fontSize: 14 }}>${(item.price * item.quantity).toFixed(2)}</div>
+          </div>
+        ))}
+      </div>
 
-function VisaLogo() {
-  return (
-    <CardLogoBadge>
-      <svg width="24" height="10" viewBox="0 0 48 18" aria-label="Visa">
-        <text x="0" y="14" fontFamily="Arial, sans-serif" fontStyle="italic" fontWeight="800" fontSize="16" fill="#1434CB" letterSpacing="-0.5">VISA</text>
-      </svg>
-    </CardLogoBadge>
-  );
-}
+      <div style={{ marginTop: 6 }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            placeholder="Discount code"
+            value={discountCode}
+            onChange={(e) => {
+              setDiscountCode(e.target.value);
+              if (appliedDiscount) clearDiscount();
+              setDiscountMessage('');
+            }}
+            // Enter must apply the code, not fall through to native form submit.
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return;
+              e.preventDefault();
+              handleApplyDiscount();
+            }}
+            style={{ ...bigInput, height: 46, flex: 1 }}
+          />
+          <button type="button" style={{ ...smallOutlineButton, height: 46 }} onClick={handleApplyDiscount}>Apply</button>
+        </div>
+        {discountMessage && (
+          <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 8 }}>{discountMessage}</p>
+        )}
+      </div>
 
-function MastercardLogo() {
-  return (
-    <CardLogoBadge>
-      <svg width="22" height="14" viewBox="0 0 40 26" aria-label="Mastercard">
-        <circle cx="15" cy="13" r="11" fill="#EB001B" />
-        <circle cx="25" cy="13" r="11" fill="#F79E1B" style={{ mixBlendMode: 'multiply' }} />
-      </svg>
-    </CardLogoBadge>
-  );
-}
-
-function AmexLogo() {
-  return (
-    <CardLogoBadge bg="#006FCF">
-      <svg width="26" height="13" viewBox="0 0 52 22" aria-label="American Express">
-        <text x="1" y="16" fontFamily="Arial, sans-serif" fontWeight="800" fontSize="13" fill="#fff" letterSpacing="0.5">AMEX</text>
-      </svg>
-    </CardLogoBadge>
-  );
-}
-
-function DiscoverLogo() {
-  return (
-    <CardLogoBadge>
-      <svg width="28" height="11" viewBox="0 0 66 20" aria-label="Discover">
-        <text x="0" y="14" fontFamily="Arial, sans-serif" fontWeight="700" fontStyle="italic" fontSize="11" fill="#1B1B1B" letterSpacing="-0.3">Discover</text>
-        <circle cx="62" cy="14" r="4" fill="#FF6600" />
-      </svg>
-    </CardLogoBadge>
-  );
-}
-
-// Standard IIN (card number prefix) ranges — used only to pick which logo
-// to show back to the shopper on the review step, not for any validation.
-function detectCardBrandLogo(rawNumber) {
-  const digits = rawNumber.replace(/\D/g, '');
-  if (/^4/.test(digits)) return VisaLogo;
-  if (/^(5[1-5]|2[2-7])/.test(digits)) return MastercardLogo;
-  if (/^3[47]/.test(digits)) return AmexLogo;
-  if (/^6(011|5)/.test(digits)) return DiscoverLogo;
-  return VisaLogo;
-}
-
-const STEPS = [
-  { n: 1, label: 'Shipping' },
-  { n: 2, label: 'Payment' },
-  { n: 3, label: 'Review' },
-];
-
-function StepIndicator({ step, maxStepReached, onJump }) {
-  return (
-    <div style={stepIndicatorWrap}>
-      {STEPS.map(({ n, label }, i) => {
-        const done = n < step;
-        const active = n === step;
-        const reachable = n <= maxStepReached;
-        return (
-          <React.Fragment key={n}>
-            <button
-              type="button"
-              onClick={() => reachable && onJump(n)}
-              disabled={!reachable}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none',
-                padding: 0, cursor: reachable ? 'pointer' : 'default', fontFamily: T.sans,
-              }}
-            >
-              <span
-                style={{
-                  ...stepDot,
-                  ...(done ? stepDotDone : active ? stepDotActive : stepDotPending),
-                }}
-              >
-                {done ? <CheckIcon /> : n}
-              </span>
-              <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? T.ink : T.soft }}>
-                {label}
-              </span>
-            </button>
-            {i < STEPS.length - 1 && <span style={stepConnector} />}
-          </React.Fragment>
-        );
-      })}
+      <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${T.line}` }}>
+        <div style={summaryRow}>
+          <span style={{ color: T.soft }}>Subtotal</span>
+          <span>${subtotal.toFixed(2)}</span>
+        </div>
+        {discountTotal > 0 && (
+          <div style={summaryRow}>
+            <span style={{ color: T.soft }}>Discount</span>
+            <span>−${discountTotal.toFixed(2)}</span>
+          </div>
+        )}
+        {codeDiscountAmount > 0 && (
+          <div style={summaryRow}>
+            <span style={{ color: T.soft }}>Promo ({appliedDiscount.code})</span>
+            <span>−${codeDiscountAmount.toFixed(2)}</span>
+          </div>
+        )}
+        <div style={summaryRow}>
+          <span style={{ color: T.soft }}>Shipping</span>
+          <span>{!addressEntered ? 'Enter address' : (shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`)}</span>
+        </div>
+        <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 12, marginTop: 4 }}>
+          <span style={{ fontFamily: T.sans, fontSize: 17, fontWeight: 700 }}>Total</span>
+          <span style={{ fontFamily: T.sans, fontSize: 20, fontWeight: 700 }}>${grandTotal.toFixed(2)}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -362,27 +248,31 @@ function ReviewsCarousel({ reviews }) {
   );
 }
 
-export default function CheckoutQbBackupPage() {
+// Read server-side so client-side tokenization always targets the same
+// Intuit environment lib/qbPaymentsServer.js charges against.
+export async function getServerSideProps() {
+  return { props: { qbEnvironment: process.env.QB_ENVIRONMENT === 'production' ? 'production' : 'sandbox' } };
+}
+
+export default function CheckoutPage({ qbEnvironment }) {
   const router = useRouter();
   const { cart, total, hydrated, clear, appliedDiscount, applyDiscount, clearDiscount, codeDiscountAmount, discountedTotal } = useCart();
 
+  // Loaded once at mount — see lib/checkoutProgress.js. Seeds the step +
+  // contact/shipping state below so a refresh mid-checkout resumes instead
+  // of starting over.
+  const [savedProgress] = React.useState(loadCheckoutProgress);
+
   // Contact + delivery
-  const [email, setEmail] = React.useState('');
-  const [newsletter, setNewsletter] = React.useState(true);
-  const [shipping, setShipping] = React.useState(EMPTY_ADDRESS);
-  const [shippingProtection, setShippingProtection] = React.useState(false);
+  const [email, setEmail] = React.useState(savedProgress?.email ?? '');
+  const [newsletter, setNewsletter] = React.useState(savedProgress?.newsletter ?? true);
+  const [shipping, setShipping] = React.useState(savedProgress?.shipping ?? EMPTY_ADDRESS);
 
-  // Payment — raw card fields (no third-party SDK/iframe); tokenized
-  // directly against Intuit at final submit (Step 3) via lib/qbPayments.js.
-  const [card, setCard] = React.useState(EMPTY_CARD);
-
-  // 3-step flow (Shipping -> Payment -> Review). maxStepReached gates the
-  // step indicator's jump-back links — a shopper can always go back to a
-  // step they've already completed, but can't skip ahead by clicking a
-  // future step's label.
-  const [step, setStep] = React.useState(1);
-  const [maxStepReached, setMaxStepReached] = React.useState(1);
-  const [progressRestored, setProgressRestored] = React.useState(false);
+  // 2-step flow (Shipping -> Payment) — Step 1's submit and Step 2's Back
+  // button are the only ways to move between them now that the old visible
+  // step indicator (which also let a shopper jump back by clicking a
+  // completed step's label) is gone.
+  const [step, setStep] = React.useState(savedProgress?.step ?? 1);
 
   // Reported to the live-view heartbeat in pages/_app.jsx (via
   // lib/checkoutStage.js) so admin can see which step visitors are stuck
@@ -394,72 +284,70 @@ export default function CheckoutQbBackupPage() {
     return () => setCheckoutStep(null);
   }, [step]);
 
-  // Historical funnel counters (admin's Today's funnel card) — reaching
-  // Step 2/3 for the first time, deduped server-side per session so
-  // jumping back and forth via the step indicator doesn't inflate these.
-  // Step 1 is already covered by the existing checkout_start ping below.
+  // Payment — plain card fields, tokenized straight against Intuit's API
+  // at submit time (lib/qbPayments.js), so the raw card number never
+  // reaches this site's own server.
+  const [card, setCard] = React.useState(EMPTY_CARD);
+
+  // Discount + UI state
+  const [discountCode, setDiscountCode] = React.useState(savedProgress?.discountCode ?? '');
+  const [discountMessage, setDiscountMessage] = React.useState('');
+  // Mobile-only order summary accordion — collapsed by default so a
+  // shopper isn't scrolling past the full itemized breakdown before
+  // reaching the form; the desktop sticky sidebar (aside below) always
+  // shows it in full regardless of this.
+  const [orderSummaryOpen, setOrderSummaryOpen] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const errorRef = React.useRef(null);
+  const formTopRef = React.useRef(null);
+
+  // Mirrors step/email/newsletter/shipping/discount to sessionStorage on
+  // every change so a mid-checkout refresh resumes on the same step with
+  // the form already filled in, rather than bouncing back to a blank
+  // Step 1. Cleared on successful order.
   React.useEffect(() => {
-    if (step !== 2 && step !== 3) return;
+    saveCheckoutProgress({ step, email, newsletter, shipping, discountCode });
+  }, [step, email, newsletter, shipping, discountCode]);
+
+  // Historical funnel counter (admin's funnel card) — reaching Step 2 for
+  // the first time, deduped server-side per session so jumping back and
+  // forth doesn't inflate this. Step 1 is already covered by the existing
+  // checkout_start ping below.
+  React.useEffect(() => {
+    if (step !== 2) return;
     fetch('/api/track/event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event: step === 2 ? 'checkout_payment' : 'checkout_review', sessionId: getSessionId() }),
+      body: JSON.stringify({ event: 'checkout_payment', sessionId: getSessionId() }),
       keepalive: true,
     }).catch(() => {});
   }, [step]);
 
-  // Discount + UI state
-  const [discountCode, setDiscountCode] = React.useState('');
-
-  // Restore step/contact/shipping progress on mount (e.g. after a refresh)
-  // — done in an effect rather than lazy useState initializers so server
-  // and first client render match (sessionStorage doesn't exist during SSR).
-  // Must come after every piece of state it reads/sets is declared above —
-  // effect dependency arrays are evaluated immediately during render, so
-  // referencing a not-yet-declared const here throws a TDZ ReferenceError.
-  React.useEffect(() => {
-    const saved = loadCheckoutProgress();
-    if (saved) {
-      if (saved.email) setEmail(saved.email);
-      if (typeof saved.newsletter === 'boolean') setNewsletter(saved.newsletter);
-      if (saved.shipping) setShipping({ ...EMPTY_ADDRESS, ...saved.shipping });
-      if (typeof saved.shippingProtection === 'boolean') setShippingProtection(saved.shippingProtection);
-      if (saved.discountCode) setDiscountCode(saved.discountCode);
-      if (Number.isInteger(saved.maxStepReached)) setMaxStepReached(saved.maxStepReached);
-      if (Number.isInteger(saved.step)) setStep(saved.step);
-    }
-    setProgressRestored(true);
-  }, []);
-
-  // Persist progress on every relevant change, once the initial restore
-  // above has run (otherwise this would immediately overwrite saved
-  // progress with the pre-restore empty defaults on first render).
-  React.useEffect(() => {
-    if (!progressRestored) return;
-    saveCheckoutProgress({ email, newsletter, shipping, shippingProtection, discountCode, step, maxStepReached });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progressRestored, email, newsletter, shipping, shippingProtection, discountCode, step, maxStepReached]);
-
-  const [discountMessage, setDiscountMessage] = React.useState('');
-  const [receiptOpen, setReceiptOpen] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState('');
-  const errorRef = React.useRef(null);
-
-  // Scrolled into view on every change so an error is never left off-screen.
+  // The error message renders once, near the submit button at the bottom
+  // of whichever step is active — scrolled into view on every change so it
+  // never goes unnoticed if the shopper was scrolled elsewhere.
   React.useEffect(() => {
     if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [error]);
 
-  // Every step change scrolls back to the top of the form — otherwise
+  // Every step *change* scrolls back to the top of the form — otherwise
   // advancing from a long Step 1 (address fully filled in, scrolled down)
   // to a short Step 2 can leave the shopper staring at empty space below
-  // the fold with no visible change.
+  // the fold with no visible change. Skipped on the very first render
+  // (mountedRef still false) — scrollIntoView'ing formTopRef there was
+  // scrolling the freshly-loaded page down past the header, cutting the
+  // logo off instead of landing at the very top like a fresh page load
+  // should.
+  const mountedRef = React.useRef(false);
   React.useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
-  const formTopRef = React.useRef(null);
 
   React.useEffect(() => {
     if (appliedDiscount) setDiscountCode(appliedDiscount.code);
@@ -503,18 +391,22 @@ export default function CheckoutQbBackupPage() {
   }, [hydrated]);
 
   const addressEntered = Boolean(shipping.address.trim() && shipping.city.trim() && shipping.state && shipping.zip.trim());
-
   const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 ? 0 : 5);
+  const grandTotal = discountedTotal + shippingCost;
+
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
   const discountTotal = subtotal - total;
-  const shippingProtectionCost = shippingProtection ? SHIPPING_PROTECTION_PRICE : 0;
-  const grandTotal = discountedTotal + shippingCost + shippingProtectionCost;
 
+  const latestRef = React.useRef({});
+  latestRef.current = { email, shipping, cart, grandTotal };
+
+  // Fires once the shopper's attention leaves the email field — a good
+  // enough proxy for "entered their email" without hammering the KV store
+  // on every keystroke. If they never complete the order, this is the only
+  // record of them; lib/orderFulfillment.js upgrades the same entry to
+  // 'purchased' if they do.
   const handleEmailBlur = () => {
     if (!email.trim()) return;
-    // Everything typed here is also what Meta matches on, so remember it and
-    // re-init the Pixel — otherwise the email only starts riding along on
-    // events from the *next* page load, missing this checkout entirely.
     rememberIdentity({ email, phone: shipping.phone });
     refreshPixelIdentity(process.env.NEXT_PUBLIC_META_PIXEL_ID);
     fetch('/api/checkout-lead', {
@@ -529,7 +421,43 @@ export default function CheckoutQbBackupPage() {
       }),
       keepalive: true,
     }).catch(() => {});
+    // Starts the abandoned-checkout email flow if they opted in
+    // (lib/emailPlatform.js -> lib/email/).
+    captureCheckoutEmail({ email, consent: newsletter, cartValue: total, items: cart });
   };
+
+  // Amazon Pay (lib/amazonPayClient.js) — an alternative to the card form
+  // on Step 2, shown only once Amazon's button has actually rendered (it
+  // stays hidden unless the AMAZON_PAY_* env vars are set). Same Meta
+  // event-id handoff as the card path: the id generated here rides through
+  // Amazon and back to /success's browser Purchase.
+  const amazonOrderRef = React.useRef(null);
+  amazonOrderRef.current = { email, shipping, cart, grandTotal };
+  const [amazonPayReady, setAmazonPayReady] = React.useState(false);
+  // Afterpay (components/AfterpayButton.jsx, lib/afterpay.js) — same idea,
+  // shown only when configured and the total is in Afterpay's range.
+  const [afterpayReady, setAfterpayReady] = React.useState(false);
+  // Cash App Pay (components/CashAppPayButton.jsx), through the same
+  // Afterpay account; its checkout is created once Step 2 is reached.
+  const [cashAppReady, setCashAppReady] = React.useState(false);
+  const cashAppEventId = React.useMemo(() => generateEventId(), []);
+  React.useEffect(() => {
+    if (step !== 2) return undefined;
+    let cancelled = false;
+    renderAmazonPayButton('amazon-pay-button', {
+      getOrder: () => {
+        const { email, shipping, cart, grandTotal } = amazonOrderRef.current;
+        rememberIdentity({ email, phone: shipping.phone });
+        return {
+          amount: grandTotal, items: cart, email, shipping,
+          eventId: generateEventId(), url: window.location.href,
+          attribution: getStoredAttribution(), sessionId: getSessionId(), storeName: 'ANESE',
+        };
+      },
+      onError: setError,
+    }).then((ok) => { if (!cancelled) setAmazonPayReady(ok); }).catch(() => {});
+    return () => { cancelled = true; setAmazonPayReady(false); };
+  }, [step]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) return;
@@ -547,16 +475,47 @@ export default function CheckoutQbBackupPage() {
   const goToStep = (n) => {
     setError('');
     setStep(n);
-    setMaxStepReached((m) => Math.max(m, n));
+  };
+
+  const completeOrder = async (token) => {
+    const { email, shipping, cart, grandTotal } = latestRef.current;
+    const purchaseEventId = generateEventId();
+
+    const res = await fetch('/api/qb-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        amount: grandTotal,
+        items: cart,
+        email,
+        shipping,
+        eventId: purchaseEventId,
+        url: window.location.href,
+        paymentMethod: 'QuickBooks',
+        attribution: getStoredAttribution(),
+        sessionId: getSessionId(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Payment failed');
+
+    sessionStorage.setItem('anese-purchase', JSON.stringify({
+      eventId: purchaseEventId,
+      orderId: data.id,
+      amount: grandTotal,
+      contentIds: cart.map((i) => i.id),
+      contents: cart.map((i) => ({ id: i.id, quantity: i.quantity, item_price: i.price })),
+    }));
+    clearCheckoutProgress();
+    await router.push('/success');
+    clear();
   };
 
   // Each step is real native <form> validation — required/type="email" on
   // whichever fields are actually mounted for the current step (a step
   // that isn't showing has its inputs removed from the DOM entirely, not
   // just hidden, so the browser only ever validates what's on screen).
-  // Card expiry needs its own check since "MM / YY" isn't a native input
-  // type; everything else here just needs the step to have gotten this far
-  // for the browser's own required-field validation to have already passed.
   const handleStepSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -566,77 +525,33 @@ export default function CheckoutQbBackupPage() {
       return;
     }
 
-    if (step === 2) {
-      const expiry = parseExpiry(card.expiry);
-      if (!card.number.trim() || !expiry || !card.cvc.trim() || !card.name.trim()) {
-        setError('Fill in your card details to continue.');
-        return;
-      }
-      goToStep(3);
+    // Step 2 — tokenize the card against Intuit's Payments API from the
+    // browser, then charge it server-side via /api/qb-checkout (authorizes
+    // and captures synchronously — no redirect, no webhook). Billing
+    // address is the shipping address from Step 1.
+    const expiry = parseExpiry(card.expiry);
+    if (!card.number.trim() || !expiry || !card.cvc.trim()) {
+      setError('Fill in your card details to continue.');
       return;
     }
-
-    // Step 3 — actually charge the card.
-    const expiry = parseExpiry(card.expiry);
     setSubmitting(true);
     try {
-      // Step A: tokenize the card directly against Intuit's Payments
-      // Tokens API from the browser (lib/qbPayments.js) — the raw card
-      // number never reaches our own server. The token is single-use and
-      // tied to this exact card + billing address + CVC.
       const token = await tokenizeCard(
         {
           number: card.number,
           expMonth: expiry.expMonth,
           expYear: expiry.expYear,
           cvc: card.cvc,
-          name: card.name.trim(),
+          name: shipping.name.trim(),
           street: shipping.address,
           city: shipping.city,
           region: shipping.state,
           postalCode: shipping.zip,
           country: 'US',
         },
-        process.env.NEXT_PUBLIC_QB_ENVIRONMENT || 'sandbox'
+        qbEnvironment
       );
-
-      const purchaseEventId = generateEventId();
-
-      // Step B: charge that token server-side (/api/qb-checkout).
-      // lib/qbPaymentsServer.js's chargeCard() authorizes and captures
-      // funds synchronously within that one call — no redirect, no
-      // webhook, so fulfillment and the success-page navigation both
-      // happen right here.
-      const res = await fetch('/api/qb-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          amount: grandTotal,
-          items: cart,
-          email,
-          shipping,
-          eventId: purchaseEventId,
-          url: window.location.href,
-          paymentMethod: 'QuickBooks',
-          attribution: getStoredAttribution(),
-          shippingProtection: shippingProtectionCost || 0,
-          sessionId: getSessionId(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Payment failed');
-
-      sessionStorage.setItem('anese-purchase', JSON.stringify({
-        eventId: purchaseEventId,
-        orderId: data.id,
-        amount: grandTotal,
-        contentIds: cart.map((i) => i.id),
-        contents: cart.map((i) => ({ id: i.id, quantity: i.quantity, item_price: i.price })),
-      }));
-      clearCheckoutProgress();
-      await router.push('/success');
-      clear();
+      await completeOrder(token);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -646,114 +561,105 @@ export default function CheckoutQbBackupPage() {
 
   if (!hydrated || cart.length === 0) return null;
 
-  const cardLast4 = card.number.replace(/\s+/g, '').slice(-4);
-  const CardBrandLogo = detectCardBrandLogo(card.number);
-
   return (
     <div>
       <header className="desktop-topbar" style={topbar}>
-        <Link href="/" style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64, textDecoration: 'none' }}>
-          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 24, width: 'auto' }} />
-        </Link>
+        <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 112 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 84, width: 'auto' }} />
+          </Link>
+        </div>
       </header>
 
-      {/* Mobile-only compact header — small logo left, total right. White
-          background (not the old T.paper toggle bar, which read as an
-          off-white/gray band against the rest of the page). Tapping the
-          total opens the itemized receipt popup below instead of the old
-          inline-collapsing order summary, since that popup now covers the
-          same job in less space. */}
+      {/* Mobile-only compact header — centered logo, no total (the same
+          totals already show inline via OrderItemsPanel at the top of the
+          form column below, on every breakpoint). */}
       <header className="mobile-topbar" style={mobileTopbar}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 16, width: 'auto' }} />
+          <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 52, width: 'auto' }} />
         </Link>
-        <button type="button" onClick={() => setReceiptOpen(true)} style={mobileTotalButton}>
-          <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>${grandTotal.toFixed(2)}</span>
-          <span style={{ fontSize: 10, color: T.soft }}>▾</span>
-        </button>
       </header>
 
-      {receiptOpen && (
-        <div style={receiptOverlay} onClick={() => setReceiptOpen(false)}>
-          <div style={receiptSheet} onClick={(e) => e.stopPropagation()}>
-            <div style={receiptHead}>
-              <span style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 16 }}>Order summary</span>
-              <button type="button" onClick={() => setReceiptOpen(false)} style={receiptClose} aria-label="Close">✕</button>
-            </div>
-            <div style={{ maxHeight: '40vh', overflowY: 'auto', padding: '4px 20px' }}>
-              {cart.map((item) => (
-                <div key={item.id} style={summaryItem}>
-                  <div style={summaryImgWrap}>
-                    <ProductVisual id={item.id} images={item.images} alt={item.name} width={48} staticImage />
-                    <span style={qtyBadge}>{item.quantity}</span>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14 }}>{item.name}</div>
-                    <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>{item.size}</div>
-                  </div>
-                  <div style={{ fontSize: 14 }}>${(item.price * item.quantity).toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ padding: '4px 20px 24px' }}>
-              <div style={summaryRow}>
-                <span style={{ color: T.soft }}>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              {discountTotal > 0 && (
-                <div style={summaryRow}>
-                  <span style={{ color: T.soft }}>Discount</span>
-                  <span>−${discountTotal.toFixed(2)}</span>
-                </div>
-              )}
-              {codeDiscountAmount > 0 && (
-                <div style={summaryRow}>
-                  <span style={{ color: T.soft }}>Promo ({appliedDiscount.code})</span>
-                  <span>−${codeDiscountAmount.toFixed(2)}</span>
-                </div>
-              )}
-              <div style={summaryRow}>
-                <span style={{ color: T.soft }}>Shipping</span>
-                <span>{!addressEntered ? 'Enter address' : (shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`)}</span>
-              </div>
-              {shippingProtection && (
-                <div style={summaryRow}>
-                  <span style={{ color: T.soft }}>Shipping Protection</span>
-                  <span>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</span>
-                </div>
-              )}
-              <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 16, marginTop: 6 }}>
-                <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
-                <span style={{ fontFamily: T.sans, fontSize: 20 }}>${grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="checkout-grid" style={checkoutGrid}>
-        <div style={formCol}>
+        <div className="form-col" style={formCol}>
           <div ref={formTopRef} />
-          <StepIndicator step={step} maxStepReached={maxStepReached} onJump={goToStep} />
+          {/* Desktop already has the same info in the sticky sidebar aside
+              below — this inline panel is mobile-only there (that sidebar
+              is hidden under 861px), so keeping it here too on desktop
+              would just duplicate it above the shipping form. Collapsed
+              into an accordion by default on mobile so the itemized
+              breakdown doesn't push the actual form below the fold. */}
+          <div className="mobile-order-summary">
+            <button
+              type="button"
+              onClick={() => setOrderSummaryOpen((o) => !o)}
+              style={orderSummaryToggle}
+              aria-expanded={orderSummaryOpen}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{orderSummaryOpen ? 'Hide' : 'Show'} order summary</span>
+                <span style={{ fontSize: 10, transform: orderSummaryOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>▾</span>
+              </span>
+              <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700 }}>${grandTotal.toFixed(2)}</span>
+            </button>
+            {orderSummaryOpen && (
+              <div style={{ marginTop: 12 }}>
+                <OrderItemsPanel
+                  cart={cart}
+                  subtotal={subtotal}
+                  discountTotal={discountTotal}
+                  codeDiscountAmount={codeDiscountAmount}
+                  appliedDiscount={appliedDiscount}
+                  shippingCost={shippingCost}
+                  addressEntered={addressEntered}
+                  grandTotal={grandTotal}
+                  discountCode={discountCode}
+                  setDiscountCode={setDiscountCode}
+                  discountMessage={discountMessage}
+                  setDiscountMessage={setDiscountMessage}
+                  clearDiscount={clearDiscount}
+                  handleApplyDiscount={handleApplyDiscount}
+                />
+              </div>
+            )}
+          </div>
 
           <form
             onSubmit={handleStepSubmit}
-            // Defense in depth alongside the discount-code field's own
-            // Enter handling above: on Step 3 specifically, Enter pressed
-            // anywhere that isn't the actual "Place your order" button
-            // must never submit — that's a real charge, not a step
-            // advance like Steps 1/2. Steps 1/2 keep normal Enter-to-
-            // advance behavior; only Step 3's real-money submit is guarded.
             onKeyDown={(e) => {
-              if (step === 3 && e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault();
+              if (step === 2 && e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault();
             }}
           >
             {step === 1 && (
               <section style={{ marginTop: 28 }}>
-                <h1 style={stepTitle}>Where should we send your order?</h1>
+                <div style={{ marginTop: 30 }}>
+                  <p style={fieldGroupLabel}>Shipping address</p>
+                  <AddressFields value={shipping} onChange={setShipping} idPrefix="ship" inputStyle={bigInput} simplified />
+                </div>
 
-                <div style={{ marginTop: 24 }}>
-                  <p style={fieldGroupLabel}>Contact</p>
+                {addressEntered && (
+                  <div style={{ marginTop: 26 }}>
+                    <p style={fieldGroupLabel}>Shipping method</p>
+                    <div style={shipMethod}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>Standard Shipping</div>
+                        <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>3–5 business days after order placed</div>
+                      </div>
+                      <span style={{ fontWeight: 700 }}>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 26 }}>
+                  <p style={fieldGroupLabel}>Country</p>
+                  <select value="United States" readOnly style={{ ...bigInput, color: T.soft }}>
+                    <option>United States</option>
+                  </select>
+                </div>
+
+                <h1 style={{ ...stepTitle, marginTop: 30 }}>Contact</h1>
+
+                <div style={{ marginTop: 18 }}>
                   <input
                     type="email"
                     placeholder="Email"
@@ -770,56 +676,10 @@ export default function CheckoutQbBackupPage() {
                   </label>
                 </div>
 
-                <div style={{ marginTop: 24 }}>
-                  <p style={fieldGroupLabel}>Shipping address</p>
-                  <select value="United States" readOnly style={{ ...bigInput, marginBottom: 10, color: T.soft }}>
-                    <option>United States</option>
-                  </select>
-                  <AddressFields value={shipping} onChange={setShipping} idPrefix="ship" inputStyle={bigInput} />
-                </div>
-
-                {addressEntered && (
-                  <div style={{ marginTop: 20 }}>
-                    <p style={fieldGroupLabel}>Shipping method</p>
-                    <div style={shipMethod}>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>Standard Shipping</div>
-                        <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>3–5 business days after order placed</div>
-                      </div>
-                      <span style={{ fontWeight: 700 }}>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ marginTop: 16 }}>
-                  <div style={protectionCard}>
-                    <div style={protectionIconBox}>
-                      <BoxProtectionIcon style={{ color: T.ink }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 14, color: T.ink }}>Shipping Protection</span>
-                        <span title="Covers reshipment or a refund if your order is lost, damaged, or stolen in transit. Contact us and we'll make it right.">
-                          <InfoIcon style={{ color: T.soft }} />
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>For lost, damaged, or stolen packages</div>
-                      <div style={{ fontSize: 13, color: T.ink, marginTop: 4 }}>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShippingProtection((v) => !v)}
-                      style={{ ...S.btnOutline, height: 38, padding: '0 20px', ...(shippingProtection ? { background: T.paper } : {}) }}
-                    >
-                      {shippingProtection ? 'Remove' : 'Add'}
-                    </button>
-                  </div>
-                </div>
-
                 {error && <p ref={errorRef} style={errorText}>{error}</p>}
 
                 <button type="submit" style={{ ...bigButton, marginTop: 24 }}>
-                  Continue to payment
+                  Continue to final step
                 </button>
 
                 <div className="mobile-reviews-carousel">
@@ -833,29 +693,52 @@ export default function CheckoutQbBackupPage() {
                 <h1 style={stepTitle}>How do you want to pay?</h1>
                 <p style={{ fontSize: 13, color: T.soft, marginTop: 10 }}>All transactions are secure and encrypted.</p>
 
+                {/* Amazon renders its own button into this container once
+                    it's configured; until then it stays empty and takes no
+                    space, and the "or" line only shows alongside it. */}
+                <div style={{ marginTop: 20 }}>
+                  <div id="amazon-pay-button" />
+                  <AfterpayButton
+                    total={grandTotal}
+                    onError={setError}
+                    onReady={setAfterpayReady}
+                    getOrder={() => {
+                      const { email, shipping, cart, grandTotal } = amazonOrderRef.current;
+                      rememberIdentity({ email, phone: shipping.phone });
+                      return {
+                        amount: grandTotal, items: cart, email, shipping,
+                        eventId: generateEventId(), url: window.location.href,
+                        attribution: getStoredAttribution(), sessionId: getSessionId(),
+                      };
+                    }}
+                  />
+                  <CashAppPayButton
+                    purchaseKey="anese-purchase"
+                    onError={setError}
+                    onReady={setCashAppReady}
+                    order={{
+                      amount: grandTotal, items: cart, email, shipping,
+                      eventId: cashAppEventId, url: typeof window !== 'undefined' ? window.location.href : null,
+                      attribution: getStoredAttribution(), sessionId: getSessionId(),
+                    }}
+                  />
+                  {(amazonPayReady || afterpayReady || cashAppReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
+                </div>
+
                 <div style={{ ...paymentList, marginTop: 20 }}>
                   <div style={accordionRow}>
                     <span style={{ fontWeight: 700, fontSize: 16 }}>Credit or Debit Card</span>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <VisaLogo />
-                      <MastercardLogo />
-                      <AmexLogo />
-                      <DiscoverLogo />
-                    </div>
                   </div>
                   <div style={accordionBody}>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        placeholder="Card number"
-                        value={card.number}
-                        onChange={(e) => setCard({ ...card, number: e.target.value })}
-                        style={{ ...bigInput, paddingRight: 46 }}
-                        inputMode="numeric"
-                        autoComplete="cc-number"
-                        required
-                      />
-                      <LockIconSolid style={{ position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)', color: T.soft }} />
-                    </div>
+                    <input
+                      placeholder="Card number"
+                      value={card.number}
+                      onChange={(e) => setCard({ ...card, number: e.target.value })}
+                      style={bigInput}
+                      inputMode="numeric"
+                      autoComplete="cc-number"
+                      required
+                    />
                     <div className="row-2" style={{ marginTop: 10 }}>
                       <input
                         placeholder="MM / YY"
@@ -866,27 +749,16 @@ export default function CheckoutQbBackupPage() {
                         autoComplete="cc-exp"
                         required
                       />
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          placeholder="Security code"
-                          value={card.cvc}
-                          onChange={(e) => setCard({ ...card, cvc: e.target.value })}
-                          style={{ ...bigInput, paddingRight: 38 }}
-                          inputMode="numeric"
-                          autoComplete="cc-csc"
-                          required
-                        />
-                        <HelpIcon style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: T.soft }} />
-                      </div>
+                      <input
+                        placeholder="Security code"
+                        value={card.cvc}
+                        onChange={(e) => setCard({ ...card, cvc: e.target.value })}
+                        style={bigInput}
+                        inputMode="numeric"
+                        autoComplete="cc-csc"
+                        required
+                      />
                     </div>
-                    <input
-                      placeholder="Name on card"
-                      value={card.name}
-                      onChange={(e) => setCard({ ...card, name: e.target.value })}
-                      style={{ ...bigInput, marginTop: 10 }}
-                      autoComplete="cc-name"
-                      required
-                    />
                   </div>
                 </div>
 
@@ -897,7 +769,7 @@ export default function CheckoutQbBackupPage() {
                     <div>
                       <div style={{ fontWeight: 700, marginBottom: 4 }}>Same as shipping address</div>
                       <div style={{ color: T.soft, fontSize: 13, lineHeight: 1.6 }}>
-                        {shipping.firstName} {shipping.lastName}<br />
+                        {shipping.name}<br />
                         {shipping.address}{shipping.apt ? `, ${shipping.apt}` : ''}<br />
                         {shipping.city}, {shipping.state} {shipping.zip}
                       </div>
@@ -905,135 +777,14 @@ export default function CheckoutQbBackupPage() {
                   </div>
                 </div>
 
-                <div style={{ marginTop: 20 }}>
-                  <p style={fieldGroupLabel}>Discount code</p>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <input
-                      placeholder="Discount code"
-                      value={discountCode}
-                      onChange={(e) => {
-                        setDiscountCode(e.target.value);
-                        if (appliedDiscount) clearDiscount();
-                        setDiscountMessage('');
-                      }}
-                      // Pressing Enter in a text field inside a <form> triggers
-                      // the browser's native submit-on-Enter behavior — on this
-                      // step that means firing the real charge (handleStepSubmit)
-                      // with whatever grandTotal was already computed, before
-                      // handleApplyDiscount's async validation call has even
-                      // started, let alone updated the total. Confirmed live: a
-                      // discount code entered then Enter-submitted charged the
-                      // full, non-discounted amount. Enter here now applies the
-                      // code instead, same as clicking Apply.
-                      onKeyDown={(e) => {
-                        if (e.key !== 'Enter') return;
-                        e.preventDefault();
-                        handleApplyDiscount();
-                      }}
-                      style={{ ...bigInput, flex: 1 }}
-                    />
-                    <button type="button" style={smallOutlineButton} onClick={handleApplyDiscount}>Apply</button>
-                  </div>
-                  {discountMessage && (
-                    <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 8 }}>{discountMessage}</p>
-                  )}
-                </div>
-
                 {error && <p ref={errorRef} style={errorText}>{error}</p>}
 
                 <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                  <button type="button" onClick={() => goToStep(1)} style={bigButtonSecondary}>
-                    Back
-                  </button>
-                  <button type="submit" style={{ ...bigButton, flex: 1 }}>
-                    Review order
-                  </button>
-                </div>
-
-                <div className="mobile-reviews-carousel">
-                  <ReviewsCarousel reviews={FEATURED_REVIEWS} />
-                </div>
-              </section>
-            )}
-
-            {step === 3 && (
-              <section style={{ marginTop: 28 }}>
-                <h1 style={stepTitle}>Ready to place your order?</h1>
-                <p style={{ fontSize: 13, color: T.soft, marginTop: 10 }}>Let’s make sure everything’s right.</p>
-
-                <div style={{ marginTop: 24 }}>
-                  <div style={reviewRowHead}>
-                    <span style={fieldGroupLabel}>Shipping details</span>
-                    <button type="button" onClick={() => goToStep(1)} style={changeLink}>Change</button>
-                  </div>
-                  <div style={reviewCard}>
-                    <div style={{ fontWeight: 700, marginBottom: 4 }}>{shipping.firstName} {shipping.lastName}</div>
-                    <div style={{ color: T.soft, fontSize: 13, lineHeight: 1.6 }}>
-                      {shipping.address}{shipping.apt ? `, ${shipping.apt}` : ''}<br />
-                      {shipping.city}, {shipping.state} {shipping.zip}<br />
-                      {email}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <div style={reviewRowHead}>
-                    <span style={fieldGroupLabel}>Payment details</span>
-                    <button type="button" onClick={() => goToStep(2)} style={changeLink}>Change</button>
-                  </div>
-                  <div style={reviewCard}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <CardBrandLogo />
-                      <span style={{ fontWeight: 700 }}>Card ending in {cardLast4 || '••••'}</span>
-                    </div>
-                    <div style={{ color: T.soft, fontSize: 13, marginTop: 8 }}>Billing address same as shipping</div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 20 }}>
-                  <p style={fieldGroupLabel}>Your total</p>
-                  <div style={reviewCard}>
-                    <div style={summaryRow}>
-                      <span style={{ color: T.soft }}>Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
-                    </div>
-                    {discountTotal > 0 && (
-                      <div style={summaryRow}>
-                        <span style={{ color: T.soft }}>Discount</span>
-                        <span>−${discountTotal.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {codeDiscountAmount > 0 && (
-                      <div style={summaryRow}>
-                        <span style={{ color: T.soft }}>Promo ({appliedDiscount.code})</span>
-                        <span>−${codeDiscountAmount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div style={summaryRow}>
-                      <span style={{ color: T.soft }}>Shipping</span>
-                      <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
-                    </div>
-                    {shippingProtection && (
-                      <div style={summaryRow}>
-                        <span style={{ color: T.soft }}>Shipping Protection</span>
-                        <span>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 12, marginTop: 4 }}>
-                      <span style={{ fontFamily: T.sans, fontSize: 17, fontWeight: 700 }}>Total</span>
-                      <span style={{ fontFamily: T.sans, fontSize: 20, fontWeight: 700 }}>${grandTotal.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {error && <p ref={errorRef} style={errorText}>{error}</p>}
-
-                <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                  <button type="button" onClick={() => goToStep(2)} style={bigButtonSecondary} disabled={submitting}>
+                  <button type="button" onClick={() => goToStep(1)} style={bigButtonSecondary} disabled={submitting}>
                     Back
                   </button>
                   <button type="submit" disabled={submitting} style={{ ...bigButton, flex: 1, opacity: submitting ? 0.6 : 1 }}>
-                    {submitting ? 'Processing…' : `Place your order — $${grandTotal.toFixed(2)}`}
+                    {submitting ? 'Processing…' : `Place order — $${grandTotal.toFixed(2)}`}
                   </button>
                 </div>
 
@@ -1059,10 +810,9 @@ export default function CheckoutQbBackupPage() {
               <div key={item.id} style={summaryItem}>
                 <div style={summaryImgWrap}>
                   <ProductVisual id={item.id} images={item.images} alt={item.name} width={48} staticImage />
-                  <span style={qtyBadge}>{item.quantity}</span>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14 }}>{item.name}</div>
+                  <div style={{ fontSize: 14 }}>{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</div>
                   <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>{item.size}</div>
                 </div>
                 <div style={{ fontSize: 14 }}>${(item.price * item.quantity).toFixed(2)}</div>
@@ -1090,12 +840,6 @@ export default function CheckoutQbBackupPage() {
             <span style={{ color: T.soft }}>Shipping</span>
             <span>{!addressEntered ? 'Enter address' : (shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`)}</span>
           </div>
-          {shippingProtection && (
-            <div style={summaryRow}>
-              <span style={{ color: T.soft }}>Shipping Protection</span>
-              <span>${SHIPPING_PROTECTION_PRICE.toFixed(2)}</span>
-            </div>
-          )}
           <div style={{ ...summaryRow, borderTop: `1px solid ${T.line}`, paddingTop: 16, marginTop: 6 }}>
             <span style={{ fontFamily: T.sans, fontSize: 18 }}>Total</span>
             <span style={{ fontFamily: T.sans, fontSize: 20 }}>${grandTotal.toFixed(2)}</span>
@@ -1133,9 +877,9 @@ export default function CheckoutQbBackupPage() {
 
       <style jsx>{`
         :global(.row-2) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        :global(.row-3) { display: grid; grid-template-columns: 1.4fr 0.8fr 1fr; gap: 10px; }
         .mobile-topbar { display: none; }
         .checkout-grid { grid-template-columns: 1.35fr 1fr; }
+        .form-col { padding: 32px 20px; }
         .reassurance-grid { grid-template-columns: repeat(4, 1fr); }
         @media (max-width: 860px) {
           .reassurance-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1153,16 +897,18 @@ export default function CheckoutQbBackupPage() {
             overflow-y: auto;
           }
         }
+        .mobile-order-summary { display: block; }
         .mobile-reviews-carousel { display: none; }
         @media (max-width: 860px) {
           .checkout-grid { grid-template-columns: 1fr; }
           .desktop-topbar { display: none; }
           .mobile-topbar { display: flex; }
           .order-summary { display: none; }
+          .form-col { padding: 32px 25px; }
           .mobile-reviews-carousel { display: block; margin-top: 20px; }
         }
-        @media (max-width: 520px) {
-          :global(.row-3) { grid-template-columns: 1fr; }
+        @media (min-width: 861px) {
+          .mobile-order-summary { display: none; }
         }
       `}</style>
     </div>
@@ -1170,67 +916,27 @@ export default function CheckoutQbBackupPage() {
 }
 
 const topbar = { borderBottom: `1px solid ${T.line}`, textAlign: 'center' };
-// Compact mobile-only header — small logo left, total right (tap to open
-// the itemized receipt popup). White background explicitly, not T.paper —
-// the old T.paper toggle bar this replaces was reading as an off-white/
-// gray band against the rest of the page on mobile.
 // display is deliberately NOT set here — inline styles always beat CSS
 // rules, so if 'none' were set inline here, the <style jsx> media query
 // below meant to show this at mobile widths could never override it.
-// display: none/flex lives entirely in that stylesheet instead.
 const mobileTopbar = {
-  alignItems: 'center', justifyContent: 'space-between',
+  alignItems: 'center', justifyContent: 'center',
   padding: '14px 20px', borderBottom: `1px solid ${T.line}`, background: T.white,
 };
-const mobileTotalButton = {
-  display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
-  padding: 0, cursor: 'pointer', color: T.ink,
-};
-const receiptOverlay = {
-  position: 'fixed', inset: 0, background: 'rgba(22,20,15,0.4)', zIndex: 50,
-  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-};
-const receiptSheet = {
-  width: '100%', maxWidth: 480, background: T.white, borderRadius: '20px 20px 0 0',
-  maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
-};
-const receiptHead = {
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  padding: '18px 20px', borderBottom: `1px solid ${T.line}`,
-};
-const receiptClose = {
-  background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: T.soft, padding: 4,
-};
 const checkoutGrid = { display: 'grid', maxWidth: 1280, margin: '0 auto', columnGap: 40, rowGap: 20 };
-const formCol = { padding: '32px 10px', borderRight: `1px solid ${T.line}` };
+const formCol = { borderRight: `1px solid ${T.line}` };
 const summaryCol = { padding: '32px 40px', background: T.white };
 const secureNote = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, fontSize: 12, color: T.soft };
-
-// Large, readable step heading — replaces the old small-caps section
-// titles for the 3-step flow's single big question per screen.
-const stepTitle = { fontFamily: T.sans, fontWeight: 800, fontSize: 22, margin: 0, color: T.ink, lineHeight: 1.2 };
-// letterSpacing dropped from 0.12em to 0.04em — 0.12em on 11px uppercase
-// text read as too spread out, especially on narrow mobile widths.
+const stepTitle = { fontFamily: T.sans, fontWeight: 700, fontSize: 22, margin: 0, color: T.ink, lineHeight: 1.25 };
 const fieldGroupLabel = {
   fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: T.soft, fontWeight: 700, marginBottom: 10,
 };
-
-const stepIndicatorWrap = { display: 'flex', alignItems: 'center', marginTop: 4 };
-const stepDot = {
-  width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  fontSize: 12, fontWeight: 700, flexShrink: 0,
-};
-const stepDotDone = { background: T.ink, color: T.white };
-const stepDotActive = { background: T.ink, color: T.white };
-const stepDotPending = { background: T.white, color: T.soft, border: `1.5px solid ${T.line}` };
-const stepConnector = { flex: '0 0 24px', height: 1, background: T.line, margin: '0 6px' };
-
 // Bigger than the old `input` (58px vs 44px tall, 14px radius vs 4px) —
-// "large buttons and forms, easy to press on phone" per request. fontSize
-// stays 16px or higher — below that, iOS Safari auto-zooms the whole page
-// in when a shopper taps into any of these fields.
+// large touch-friendly fields, easy to press on phone. fontSize stays 16px
+// or higher — below that, iOS Safari auto-zooms the whole page in when a
+// shopper taps into any of these fields.
 const bigInput = {
-  width: '100%', height: 58, padding: '0 18px', border: `1.5px solid ${T.line}`, background: T.white,
+  width: '100%', height: 58, padding: '0 18px', border: `1px solid ${T.line}`, background: T.white,
   fontFamily: T.sans, fontSize: 16, fontWeight: 400, color: T.ink, outline: 'none', boxSizing: 'border-box', borderRadius: 14,
 };
 const bigButton = {
@@ -1241,9 +947,6 @@ const bigButtonSecondary = {
   ...S.btnOutline, height: 60, borderRadius: 14, justifyContent: 'center', padding: '0 26px',
   fontSize: 15, letterSpacing: 'normal', textTransform: 'none', fontWeight: 700,
 };
-// Same rounded/white-outline treatment as bigButtonSecondary, but sized to
-// match bigInput's height (58px) exactly for the Apply button that sits
-// directly beside a bigInput.
 const smallOutlineButton = {
   ...S.btnOutline, height: 58, borderRadius: 14, justifyContent: 'center', padding: '0 22px',
   fontSize: 13, letterSpacing: 'normal', textTransform: 'none', fontWeight: 700,
@@ -1258,24 +961,16 @@ const accordionBody = { padding: '16px 18px 20px', background: T.white };
 const billingRecap = {
   display: 'flex', gap: 12, padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white, fontSize: 14,
 };
-const reviewRowHead = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 };
-const changeLink = {
-  background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: T.sans,
-  fontSize: 12, fontWeight: 700, textDecoration: 'underline', color: T.ink,
-};
 const reviewCard = { padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white, fontSize: 14 };
+const orderSummaryToggle = {
+  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  padding: '16px 18px', border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.white,
+  cursor: 'pointer', fontFamily: T.sans, fontSize: 13, color: T.ink,
+};
 const featuredReviewsWrap = { marginTop: 28, paddingTop: 24, borderTop: `1px solid ${T.line}` };
 const featuredReviewCard = { padding: 16, border: `1.5px solid ${T.line}`, borderRadius: 14, background: T.paper, marginTop: 12 };
 const carouselDots = { display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 };
 const carouselDot = { width: 6, height: 6, borderRadius: '50%' };
-const protectionCard = {
-  display: 'flex', alignItems: 'center', gap: 14, padding: 14,
-  border: `1px solid ${T.line}`, borderRadius: 14, background: T.white,
-};
-const protectionIconBox = {
-  width: 44, height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  border: `1px solid ${T.line}`, borderRadius: 10, background: T.white,
-};
 const shipMethod = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 16px',
   border: `1.5px solid ${T.ink}`, borderRadius: 14, fontSize: 14,
@@ -1283,10 +978,6 @@ const shipMethod = {
 const errorText = { color: '#a13d2b', fontSize: 13, marginTop: 16 };
 const summaryItem = { display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0' };
 const summaryImgWrap = { position: 'relative', width: 48, height: 48, flexShrink: 0, overflow: 'hidden', border: `1px solid ${T.line}`, background: T.white };
-const qtyBadge = {
-  position: 'absolute', top: -8, right: -8, background: T.soft, color: T.white, borderRadius: '50%',
-  width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
 const summaryRow = { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 14 };
 const reassuranceWrap = { borderTop: `1px solid ${T.line}`, background: T.paper };
 const reassuranceGrid = { maxWidth: 1280, margin: '0 auto', padding: '32px 40px', display: 'grid', gap: 24 };

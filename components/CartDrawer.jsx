@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 import { T, S } from '../lib/theme';
 import ProductVisual from './ProductVisual';
 import { getProductById, FREE_GIFT, FREE_GIFT_THRESHOLD } from '../lib/products';
+import { createApplePayButton, createGooglePayButton, tokenizeWalletWithContact } from '../lib/squareClient';
+import { clearCheckoutProgress } from '../lib/checkoutProgress';
 import { isShopPayAvailable, mountShopPayButton } from '../lib/shopPayClient';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
@@ -11,6 +13,7 @@ import { getSessionId } from '../lib/session';
 import { getIdentity } from '../lib/identity';
 
 const SHOP_PAY_CONTAINER_ID = 'cart-shop-pay-button';
+const GOOGLE_PAY_CONTAINER_ID = 'cart-google-pay-button';
 
 const FREE_SHIP_AT = 50;
 const FREE_GIFT_AT = FREE_GIFT_THRESHOLD;
@@ -31,6 +34,19 @@ export default function CartDrawer({
   const hasPuff = cart.some((i) => i.id === 'puff');
   const puffPrice = puff ? Math.round(puff.price * 0.9 * 100) / 100 : 0;
 
+  // Apple Pay right on the drawer — there's no address form here at all, so
+  // the payment request is built with requestContact so Apple's own sheet
+  // gathers name/address/email itself; extractWalletContact() (in
+  // lib/squareClient.js) maps that back into the site's shipping shape and
+  // the charge is abandoned (not attempted) if no usable address comes
+  // back, so an order can never be taken with nowhere to ship it.
+  const appleMethodRef = React.useRef(null);
+  const googleMethodRef = React.useRef(null);
+  const [appleAvailable, setAppleAvailable] = React.useState(false);
+  const [googleAvailable, setGoogleAvailable] = React.useState(false);
+  const [walletSubmitting, setWalletSubmitting] = React.useState(false);
+  const [walletMessage, setWalletMessage] = React.useState('');
+
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
   const discountTotal = subtotal - total;
   const freeShipping = total >= FREE_SHIP_AT;
@@ -50,6 +66,105 @@ export default function CartDrawer({
 
   const latestRef = React.useRef({});
   latestRef.current = { cart, grandTotal, shippingCost, discountCode: appliedDiscount?.code };
+
+  // Re-declares the wallet buttons' total whenever grandTotal changes
+  // (discount applied/removed) — otherwise Apple Pay's on-device sheet
+  // kept showing/authorizing whatever total was true when the drawer
+  // first opened, not the discounted one, even though the code was
+  // already accepted.
+  React.useEffect(() => {
+    if (!open || cart.length === 0) return undefined;
+    let cancelled = false;
+    let googleClickCleanup = null;
+    (async () => {
+      const apple = await createApplePayButton(latestRef.current.grandTotal, null, { requestContact: true });
+      if (cancelled) return;
+      appleMethodRef.current = apple;
+      setAppleAvailable(Boolean(apple));
+
+      const google = await createGooglePayButton(latestRef.current.grandTotal, GOOGLE_PAY_CONTAINER_ID, null, { requestContact: true });
+      if (cancelled) {
+        google?.destroy?.().catch(() => {});
+        return;
+      }
+      if (google) {
+        googleMethodRef.current = google;
+        setGoogleAvailable(true);
+        const btn = document.getElementById(GOOGLE_PAY_CONTAINER_ID);
+        const onClick = (event) => { event.preventDefault(); handleWalletPay(googleMethodRef, 'Google Pay'); };
+        btn?.addEventListener('click', onClick);
+        googleClickCleanup = () => btn?.removeEventListener('click', onClick);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      googleClickCleanup?.();
+      googleMethodRef.current?.destroy?.().catch(() => {});
+      appleMethodRef.current = null;
+      googleMethodRef.current = null;
+      setAppleAvailable(false);
+      setGoogleAvailable(false);
+      setWalletMessage('');
+    };
+  }, [open, cart.length, grandTotal]);
+
+  const handleWalletPay = async (methodRef, label) => {
+    if (!methodRef.current) return;
+    setWalletSubmitting(true);
+    setWalletMessage('');
+    try {
+      const { token, contact } = await tokenizeWalletWithContact(methodRef.current);
+      // Nothing is charged until there's somewhere to ship it — the wallet
+      // sheet returns its contact info alongside the token, and an order
+      // without a usable address can't be fulfilled.
+      if (!contact) {
+        setWalletMessage(`${label} didn’t return a shipping address. Please use checkout instead.`);
+        return;
+      }
+      const { cart: currentCart, grandTotal: amount } = latestRef.current;
+      const purchaseEventId = generateEventId();
+      const res = await fetch('/api/square-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          amount,
+          items: currentCart,
+          email: contact.email,
+          shipping: contact,
+          eventId: purchaseEventId,
+          url: window.location.href,
+          paymentMethod: `Square (${label})`,
+          attribution: getStoredAttribution(),
+          sessionId: getSessionId(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Payment failed');
+
+      fbTrack('Purchase', {
+        content_ids: currentCart.map((i) => i.id),
+        contents: currentCart.map((i) => ({ id: i.id, quantity: i.quantity })),
+        value: amount,
+        currency: 'USD',
+      }, purchaseEventId);
+      fetch('/api/track/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'purchase', eventId: purchaseEventId, value: amount, sessionId: getSessionId() }),
+        keepalive: true,
+      }).catch(() => {});
+
+      clearCheckoutProgress();
+      onClose();
+      await router.push('/success');
+      clear?.();
+    } catch (err) {
+      if (!err.cancelled) setWalletMessage(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setWalletSubmitting(false);
+    }
+  };
 
   React.useEffect(() => {
     if (appliedDiscount) setDiscountCode(appliedDiscount.code);
@@ -277,16 +392,55 @@ export default function CartDrawer({
           >
             Checkout
           </Link>
-          {/* Apple Pay / Google Pay express buttons were removed here when
-              checkout moved from Square to QuickBooks Payments, which has
-              no wallet support — see pages/checkout-square.jsx and git
-              history to restore them with Square. */}
-          {shopPayReady && cart.length > 0 && (
+          {/* Apple Pay + Google Pay, under the main Checkout button and
+              split off by an "or". Each renders only once Square confirms
+              that wallet is actually available (Safari + a verified
+              merchant domain for Apple Pay; a saved card for Google Pay),
+              so nothing shows on browsers/accounts that can't offer it.
+              Side-by-side (Shopify-style) when both are available; a lone
+              wallet spans the full row instead of sitting in one narrow
+              half. The grid itself (and Google Pay's container within it)
+              stays in the DOM whenever there's a cart, regardless of
+              availability — Square's SDK attach()es into the container by
+              id as soon as createGooglePayButton() resolves, which can
+              happen before googleAvailable flips true; only the visible
+              space collapses. */}
+          {(appleAvailable || googleAvailable || shopPayReady) && cart.length > 0 && (
             <div style={orDivider}>
               <span style={orDividerLine} />
               <span style={orDividerText}>or</span>
               <span style={orDividerLine} />
             </div>
+          )}
+          {cart.length > 0 && (
+            <div
+              style={{
+                display: 'grid', gridTemplateColumns: (appleAvailable && googleAvailable) ? '1fr 1fr' : '1fr', gap: 10,
+                marginBottom: (appleAvailable || googleAvailable) && shopPayReady ? 10 : 0,
+              }}
+            >
+              {appleAvailable && (
+                <button
+                  type="button"
+                  className="cart-apple-pay-button"
+                  aria-label="Buy with Apple Pay"
+                  disabled={walletSubmitting}
+                  onClick={() => handleWalletPay(appleMethodRef, 'Apple Pay')}
+                  style={{ opacity: walletSubmitting ? 0.6 : 1 }}
+                />
+              )}
+              <div
+                id={GOOGLE_PAY_CONTAINER_ID}
+                style={{
+                  width: '100%', height: googleAvailable ? 48 : 0, border: 'none', overflow: 'hidden',
+                  display: googleAvailable ? 'block' : 'none',
+                  opacity: walletSubmitting ? 0.6 : 1, pointerEvents: walletSubmitting ? 'none' : 'auto',
+                }}
+              />
+            </div>
+          )}
+          {walletMessage && (
+            <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{walletMessage}</p>
           )}
           {/* Always in the DOM once there's a cart to mount into — the SDK
               (lib/shopPayClient.js) targets this id as soon as
@@ -297,6 +451,22 @@ export default function CartDrawer({
           )}
           {payError && <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 10 }}>{payError}</p>}
 
+          <style jsx>{`
+            .cart-apple-pay-button {
+              display: block;
+              width: 100%;
+              height: 48px;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              -webkit-appearance: -apple-pay-button;
+              -apple-pay-button-type: buy;
+              -apple-pay-button-style: black;
+            }
+            @supports not (-webkit-appearance: -apple-pay-button) {
+              .cart-apple-pay-button { display: none; }
+            }
+          `}</style>
         </div>
       </aside>
     </>

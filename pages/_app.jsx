@@ -4,7 +4,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import { CartProvider, useCart } from '../lib/useCart';
 import { loadPixel, fbTrack } from '../lib/fbPixel';
 import { loadClarity } from '../lib/clarity';
-import { captureAttribution, getStoredAttribution, describeTrafficSource } from '../lib/attribution';
+import { captureAttribution, getStoredAttribution, describeTrafficSource, fbcToSync, markFbcSynced } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { ensureVisitorCookie, getVisitSource } from '../lib/visitTracking';
 import { getCheckoutStage } from '../lib/checkoutStage';
@@ -83,6 +83,9 @@ function Tracking() {
     // populates the admin's "past traffic" (last N visitors) list with
     // where each one actually came from, not just that they showed up.
     const { source, campaign } = describeTrafficSource(getStoredAttribution(), document.referrer);
+    // The Meta click ID, once per visit, so the server can re-issue the _fbc
+    // cookie with a lifetime the browser will honor (lib/metaClickId.js).
+    const fbc = fbcToSync();
     fetch('/api/track/event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -95,9 +98,10 @@ function Tracking() {
         // Where *this* visit came from (not the stored first ad click), for
         // admin's Paths tab — lib/visitTracking.js.
         visitSource: getVisitSource(),
+        ...(fbc ? { fbc } : {}),
       }),
       keepalive: true,
-    }).catch(() => {});
+    }).then((r) => { if (fbc && r.ok) markFbcSynced(fbc); }).catch(() => {});
   }, [router.asPath, isAdmin]);
 
   React.useEffect(() => {

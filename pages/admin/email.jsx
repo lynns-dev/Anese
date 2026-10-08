@@ -1143,7 +1143,7 @@ const sidebarLinkActive = { background: T.ink, color: T.white };
 // One-time move from the separate email app (lib/email/importFromEmailApp.js).
 function ImportFromEmailApp({ onImported }) {
   const [form, setForm] = React.useState({ emailAppUrl: 'https://email-delta-eight.vercel.app', password: '' });
-  const [options, setOptions] = React.useState({ includeUnmatched: false, includeContent: true, includeSettings: true });
+  const [options, setOptions] = React.useState({ includeUnmatched: false, includeContent: false, includeSettings: false });
   const [preview, setPreview] = React.useState(null);
   const [result, setResult] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
@@ -1196,8 +1196,8 @@ function ImportFromEmailApp({ onImported }) {
             The email app has <strong>{preview.subscribers}</strong> subscribers. <strong>{preview.matched}</strong> ({preview.activeMatched} still subscribed) appear in this store&rsquo;s orders or checkout leads; <strong>{preview.unmatched}</strong> can&rsquo;t be tied to any store. It also has {preview.templates} templates, {preview.automations} automations and {preview.campaigns} campaigns{preview.senderEmail ? `, sending from ${preview.senderEmail}` : ''}.
           </p>
           {check('includeUnmatched', `Also import the ${preview.unmatched} subscribers that can't be tied to a store`)}
-          {check('includeContent', 'Import templates, automations and campaign history (replaces this store\'s automations)')}
-          {check('includeSettings', 'Import sender, logo and footer settings')}
+          {check('includeContent', 'Import templates, automations and campaign history — these are VEIL\'s, so leave off for ANESE')}
+          {check('includeSettings', 'Import sender, logo and footer settings — VEIL\'s, leave off for ANESE')}
           <p style={{ fontSize: 13, color: '#a13d2b', margin: '12px 0' }}>
             After importing, turn off the old email app&rsquo;s scheduled sending — otherwise both will email the same subscribers.
           </p>

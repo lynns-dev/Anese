@@ -14,9 +14,10 @@ import SignupPopup from '../components/SignupPopup';
 // The email/SMS signup popup (components/SignupPopup.jsx) is kept off
 // checkout/admin/the ad-funnel pages — those already have their own
 // single-minded call to action, and a popup mid-checkout or mid-funnel
-// would just compete with it. Its 15% off arrives as WELCOME15 in the
-// welcome email (lib/email/automationsStore.js), so that code needs to
-// exist in /admin's Discounts tab.
+// would just compete with it. Its 15% off is WELCOME15 — shown on screen the moment
+// they sign up (pages/api/email/signup.js) and sent again in the welcome
+// email (lib/email/automationsStore.js) — so that code needs to exist in
+// /admin's Discounts tab.
 const SIGNUP_POPUP_EXCLUDED_PREFIXES = ['/admin', '/checkout', '/offer', '/success', '/amazon-pay', '/unsubscribe'];
 
 const HEARTBEAT_MS = 10000;

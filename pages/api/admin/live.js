@@ -82,6 +82,7 @@ async function getLiveVisitors() {
     path: v.path || null,
     source: v.source || null,
     campaign: v.campaign || null,
+    ad: v.ad || null,
     scrollPct: typeof v.scrollPct === 'number' ? v.scrollPct : null,
     city: v.city || null,
     country: v.country || 'XX',

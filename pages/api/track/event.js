@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const { event, productName, eventId, contentId, contentIds, contents, value, url, sessionId, email, phone, source, campaign, path, visitSource, fbc } = req.body || {};
+  const { event, productName, eventId, contentId, contentIds, contents, value, url, sessionId, email, phone, source, campaign, ad, path, visitSource, fbc } = req.body || {};
 
   // Re-issue the Meta click ID cookie from the server. The browser sends its
   // click ID on the first page view of a visit (pages/_app.jsx); setting the
@@ -113,6 +113,7 @@ export default async function handler(req, res) {
           sessionId,
           source: clip(source, 80) || 'Direct',
           campaign: clip(campaign, 80),
+          ad: clip(ad, 80),
           path: clip(path, 200),
           city: city ? decodeURIComponent(city) : null,
           country,

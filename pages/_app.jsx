@@ -90,11 +90,11 @@ function Tracking() {
 
   React.useEffect(() => {
     if (isAdmin) return;
-    // source/campaign ride along on this first pageview of the session the
+    // source/campaign/ad ride along on this first pageview of the session the
     // same way heartbeat.js sends them on every 10s ping — this is what
     // populates the admin's "past traffic" (last N visitors) list with
     // where each one actually came from, not just that they showed up.
-    const { source, campaign } = describeTrafficSource(getStoredAttribution(), document.referrer);
+    const { source, campaign, ad } = describeTrafficSource(getStoredAttribution(), document.referrer);
     // The Meta click ID, once per visit, so the server can re-issue the _fbc
     // cookie with a lifetime the browser will honor (lib/metaClickId.js).
     const fbc = fbcToSync();
@@ -106,7 +106,7 @@ function Tracking() {
       // to — admin shows Visitors, not a raw hit counter.
       body: JSON.stringify({
         event: 'pageview', sessionId: getSessionId(),
-        source, campaign, path: window.location.pathname,
+        source, campaign, ad, path: window.location.pathname,
         // Where *this* visit came from (not the stored first ad click), for
         // admin's Paths tab — lib/visitTracking.js.
         visitSource: getVisitSource(),
@@ -171,7 +171,7 @@ function Tracking() {
       // picks back up on the next tick once they return.
       if (document.visibilityState !== 'visible') return;
       if (Date.now() - lastActivityRef.current > IDLE_LIMIT_MS) return;
-      const { source, campaign } = describeTrafficSource(getStoredAttribution(), document.referrer);
+      const { source, campaign, ad } = describeTrafficSource(getStoredAttribution(), document.referrer);
       fetch('/api/track/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -181,6 +181,7 @@ function Tracking() {
           path: window.location.pathname,
           source,
           campaign,
+          ad,
           scrollPct: scrollPercent(),
           activeField: activeFieldLabel(),
           lastActiveAt: lastActivityRef.current,

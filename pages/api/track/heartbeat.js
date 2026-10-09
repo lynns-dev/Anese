@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const { sessionId, stage, path, source, campaign, scrollPct, activeField, lastActiveAt } = req.body || {};
+  const { sessionId, stage, path, source, campaign, ad, scrollPct, activeField, lastActiveAt } = req.body || {};
   if (
     typeof sessionId === 'string' &&
     SESSION_ID_RE.test(sessionId) &&
@@ -106,6 +106,7 @@ export default async function handler(req, res) {
         country,
         source: clip(source, 80),
         campaign: clip(campaign, 80),
+        ad: clip(ad, 80),
         // When this ping arrived — pages/api/admin/live.js only counts an
         // entry whose own timestamp is recent.
         ts: now,

@@ -680,8 +680,9 @@ export default function AdminDashboard() {
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: STAGE_BAR_COLORS[stageIndex], flexShrink: 0 }} />
                           {STAGE_LABELS[v.stage] || v.stage}
                         </span>
-                        <span className="visitor-col-source" style={{ color: T.soft }} title={v.campaign || undefined}>
+                        <span className="visitor-col-source" style={{ color: T.soft }} title={[v.campaign, v.ad && `Ad: ${v.ad}`].filter(Boolean).join(' · ') || undefined}>
                           {v.source || 'Direct'}{v.campaign && ` · ${v.campaign}`}
+                          {v.ad && <span style={{ display: 'block', fontSize: 12 }}>Ad: {v.ad}</span>}
                         </span>
                         <span className="visitor-col-page" style={{ fontFamily: 'monospace', fontSize: 12 }} title={v.path || undefined}>
                           {pageLabel(v.path)}
@@ -781,8 +782,9 @@ export default function AdminDashboard() {
               </div>
               {live.pastVisitors.map((v) => (
                 <div key={v.sessionId} className="visitor-row" style={visitorRow}>
-                  <span className="visitor-col-source" style={{ color: T.soft }} title={v.campaign || undefined}>
+                  <span className="visitor-col-source" style={{ color: T.soft }} title={[v.campaign, v.ad && `Ad: ${v.ad}`].filter(Boolean).join(' · ') || undefined}>
                     {v.source || 'Direct'}{v.campaign && ` · ${v.campaign}`}
+                    {v.ad && <span style={{ display: 'block', fontSize: 12 }}>Ad: {v.ad}</span>}
                   </span>
                   <span className="visitor-col-page" style={{ fontFamily: 'monospace', fontSize: 12 }} title={v.path || undefined}>
                     {pageLabel(v.path)}

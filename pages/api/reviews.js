@@ -13,6 +13,15 @@
 import { getReviews, addReview } from '../../lib/reviewsStore';
 import { PRODUCTS } from '../../lib/products';
 
+// The 6oz jar was discontinued; its reviews (same scrub) still show on the
+// 4oz page. Stored data is left as-is under the old id.
+const MERGED_REVIEW_IDS = { 'that-booty-tho': ['that-booty-tho', 'that-booty-tho-6oz'] };
+
+async function getProductReviews(productId) {
+  const ids = MERGED_REVIEW_IDS[productId] || [productId];
+  return (await Promise.all(ids.map((id) => getReviews(id)))).flat();
+}
+
 function aggregate(reviews) {
   const approved = reviews.filter(
     (r) => r.status === 'approved' && r.rating >= 3 && !/scam/i.test(r.text || '')
@@ -28,13 +37,13 @@ export default async function handler(req, res) {
       const { productId } = req.query;
 
       if (productId) {
-        const reviews = await getReviews(productId);
+        const reviews = await getProductReviews(productId);
         return res.status(200).json(aggregate(reviews));
       }
 
       const entries = await Promise.all(
         PRODUCTS.map(async (p) => {
-          const reviews = await getReviews(p.id);
+          const reviews = await getProductReviews(p.id);
           return [p.id, aggregate(reviews)];
         })
       );

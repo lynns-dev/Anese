@@ -24,18 +24,8 @@ const GOAL_STEP = {
   ],
 };
 
-// Only shown when the shopper picks "texture" — the one goal with two
-// product sizes to choose between; every other goal maps straight to a
-// single product with no second question.
-const SIZE_STEP = {
-  question: 'How much do you go through?',
-  options: [
-    { label: 'Just enough for me', value: 'that-booty-tho' },
-    { label: "I'll stock up — give me the bigger jar", value: 'that-booty-tho-6oz' },
-  ],
-};
-
 const GOAL_TO_PRODUCT = {
+  texture: 'that-booty-tho',
   moisture: 'cream-dream-set',
   scent: 'hold-my-drink',
   routine: 'glazed-set',
@@ -48,10 +38,8 @@ export default function QuizPage() {
 
   const handleGoal = (value) => {
     setGoal(value);
-    if (value !== 'texture') setResultId(GOAL_TO_PRODUCT[value]);
+    setResultId(GOAL_TO_PRODUCT[value]);
   };
-
-  const handleSize = (id) => setResultId(id);
 
   const restart = () => {
     setGoal(null);
@@ -85,20 +73,6 @@ export default function QuizPage() {
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {!result && goal === 'texture' && (
-          <div style={{ marginTop: 44 }}>
-            <p style={{ fontSize: 15, color: T.soft, marginBottom: 28 }}>{SIZE_STEP.question}</p>
-            <div style={optionGrid}>
-              {SIZE_STEP.options.map((o) => (
-                <button key={o.value} style={optionBtn} onClick={() => handleSize(o.value)}>
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            <button onClick={restart} style={{ ...S.link, marginTop: 30, display: 'inline-block' }}>← Start over</button>
           </div>
         )}
 

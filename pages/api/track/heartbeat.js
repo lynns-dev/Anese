@@ -13,6 +13,7 @@
 
 import { isExcludedIp, isOutsideServiceArea } from '../../../lib/ipFilter';
 import { PRESENCE_TTL_SECONDS, IDLE_LIMIT_MS, SESSION_ID_RE, activitySignature } from '../../../lib/presence';
+import { visitorIdFrom } from '../../../lib/journeys';
 
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -106,6 +107,8 @@ export default async function handler(req, res) {
         country,
         source: clip(source, 80),
         campaign: clip(campaign, 80),
+        // Same person across tabs — pages/api/admin/live.js counts each once.
+        vid: visitorIdFrom(req),
         // When this ping arrived — pages/api/admin/live.js only counts an
         // entry whose own timestamp is recent.
         ts: now,

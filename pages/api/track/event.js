@@ -3,7 +3,7 @@
 // their experience.
 
 import { incrementEvent, logEvent, logVisitor } from '../../../lib/analyticsStore';
-import { recordJourneyStep, pageLabel, EVENT_LABELS } from '../../../lib/journeys';
+import { recordJourneyStep, pageLabel, EVENT_LABELS, visitorIdFrom } from '../../../lib/journeys';
 import { sendCapiEvent, getRequestUserData } from '../../../lib/metaCapi';
 import { isExcludedIp, isOutsideServiceArea } from '../../../lib/ipFilter';
 import { fbcSetCookieHeader } from '../../../lib/metaClickId';
@@ -86,8 +86,14 @@ export default async function handler(req, res) {
         }).catch((err) => console.error('Meta CAPI send failed:', err))
       : null;
 
+    // Counted once per person, not per browser tab: the long-lived visitor
+    // cookie (lib/visitTracking.js) is the same across tabs and return
+    // visits, while sessionId is new in every tab — which made one shopper
+    // with two tabs, or coming back later the same day, count twice.
+    const visitorId = visitorIdFrom(req);
+    const dedupeId = visitorId || sessionId;
     try {
-      if (!outside) await incrementEvent(event, sessionId);
+      if (!outside) await incrementEvent(event, dedupeId);
       // Admin's Paths tab (lib/journeys.js): one step per page or funnel event.
       if (!outside) {
         await recordJourneyStep(req, {
@@ -100,6 +106,7 @@ export default async function handler(req, res) {
         await logEvent(event, {
           ...(productName ? { productName } : {}),
           ...(sessionId ? { sessionId } : {}),
+          ...(visitorId ? { visitorId } : {}),
         });
       }
       // One entry per visitor per day (see logVisitor's own dedup) into the
@@ -111,6 +118,7 @@ export default async function handler(req, res) {
         const country = req.headers['x-vercel-ip-country'] || 'XX';
         await logVisitor({
           sessionId,
+          dedupeId,
           source: clip(source, 80) || 'Direct',
           campaign: clip(campaign, 80),
           path: clip(path, 200),

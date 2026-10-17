@@ -7,7 +7,7 @@ import { useCart } from '../lib/useCart';
 import { useAllReviews } from '../lib/useReviews';
 import { PRODUCTS, getProductById } from '../lib/products';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
-import { firstTimeThisSession } from '../lib/funnelTracking';
+import { firstTimeToday } from '../lib/funnelTracking';
 import { getSessionId } from '../lib/session';
 import { getIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
@@ -96,9 +96,9 @@ export default function Offer2Page() {
   const handleClaim = () => {
     setClaiming(true);
 
-    // Once per scent per browser session (lib/funnelTracking.js); /offer3
+    // Once per scent per device per day (lib/funnelTracking.js); /offer3
     // checks the same key so it doesn't send a second AddToCart.
-    if (firstTimeThisSession(`addtocart:offer:${selectedProduct.id}`)) {
+    if (firstTimeToday(`addtocart:offer:${selectedProduct.id}`)) {
       const eventId = generateEventId();
       fbTrack('AddToCart', {
         content_ids: [selectedProduct.id],

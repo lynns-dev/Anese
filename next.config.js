@@ -16,6 +16,13 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // The 6oz jar was discontinued — send old links (ads, emails,
+      // bookmarks) to the 4oz page instead of a 404.
+      { source: '/product/that-booty-tho-6oz', destination: '/product/that-booty-tho', permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       ...OLD_PRODUCT_URL_REWRITES,

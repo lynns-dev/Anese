@@ -52,7 +52,11 @@ async function getLiveVisitors() {
   // shift every later visitor onto the wrong session id.
   const live = keys
     .map((key, i) => ({ sessionId: key.slice('visitor:'.length), v: parseVisitorValue(values[i]) }))
-    .filter(({ v }) => isFreshPresence(v, now));
+    .filter(({ v }) => isFreshPresence(v, now))
+    // One person with several tabs open is one live visitor: keep only
+    // their most recently active tab (vid is the visitor cookie).
+    .sort((a, b) => (b.v.ts || 0) - (a.v.ts || 0))
+    .filter(({ sessionId, v }, i, all) => !v.vid || all.findIndex((x) => x.v.vid === v.vid) === i);
   if (live.length === 0) return empty;
   const visitors = live.map(({ v }) => v);
 
@@ -107,8 +111,9 @@ function buildActivity(events) {
     if (buckets[bucketIndex] && ev.type in buckets[bucketIndex]) buckets[bucketIndex][ev.type] += 1;
 
     if (ev.type === 'addtocart' || ev.type === 'checkout_start') {
-      if (ev.sessionId && seenSessions[ev.type].has(ev.sessionId)) continue;
-      if (ev.sessionId) seenSessions[ev.type].add(ev.sessionId);
+      const who = ev.visitorId || ev.sessionId;
+      if (who && seenSessions[ev.type].has(who)) continue;
+      if (who) seenSessions[ev.type].add(who);
       counts[ev.type] += 1;
     } else if (ev.type in counts) {
       counts[ev.type] += 1;

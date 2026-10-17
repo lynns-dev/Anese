@@ -10,7 +10,7 @@ import {
   createApplePayButton, createGooglePayButton, tokenizeWallet,
 } from '../lib/squareClient';
 import { PRODUCTS, getProductById } from '../lib/products';
-import { firstTimeThisSession } from '../lib/funnelTracking';
+import { firstTimeToday } from '../lib/funnelTracking';
 import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { captureCheckoutEmail } from '../lib/emailPlatform';
 import { getStoredAttribution } from '../lib/attribution';
@@ -182,8 +182,9 @@ export default function Offer3Page() {
   // This page IS the checkout step of the funnel, so it fires the same
   // checkout_start tracking /checkout does. Waits for router.query so the
   // scent an ad link chose (?scent=…) is what gets reported rather than the
-  // default, and fires each event at most once per scent per browser
-  // session (lib/funnelTracking.js), so a refresh isn't another checkout.
+  // default, and fires each event at most once per scent per device per
+  // day (lib/funnelTracking.js), so a refresh or new tab isn't another
+  // checkout.
   // Someone who picked their scent on /offer2 already sent AddToCart
   // there; anyone landing here directly sends it now, since choosing a
   // product on this order form is that same step.
@@ -217,10 +218,10 @@ export default function Offer3Page() {
         keepalive: true,
       }).catch(() => {});
     };
-    if (firstTimeThisSession(`addtocart:offer:${id}`)) {
+    if (firstTimeToday(`addtocart:offer:${id}`)) {
       track('AddToCart', 'addtocart', { content_ids: [id], content_name: item.name, content_type: 'product', value, currency: 'USD' });
     }
-    if (firstTimeThisSession(`checkout_start:offer:${id}`)) {
+    if (firstTimeToday(`checkout_start:offer:${id}`)) {
       track('InitiateCheckout', 'checkout_start', { content_ids: [id], value, currency: 'USD', num_items: quantity });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

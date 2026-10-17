@@ -10,7 +10,7 @@ import {
 } from '../lib/squareClient';
 import { fbTrack, generateEventId, refreshPixelIdentity } from '../lib/fbPixel';
 import { captureCheckoutEmail } from '../lib/emailPlatform';
-import { firstTimeThisSession, cartSignature } from '../lib/funnelTracking';
+import { firstTimeToday, cartSignature } from '../lib/funnelTracking';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { loadCheckoutProgress, saveCheckoutProgress, clearCheckoutProgress } from '../lib/checkoutProgress';
@@ -363,10 +363,10 @@ export default function CheckoutPage() {
 
   React.useEffect(() => {
     if (!hydrated || cart.length === 0) return;
-    // Once per distinct cart per browser session (lib/funnelTracking.js),
+    // Once per distinct cart per device per day (lib/funnelTracking.js),
     // not on every load — the saved cart made each refresh or return visit
     // count as another checkout.
-    if (!firstTimeThisSession(`checkout_start:cart:${cartSignature(cart)}`)) return;
+    if (!firstTimeToday(`checkout_start:cart:${cartSignature(cart)}`)) return;
     const eventId = generateEventId();
     fbTrack('InitiateCheckout', {
       content_ids: cart.map((i) => i.id),

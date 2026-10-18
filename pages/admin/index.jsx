@@ -358,7 +358,12 @@ export default function AdminDashboard() {
   }, [loadDashboard, funnelRange, revenueDate]);
 
   React.useEffect(() => {
-    const poll = () => fetch('/api/admin/live').then((r) => r.json()).then(setLive).catch(() => {});
+    // Keeps the last good reading if a poll fails, rather than replacing it
+    // with the error body (which has no count for the tab title below).
+    const poll = () => fetch('/api/admin/live')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data && typeof data.count === 'number') setLive(data); })
+      .catch(() => {});
     poll();
     const interval = setInterval(poll, LIVE_POLL_MS);
     return () => clearInterval(interval);
@@ -496,7 +501,8 @@ export default function AdminDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: T.paper, padding: '32px 24px 80px' }}>
       <Head>
-        <title>ANESE Admin</title>
+        {/* Live visitor count in the browser tab, updated every poll. */}
+        <title>{`${live.count || 0} live · ANESE Admin`}</title>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="theme-color" content={T.ink} />

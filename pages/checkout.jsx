@@ -17,6 +17,7 @@ import { loadCheckoutProgress, saveCheckoutProgress, clearCheckoutProgress } fro
 import { setCheckoutStep } from '../lib/checkoutStage';
 import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
+import { trackCart } from '../lib/cartTracking';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import AfterpayButton from '../components/AfterpayButton';
 import CashAppPayButton from '../components/CashAppPayButton';
@@ -262,6 +263,13 @@ export default function CheckoutPage() {
     setCheckoutStep(step);
     return () => setCheckoutStep(null);
   }, [step]);
+
+  // Cart drop-off report (lib/cartFunnel.js): reaching checkout, and
+  // reaching the payment step.
+  React.useEffect(() => {
+    if (hydrated && cart.length > 0) trackCart(step === 2 ? 'payment_step' : 'checkout_view');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, step]);
 
   // Payment — Square's Card element renders its own number/expiry/CVC/
   // postal-code fields into #square-card-container; the returned Card
@@ -602,6 +610,7 @@ export default function CheckoutPage() {
       getOrder: () => {
         const { email, shipping, cart, grandTotal } = amazonOrderRef.current;
         rememberIdentity({ email, phone: shipping.phone });
+        trackCart('pay_attempt', { method: 'Amazon Pay' });
         return {
           amount: grandTotal, items: cart, email, shipping,
           eventId: generateEventId(), url: window.location.href,
@@ -623,6 +632,7 @@ export default function CheckoutPage() {
       setDiscountMessage('Could not check that code — please try again.');
     } else {
       setDiscountMessage('That code isn’t valid.');
+      trackCart('discount_rejected', { code: discountCode });
     }
   };
 
@@ -689,9 +699,13 @@ export default function CheckoutPage() {
     setSubmitting(true);
     try {
       const token = await tokenizeWallet(methodRef.current);
+      trackCart('pay_attempt', { method: label });
       await completeSquareOrder(token, `Square (${label})`);
     } catch (err) {
-      if (!err.cancelled) setError(err.message || 'Something went wrong. Please try again.');
+      if (!err.cancelled) {
+        setError(err.message || 'Something went wrong. Please try again.');
+        trackCart('pay_failed', { method: label, message: err.message });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -716,9 +730,13 @@ export default function CheckoutPage() {
         setError(`${label} didn’t return a shipping address. Please continue with the form below.`);
         return;
       }
+      trackCart('pay_attempt', { method: label });
       await completeSquareOrder(token, `Square (${label})`, { email: contact.email, shipping: contact });
     } catch (err) {
-      if (!err.cancelled) setError(err.message || 'Something went wrong. Please try again.');
+      if (!err.cancelled) {
+        setError(err.message || 'Something went wrong. Please try again.');
+        trackCart('pay_failed', { method: label, message: err.message });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -733,6 +751,7 @@ export default function CheckoutPage() {
     setError('');
 
     if (step === 1) {
+      trackCart('address');
       goToStep(2);
       return;
     }
@@ -752,10 +771,12 @@ export default function CheckoutPage() {
       // charges fine. The wallet buttons above call tokenize() with no
       // arguments and always succeed — mirroring that here avoids the
       // broken verification call.
+      trackCart('pay_attempt', { method: 'Card' });
       const token = await tokenizeSquareCard(squareCardRef.current);
       await completeSquareOrder(token, 'Square');
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
+      trackCart('pay_failed', { method: 'Card', message: err.message });
     } finally {
       setSubmitting(false);
     }
@@ -967,6 +988,7 @@ export default function CheckoutPage() {
                     getOrder={() => {
                       const { email, shipping, cart, grandTotal } = amazonOrderRef.current;
                       rememberIdentity({ email, phone: shipping.phone });
+                      trackCart('pay_attempt', { method: 'Afterpay' });
                       return {
                         amount: grandTotal, items: cart, email, shipping,
                         eventId: generateEventId(), url: window.location.href,

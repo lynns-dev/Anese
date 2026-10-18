@@ -8,6 +8,7 @@ import { describeAdPlacement } from '../../lib/attribution';
 import { T, S } from '../../lib/theme';
 import AdminInbox from '../../components/AdminInbox';
 import PathsTree from '../../components/PathsTree';
+import CartFunnelReport from '../../components/CartFunnelReport';
 
 // Flexible header matching — review export files from different platforms
 // (Judge.me, Loox, Yotpo, Stamped, ...) all name these columns differently.
@@ -861,6 +862,9 @@ export default function AdminDashboard() {
             </div>
           )}
         </Section>
+
+        {/* Where shoppers stop between cart and paying, and why. */}
+        <CartFunnelReport />
 
 
         {/* PENDING REVIEWS */}

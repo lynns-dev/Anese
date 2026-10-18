@@ -11,6 +11,7 @@ import { fbTrack, generateEventId } from '../lib/fbPixel';
 import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { getIdentity } from '../lib/identity';
+import { trackCart } from '../lib/cartTracking';
 
 const SHOP_PAY_CONTAINER_ID = 'cart-shop-pay-button';
 const GOOGLE_PAY_CONTAINER_ID = 'cart-google-pay-button';
@@ -121,6 +122,9 @@ export default function CartDrawer({
         setWalletMessage(`${label} didn’t return a shipping address. Please use checkout instead.`);
         return;
       }
+      // Paying straight from the cart counts as heading to checkout.
+      checkoutClickedRef.current = true;
+      trackCart('pay_attempt', { method: label });
       const { cart: currentCart, grandTotal: amount } = latestRef.current;
       const purchaseEventId = generateEventId();
       const res = await fetch('/api/square-checkout', {
@@ -154,13 +158,17 @@ export default function CartDrawer({
         body: JSON.stringify({ event: 'purchase', eventId: purchaseEventId, value: amount, sessionId: getSessionId() }),
         keepalive: true,
       }).catch(() => {});
+      trackCart('purchased');
 
       clearCheckoutProgress();
       onClose();
       await router.push('/success');
       clear?.();
     } catch (err) {
-      if (!err.cancelled) setWalletMessage(err.message || 'Something went wrong. Please try again.');
+      if (!err.cancelled) {
+        setWalletMessage(err.message || 'Something went wrong. Please try again.');
+        trackCart('pay_failed', { method: label, message: err.message });
+      }
     } finally {
       setWalletSubmitting(false);
     }
@@ -182,8 +190,37 @@ export default function CartDrawer({
       setDiscountMessage('Could not check that code — please try again.');
     } else {
       setDiscountMessage('That code isn’t valid.');
+      trackCart('discount_rejected', { code: discountCode });
     }
   };
+
+  // Cart drop-off report (lib/cartFunnel.js): opening the cart, and closing
+  // it again without heading to checkout or paying — with what they were
+  // looking at (shipping charge, total, how long the cart was open).
+  const openedAtRef = React.useRef(0);
+  const checkoutClickedRef = React.useRef(false);
+  const dropoffRef = React.useRef({});
+  dropoffRef.current = { cart, freeShipping, discountedTotal };
+  React.useEffect(() => {
+    const { cart: items, freeShipping: free, discountedTotal: due } = dropoffRef.current;
+    if (open && items.length > 0) {
+      openedAtRef.current = Date.now();
+      checkoutClickedRef.current = false;
+      // A beat after the add-to-cart ping (adding opens the cart).
+      setTimeout(() => trackCart('cart_open'), 700);
+    } else if (!open && openedAtRef.current) {
+      if (!checkoutClickedRef.current && items.length > 0) {
+        trackCart('cart_closed', {
+          shipping: free ? 0 : 5,
+          freeAt: FREE_SHIP_AT,
+          subtotal: due,
+          dwellSec: (Date.now() - openedAtRef.current) / 1000,
+          items: items.map((i) => i.name),
+        });
+      }
+      openedAtRef.current = 0;
+    }
+  }, [open]);
 
   // Shop Pay's button doesn't bake the amount in at creation — a fresh
   // session is requested (POST /api/shop-pay/session) each time the
@@ -200,6 +237,8 @@ export default function CartDrawer({
         onSessionRequest: async () => {
           setPayError('');
           setPaying(true);
+          checkoutClickedRef.current = true;
+          trackCart('pay_attempt', { method: 'Shop Pay' });
           const { cart: items, grandTotal: amount, shippingCost: shipping, discountCode: code } = latestRef.current;
           const purchaseEventId = generateEventId();
           shopPayEventIdRef.current = purchaseEventId;
@@ -235,6 +274,7 @@ export default function CartDrawer({
             value: amount,
             currency: 'USD',
           }, shopPayEventIdRef.current);
+          trackCart('purchased');
           onClose?.();
           router.push('/success');
           clear?.();
@@ -243,6 +283,7 @@ export default function CartDrawer({
         onClose: () => setPaying(false),
         onError: (err) => {
           setPayError(err?.message || 'Something went wrong with Shop Pay. Please try again.');
+          trackCart('pay_failed', { method: 'Shop Pay', message: err?.message });
           setPaying(false);
         },
       });
@@ -308,7 +349,13 @@ export default function CartDrawer({
                     <>
                       <div style={{ fontSize: 12, color: T.soft, marginTop: 2 }}>${item.price} · {item.size}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-                        <button onClick={() => setQty(item.id, item.quantity - 1)} style={qtyBtn}>−</button>
+                        <button
+                          onClick={() => {
+                            if (item.quantity <= 1) trackCart('item_removed', { name: item.name });
+                            setQty(item.id, item.quantity - 1);
+                          }}
+                          style={qtyBtn}
+                        >−</button>
                         <span style={{ fontSize: 13 }}>{item.quantity}</span>
                         <button onClick={() => setQty(item.id, item.quantity + 1)} style={qtyBtn}>+</button>
                       </div>
@@ -317,7 +364,7 @@ export default function CartDrawer({
                 </div>
               </div>
               {item.id !== FREE_GIFT.id && (
-                <button onClick={() => remove(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, alignSelf: 'flex-start' }}>Remove</button>
+                <button onClick={() => { trackCart('item_removed', { name: item.name }); remove(item.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, alignSelf: 'flex-start' }}>Remove</button>
               )}
             </div>
           ))}
@@ -387,7 +434,11 @@ export default function CartDrawer({
           </div>
           <Link
             href="/checkout"
-            onClick={(e) => cart.length === 0 && e.preventDefault()}
+            onClick={(e) => {
+              if (cart.length === 0) { e.preventDefault(); return; }
+              checkoutClickedRef.current = true;
+              trackCart('checkout_click');
+            }}
             style={{ ...S.btnFill, width: '100%', justifyContent: 'center', opacity: cart.length === 0 ? 0.4 : 1, textAlign: 'center' }}
           >
             Checkout

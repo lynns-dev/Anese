@@ -259,7 +259,7 @@ export default function AdminDashboard() {
   };
 
   // Per-order "Send to Meta" (pages/api/admin/orders/meta.js).
-  const handleSendToMeta = async (order) => {
+  const handleSendToMeta = async (order, resend = false) => {
     const key = `meta:${order.id}`;
     setOrderActionBusy((prev) => ({ ...prev, [key]: true }));
     setOrderActionError((prev) => ({ ...prev, [key]: '' }));
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/orders/meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id }),
+        body: JSON.stringify({ orderId: order.id, resend }),
       });
       const data = await res.json();
       if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
@@ -1048,6 +1048,7 @@ export default function AdminDashboard() {
                 <span style={{ flex: '0 0 90px' }}>Amount</span>
                 <span style={{ flex: '0 0 100px' }}>Payment</span>
                 <span style={{ flex: '0 0 90px' }}>Status</span>
+                <span style={{ flex: '0 0 116px' }}>Meta</span>
               </div>
               {visibleOrders.map((o) => {
                 const { source, campaign, adset, ad } = attributionSource(o);
@@ -1068,6 +1069,15 @@ export default function AdminDashboard() {
                       <span style={{ flex: '0 0 100px', color: T.soft }}>{o.paymentMethod || 'Unknown'}</span>
                       <span style={{ flex: '0 0 90px' }}>
                         <span style={orderStatusBadge(o.status)}>{o.status || 'paid'}</span>
+                      </span>
+                      {/* Manual send on every row — stopPropagation so the
+                          click doesn't also open/close the order. */}
+                      <span style={{ flex: '0 0 116px' }} onClick={(e) => e.stopPropagation()}>
+                        <MetaSendButton
+                          order={o}
+                          busy={Boolean(orderActionBusy[`meta:${o.id}`])}
+                          onSend={handleSendToMeta}
+                        />
                       </span>
                     </div>
 
@@ -1102,19 +1112,17 @@ export default function AdminDashboard() {
                               automatically at checkout and retried hourly. */}
                           <div>
                             <div style={formLabel}>Meta</div>
-                            {o.meta?.sent ? (
-                              <div style={{ fontSize: 13, fontWeight: 700 }}>Sent</div>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={Boolean(orderActionBusy[`meta:${o.id}`])}
-                                onClick={() => handleSendToMeta(o)}
-                                style={{ ...S.btnOutline, height: 34, padding: '0 14px', opacity: orderActionBusy[`meta:${o.id}`] ? 0.5 : 1 }}
-                              >
-                                {orderActionBusy[`meta:${o.id}`] ? 'Sending…' : 'Send to Meta'}
-                              </button>
+                            {o.meta?.sent && (
+                              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                                Sent{o.meta.sentAt ? ` · ${new Date(o.meta.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
+                              </div>
                             )}
-                            {!o.meta?.sent && (orderActionError[`meta:${o.id}`] || o.meta?.lastError) && (
+                            <MetaSendButton
+                              order={o}
+                              busy={Boolean(orderActionBusy[`meta:${o.id}`])}
+                              onSend={handleSendToMeta}
+                            />
+                            {(orderActionError[`meta:${o.id}`] || (!o.meta?.sent && o.meta?.lastError)) && (
                               <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`meta:${o.id}`] || o.meta.lastError}</div>
                             )}
                           </div>
@@ -1409,6 +1417,30 @@ const orderHeadRow = {
   display: 'flex', gap: 12, padding: '0 0 10px', borderBottom: `1px solid ${T.ink}`,
   fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.soft,
 };
+// Per-order manual send to Meta (pages/api/admin/orders/meta.js). Not yet
+// accepted: "Send to Meta". Already sent: "Resend", which resends with
+// the order's original event id so Meta keeps counting it once.
+function MetaSendButton({ order, busy, onSend }) {
+  const sent = Boolean(order.meta?.sent);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => {
+        if (sent && !confirm('Meta already has this order. Send it again? (It uses the same event id, so Meta should still count it once.)')) return;
+        onSend(order, sent);
+      }}
+      style={{
+        ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap',
+        opacity: busy ? 0.5 : 1,
+        ...(sent ? { borderColor: T.line, color: T.soft } : {}),
+      }}
+    >
+      {busy ? 'Sending…' : sent ? '✓ Sent · Resend' : 'Send to Meta'}
+    </button>
+  );
+}
+
 const orderRow = {
   display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${T.line}`,
   fontSize: 13, alignItems: 'center',

@@ -6,7 +6,10 @@
 // - Order from before per-order tracking existed (no order.meta): sent with
 //   event id `order_<id>` as action_source "other", since no browser user
 //   agent or page URL was saved for it (Meta requires both for "website").
-// - Order Meta already has: nothing is sent, so it can't count twice.
+// - Order Meta already has: only resent when asked ("Resend",
+//   { resend: true }), with the same event id and order_id it was first
+//   sent with, so Meta treats it as the same Purchase rather than a second
+//   one.
 //
 // Meta only accepts purchases up to 7 days old; older ones come back with
 // Meta's error, shown on the order.
@@ -20,13 +23,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
-    const { orderId } = req.body || {};
+    const { orderId, resend } = req.body || {};
     if (!orderId) return res.status(400).json({ error: 'Missing order id' });
 
     const orders = (await Promise.all(dateKeysForRange('45d').map((key) => getOrders(key)))).flat();
     const order = orders.find((o) => o.id === orderId);
     if (!order) return res.status(404).json({ error: 'Order not found' });
-    if (order.meta?.sent) return res.status(200).json({ order });
+    if (order.meta?.sent && !resend) return res.status(200).json({ order });
 
     const meta = await sendOrderPurchase(order, order.meta || backfillMetaRecord(order));
     const updated = await updateOrderStatus(orderId, { meta });

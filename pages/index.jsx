@@ -175,7 +175,7 @@ export default function HomePage() {
             <TruckIcon />
             <div>
               <div style={trustItemTitle}>Ships in 1 business day</div>
-              <div style={trustItemSub}>Free on orders $50+</div>
+              <div style={trustItemSub}>Free on every order</div>
             </div>
           </div>
           <div style={trustItem}>

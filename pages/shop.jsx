@@ -17,7 +17,7 @@ export default function ShopPage() {
     <div>
       <Seo
         title="Shop Booty Skincare | ANESE — That Booty Tho & More"
-        description="Shop ANESE's booty skincare collection, starting with That Booty Tho — the cult-favorite scrub for butt, thighs, and hips. Free shipping over $50."
+        description="Shop ANESE's booty skincare collection, starting with That Booty Tho — the cult-favorite scrub for butt, thighs, and hips. Free shipping on every order."
         path="/shop"
       />
       <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} />

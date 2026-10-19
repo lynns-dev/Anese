@@ -22,6 +22,7 @@ import { hasFreeShipping } from '../lib/shippingPerk';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import AfterpayButton from '../components/AfterpayButton';
 import CashAppPayButton from '../components/CashAppPayButton';
+import { shippingFor } from '../lib/shipping';
 
 // Live checkout — charges through Square. QuickBooks Payments is kept as a
 // backup at pages/checkout-qb.jsx (a stable, unlinked URL) in case Square
@@ -444,7 +445,7 @@ export default function CheckoutPage() {
   // Free shipping offered by the cart exit popup (lib/shippingPerk.js).
   const [shipPerk, setShipPerk] = React.useState(false);
   React.useEffect(() => { setShipPerk(hasFreeShipping()); }, []);
-  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 || shipPerk ? 0 : 5);
+  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (shipPerk ? 0 : shippingFor(total));
   const grandTotal = discountedTotal + shippingCost;
 
   // Mounts Apple Pay / Google Pay as soon as the Square SDK is ready (which
@@ -1123,7 +1124,7 @@ export default function CheckoutPage() {
       <div style={reassuranceWrap}>
         <div className="reassurance-grid" style={reassuranceGrid}>
           {[
-            [ShipIcon, 'Free shipping over $50', 'Ships within 1 business day.'],
+            [ShipIcon, 'Free shipping on every order', 'Ships within 1 business day.'],
             [ReturnIcon, '30-day returns', 'Not the right fit? Send it back for a full refund.'],
             [LockIcon, 'Secure checkout', 'Payments encrypted and processed by Square.'],
             [LeafIcon, 'Vegan & cruelty-free', 'Every formula, always.'],

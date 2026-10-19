@@ -159,7 +159,7 @@ export default function BootyAcneLanding() {
           Shop {product.name} — ${product.price}
         </button>
         <p style={{ marginTop: 18, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>
-          Free shipping over $50 · 30-day guarantee
+          Free shipping on every order · 30-day guarantee
         </p>
       </section>
 

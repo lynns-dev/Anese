@@ -848,8 +848,6 @@ export default function AdminDashboard() {
               <FunnelStep label="Visitors" value={dashboard.funnel.visitors} />
               <FunnelStep label="Added to cart" value={dashboard.funnel.addToCart} rate={`${dashboard.funnel.addToCartRate}% of visitors`} />
               <FunnelStep label="Started checkout" value={dashboard.funnel.checkoutStarts} rate={`${dashboard.funnel.checkoutRate}% of adds`} />
-              <FunnelStep label="Reached payment" value={dashboard.funnel.reachedPayment} rate={`${dashboard.funnel.paymentRate}% of checkouts`} />
-              <FunnelStep label="Reached review" value={dashboard.funnel.reachedReview} rate={`${dashboard.funnel.reviewRate}% of payment`} />
               <FunnelStep label="Purchased" value={dashboard.funnel.purchases} rate={`${dashboard.funnel.conversionRate}% of visitors`} />
             </div>
           )}
@@ -1282,7 +1280,7 @@ export default function AdminDashboard() {
           .admin-nav-gap { margin-top: 0; }
         }
         .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-        .funnel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .funnel-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         @media (max-width: 640px) {
           .stat-grid { grid-template-columns: 1fr; }
           .funnel-grid { grid-template-columns: repeat(2, 1fr); }

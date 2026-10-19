@@ -12,6 +12,8 @@ import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { getIdentity } from '../lib/identity';
 import { trackCart } from '../lib/cartTracking';
+import { hasFreeShipping } from '../lib/shippingPerk';
+import CartExitPopup, { shouldAskCartExit } from './CartExitPopup';
 
 const SHOP_PAY_CONTAINER_ID = 'cart-shop-pay-button';
 const GOOGLE_PAY_CONTAINER_ID = 'cart-google-pay-button';
@@ -62,7 +64,13 @@ export default function CartDrawer({
   // Same $0/$5 rule pages/checkout.jsx charges — this drawer has no address
   // yet, so like checkout before one's entered, an empty cart charges
   // nothing and everything else falls back to the flat rate.
-  const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : 5);
+  // Free shipping from the exit popup's offer (lib/shippingPerk.js) waives
+  // shipping only — the free gift still needs the $50 threshold.
+  const [shipPerk, setShipPerk] = React.useState(false);
+  React.useEffect(() => { if (open) setShipPerk(hasFreeShipping()); }, [open]);
+  const shipsFree = freeShipping || shipPerk;
+  const shippingCost = cart.length === 0 ? 0 : (shipsFree ? 0 : 5);
+  const [exitOpen, setExitOpen] = React.useState(false);
   const grandTotal = discountedTotal + shippingCost;
 
   const latestRef = React.useRef({});
@@ -200,7 +208,7 @@ export default function CartDrawer({
   const openedAtRef = React.useRef(0);
   const checkoutClickedRef = React.useRef(false);
   const dropoffRef = React.useRef({});
-  dropoffRef.current = { cart, freeShipping, discountedTotal };
+  dropoffRef.current = { cart, freeShipping: shipsFree, discountedTotal };
   React.useEffect(() => {
     const { cart: items, freeShipping: free, discountedTotal: due } = dropoffRef.current;
     if (open && items.length > 0) {
@@ -217,6 +225,11 @@ export default function CartDrawer({
           dwellSec: (Date.now() - openedAtRef.current) / 1000,
           items: items.map((i) => i.name),
         });
+        // "What's holding you back?" (components/CartExitPopup.jsx) — not
+        // on checkout itself, and at most once every few days.
+        if (!window.location.pathname.startsWith('/checkout') && shouldAskCartExit()) {
+          setTimeout(() => setExitOpen(true), 350);
+        }
       }
       openedAtRef.current = 0;
     }
@@ -427,7 +440,7 @@ export default function CartDrawer({
               <span>−${codeDiscountAmount.toFixed(2)}</span>
             </div>
           )}
-          <p style={shippingNote}>{freeShipping ? 'Free shipping' : 'Shipping and taxes calculated at checkout'}</p>
+          <p style={shippingNote}>{shipsFree ? 'Free shipping' : 'Shipping and taxes calculated at checkout'}</p>
           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '14px 0 18px' }}>
             <span style={S.label}>Total</span>
             <span style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 20 }}>${discountedTotal.toFixed(2)}</span>
@@ -520,6 +533,16 @@ export default function CartDrawer({
           `}</style>
         </div>
       </aside>
+      <CartExitPopup
+        open={exitOpen}
+        onClose={() => setExitOpen(false)}
+        cart={cart}
+        applyDiscount={applyDiscount}
+        discountCode="WELCOME10"
+        discountLabel="10% off"
+        payments="card, Apple Pay, Google Pay, Shop Pay, Amazon Pay, Afterpay (4 interest-free payments) or Cash App Pay"
+        freeShipAt={FREE_SHIP_AT}
+      />
     </>
   );
 }

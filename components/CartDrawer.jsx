@@ -14,11 +14,11 @@ import { getIdentity } from '../lib/identity';
 import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
 import CartExitPopup, { shouldAskCartExit } from './CartExitPopup';
+import { shippingFor, FREE_SHIPPING_THRESHOLD, SHIPPING_ALWAYS_FREE } from '../lib/shipping';
 
 const SHOP_PAY_CONTAINER_ID = 'cart-shop-pay-button';
 const GOOGLE_PAY_CONTAINER_ID = 'cart-google-pay-button';
 
-const FREE_SHIP_AT = 50;
 const FREE_GIFT_AT = FREE_GIFT_THRESHOLD;
 
 export default function CartDrawer({
@@ -52,24 +52,24 @@ export default function CartDrawer({
 
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
   const discountTotal = subtotal - total;
-  const freeShipping = total >= FREE_SHIP_AT;
-
-  // Free shipping and the free gift unlock together at the same threshold,
-  // so this is a single-stage progress bar (no separate marker needed).
+  // Shipping follows lib/shipping.js (free on every order). The progress
+  // bar tracks the free gift, which still unlocks at its own threshold.
+  const freeShipping = shippingFor(total) === 0;
+  const giftUnlocked = total >= FREE_GIFT_AT;
   const progressPct = Math.min(100, (total / FREE_GIFT_AT) * 100);
-  const progressMessage = freeShipping
-    ? `You've unlocked free shipping and a free ${FREE_GIFT.name}.`
-    : `Add $${(FREE_GIFT_AT - total).toFixed(2)} more for free shipping and a free ${FREE_GIFT.name}.`;
+  const progressMessage = giftUnlocked
+    ? `Free shipping, and you've unlocked a free ${FREE_GIFT.name}.`
+    : `Free shipping on every order. Add $${(FREE_GIFT_AT - total).toFixed(2)} more for a free ${FREE_GIFT.name}.`;
 
   // Same $0/$5 rule pages/checkout.jsx charges — this drawer has no address
   // yet, so like checkout before one's entered, an empty cart charges
   // nothing and everything else falls back to the flat rate.
   // Free shipping from the exit popup's offer (lib/shippingPerk.js) waives
-  // shipping only — the free gift still needs the $50 threshold.
+  // shipping only — the free gift still needs its own threshold.
   const [shipPerk, setShipPerk] = React.useState(false);
   React.useEffect(() => { if (open) setShipPerk(hasFreeShipping()); }, [open]);
   const shipsFree = freeShipping || shipPerk;
-  const shippingCost = cart.length === 0 ? 0 : (shipsFree ? 0 : 5);
+  const shippingCost = cart.length === 0 || shipsFree ? 0 : shippingFor(total);
   const [exitOpen, setExitOpen] = React.useState(false);
   const grandTotal = discountedTotal + shippingCost;
 
@@ -220,7 +220,7 @@ export default function CartDrawer({
       if (!checkoutClickedRef.current && items.length > 0) {
         trackCart('cart_closed', {
           shipping: free ? 0 : 5,
-          freeAt: FREE_SHIP_AT,
+          freeAt: FREE_SHIPPING_THRESHOLD || null,
           subtotal: due,
           dwellSec: (Date.now() - openedAtRef.current) / 1000,
           items: items.map((i) => i.name),
@@ -541,7 +541,8 @@ export default function CartDrawer({
         discountCode="WELCOME10"
         discountLabel="10% off"
         payments="card, Apple Pay, Google Pay, Shop Pay, Amazon Pay, Afterpay (4 interest-free payments) or Cash App Pay"
-        freeShipAt={FREE_SHIP_AT}
+        freeShipAt={FREE_SHIPPING_THRESHOLD || null}
+        shippingAlwaysFree={SHIPPING_ALWAYS_FREE}
       />
     </>
   );

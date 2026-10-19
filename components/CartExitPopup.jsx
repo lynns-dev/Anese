@@ -39,7 +39,7 @@ function markAsked() {
   try { window.localStorage.setItem(ASKED_KEY, String(Date.now())); } catch { /* storage blocked */ }
 }
 
-export default function CartExitPopup({ open, onClose, cart, applyDiscount, discountCode, discountLabel, payments, freeShipAt }) {
+export default function CartExitPopup({ open, onClose, cart, applyDiscount, discountCode, discountLabel, payments, freeShipAt, shippingAlwaysFree = false }) {
   const router = useRouter();
   const [answer, setAnswer] = React.useState(null);
   const [otherText, setOtherText] = React.useState('');
@@ -68,13 +68,17 @@ export default function CartExitPopup({ open, onClose, cart, applyDiscount, disc
     setAnswer(key);
     if (key === 'other') return; // waits for their text
     trackCart('exit_answer', { answer: key });
-    if (key === 'shipping') {
+    if (key === 'shipping' && shippingAlwaysFree) {
+      setResult({ title: 'Good news — shipping’s free', body: 'Every order ships free, no minimum. It’s already off your total.', primary: true });
+    } else if (key === 'shipping') {
       grantFreeShipping();
       setResult({ title: 'Done — shipping’s on us', body: `Free shipping is on for your order for the next 24 hours${freeShipAt ? `, no $${freeShipAt} minimum` : ''}.`, primary: true });
     } else if (key === 'price') {
       const data = discountCode ? await applyDiscount(discountCode).catch(() => null) : null;
       if (data?.valid) {
         setResult({ title: `${discountLabel || 'A discount'} is yours`, body: `Code ${data.code} is applied to your bag.`, primary: true });
+      } else if (shippingAlwaysFree) {
+        setResult({ title: 'Here’s something to help', body: 'Shipping is always free here, so the price you see is the price you pay.', primary: true });
       } else {
         grantFreeShipping();
         setResult({ title: 'Here’s something to help', body: 'Free shipping is on for your order for the next 24 hours.', primary: true });

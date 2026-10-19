@@ -17,6 +17,7 @@ import { T, S } from '../lib/theme';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import AfterpayButton from '../components/AfterpayButton';
 import CashAppPayButton from '../components/CashAppPayButton';
+import { shippingFor } from '../lib/shipping';
 
 // QuickBooks Payments version of the checkout, at a stable, unlinked URL
 // (/checkout-qb). This is the page that was live at /checkout from
@@ -391,7 +392,7 @@ export default function CheckoutPage({ qbEnvironment }) {
   }, [hydrated]);
 
   const addressEntered = Boolean(shipping.address.trim() && shipping.city.trim() && shipping.state && shipping.zip.trim());
-  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 ? 0 : 5);
+  const shippingCost = !addressEntered || cart.length === 0 ? 0 : shippingFor(total);
   const grandTotal = discountedTotal + shippingCost;
 
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
@@ -852,7 +853,7 @@ export default function CheckoutPage({ qbEnvironment }) {
       <div style={reassuranceWrap}>
         <div className="reassurance-grid" style={reassuranceGrid}>
           {[
-            [ShipIcon, 'Free shipping over $50', 'Ships within 1 business day.'],
+            [ShipIcon, 'Free shipping on every order', 'Ships within 1 business day.'],
             [ReturnIcon, '30-day returns', 'Not the right fit? Send it back for a full refund.'],
             [LockIcon, 'Secure checkout', 'Payments encrypted and processed by QuickBooks.'],
             [LeafIcon, 'Vegan & cruelty-free', 'Every formula, always.'],

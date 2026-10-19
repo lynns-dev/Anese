@@ -18,6 +18,7 @@ import { setCheckoutStep } from '../lib/checkoutStage';
 import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 import { trackCart } from '../lib/cartTracking';
+import { hasFreeShipping } from '../lib/shippingPerk';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import AfterpayButton from '../components/AfterpayButton';
 import CashAppPayButton from '../components/CashAppPayButton';
@@ -440,7 +441,10 @@ export default function CheckoutPage() {
   // Computed here (rather than down with subtotal/discountTotal below) so
   // it's in scope for the wallet-mount effects right after, which now
   // depend on it — see those effects' comments for why.
-  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 ? 0 : 5);
+  // Free shipping offered by the cart exit popup (lib/shippingPerk.js).
+  const [shipPerk, setShipPerk] = React.useState(false);
+  React.useEffect(() => { setShipPerk(hasFreeShipping()); }, []);
+  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (total >= 50 || shipPerk ? 0 : 5);
   const grandTotal = discountedTotal + shippingCost;
 
   // Mounts Apple Pay / Google Pay as soon as the Square SDK is ready (which

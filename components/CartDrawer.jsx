@@ -13,6 +13,7 @@ import { getSessionId } from '../lib/session';
 import { getIdentity } from '../lib/identity';
 import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
+import TopBanner from './TopBanner';
 import CartExitPopup, { shouldAskCartExit } from './CartExitPopup';
 import { shippingFor, FREE_SHIPPING_THRESHOLD, SHIPPING_ALWAYS_FREE } from '../lib/shipping';
 
@@ -326,6 +327,9 @@ export default function CartDrawer({
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}
       >
+        {/* The page's banner sits under the overlay, so the drawer carries
+            its own copy and the banner stays visible while it's open. */}
+        <div style={{ margin: '-32px -30px 24px', flexShrink: 0 }}><TopBanner /></div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0 }}>
           <span style={S.label}>Your cart</span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: T.ink }}>×</button>
@@ -572,6 +576,7 @@ const upsellAddBtn = {
 };
 
 const discountInput = {
+  minWidth: 0,
   flex: 1, height: 44, padding: '0 14px', border: `1px solid ${T.line}`, background: T.white,
   fontFamily: T.sans, fontSize: 13, color: T.ink, outline: 'none', boxSizing: 'border-box',
 };

@@ -68,7 +68,8 @@ const HOME_JSON_LD = {
   ],
 };
 
-const BANNER_MESSAGES = ANNOUNCEMENTS;
+// Free shipping is already in the TopBanner above every page.
+const BANNER_MESSAGES = ANNOUNCEMENTS.filter((a) => !/free shipping/i.test(a.short));
 
 const UGC_VIDEOS = [
   '/videos/anese-ugc-1.mp4',

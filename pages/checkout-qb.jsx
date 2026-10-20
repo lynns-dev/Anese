@@ -15,6 +15,7 @@ import { setCheckoutStep } from '../lib/checkoutStage';
 import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
+import TopBanner from '../components/TopBanner';
 import { shippingFor } from '../lib/shipping';
 
 // QuickBooks Payments version of the checkout, at a stable, unlinked URL
@@ -555,6 +556,7 @@ export default function CheckoutPage({ qbEnvironment }) {
 
   return (
     <div>
+      <TopBanner />
       <header className="desktop-topbar" style={topbar}>
         <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 112 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>

@@ -20,6 +20,7 @@ import { T, S } from '../lib/theme';
 import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
+import TopBanner from '../components/TopBanner';
 import { shippingFor } from '../lib/shipping';
 
 // Live checkout — charges through Square. QuickBooks Payments is kept as a
@@ -782,6 +783,7 @@ export default function CheckoutPage() {
 
   return (
     <div>
+      <TopBanner />
       <header className="desktop-topbar" style={topbar}>
         <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 112 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>

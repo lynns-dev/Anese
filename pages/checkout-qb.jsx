@@ -15,17 +15,15 @@ import { setCheckoutStep } from '../lib/checkoutStage';
 import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
-import AfterpayButton from '../components/AfterpayButton';
-import CashAppPayButton from '../components/CashAppPayButton';
 import { shippingFor } from '../lib/shipping';
 
 // QuickBooks Payments version of the checkout, at a stable, unlinked URL
 // (/checkout-qb). This is the page that was live at /checkout from
 // Oct 6 to Oct 8, 2026 while Square was unavailable, kept exactly as it
-// was (card form + Amazon Pay, Afterpay, Cash App Pay; no Apple Pay /
-// Google Pay, which QuickBooks' API doesn't support). To rotate back to
-// QuickBooks, swap this file into pages/checkout.jsx. Keep the non-payment
-// sections in sync by hand with pages/checkout.jsx.
+// was (card form + Amazon Pay; no Apple Pay / Google Pay, which
+// QuickBooks' API doesn't support). To rotate back to QuickBooks, swap
+// this file into pages/checkout.jsx. Keep the non-payment sections in
+// sync by hand with pages/checkout.jsx.
 //
 // A 2-step flow (Shipping -> Payment), modeled on Apple's own checkout
 // (large touch-friendly fields/buttons) rather than the old single
@@ -435,13 +433,6 @@ export default function CheckoutPage({ qbEnvironment }) {
   const amazonOrderRef = React.useRef(null);
   amazonOrderRef.current = { email, shipping, cart, grandTotal };
   const [amazonPayReady, setAmazonPayReady] = React.useState(false);
-  // Afterpay (components/AfterpayButton.jsx, lib/afterpay.js) — same idea,
-  // shown only when configured and the total is in Afterpay's range.
-  const [afterpayReady, setAfterpayReady] = React.useState(false);
-  // Cash App Pay (components/CashAppPayButton.jsx), through the same
-  // Afterpay account; its checkout is created once Step 2 is reached.
-  const [cashAppReady, setCashAppReady] = React.useState(false);
-  const cashAppEventId = React.useMemo(() => generateEventId(), []);
   React.useEffect(() => {
     if (step !== 2) return undefined;
     let cancelled = false;
@@ -699,31 +690,7 @@ export default function CheckoutPage({ qbEnvironment }) {
                     space, and the "or" line only shows alongside it. */}
                 <div style={{ marginTop: 20 }}>
                   <div id="amazon-pay-button" />
-                  <AfterpayButton
-                    total={grandTotal}
-                    onError={setError}
-                    onReady={setAfterpayReady}
-                    getOrder={() => {
-                      const { email, shipping, cart, grandTotal } = amazonOrderRef.current;
-                      rememberIdentity({ email, phone: shipping.phone });
-                      return {
-                        amount: grandTotal, items: cart, email, shipping,
-                        eventId: generateEventId(), url: window.location.href,
-                        attribution: getStoredAttribution(), sessionId: getSessionId(),
-                      };
-                    }}
-                  />
-                  <CashAppPayButton
-                    purchaseKey="anese-purchase"
-                    onError={setError}
-                    onReady={setCashAppReady}
-                    order={{
-                      amount: grandTotal, items: cart, email, shipping,
-                      eventId: cashAppEventId, url: typeof window !== 'undefined' ? window.location.href : null,
-                      attribution: getStoredAttribution(), sessionId: getSessionId(),
-                    }}
-                  />
-                  {(amazonPayReady || afterpayReady || cashAppReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
+                  {amazonPayReady && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
                 </div>
 
                 <div style={{ ...paymentList, marginTop: 20 }}>

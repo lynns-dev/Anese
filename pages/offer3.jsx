@@ -19,8 +19,6 @@ import { rememberIdentity } from '../lib/identity';
 import { getIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
-import AfterpayButton from '../components/AfterpayButton';
-import CashAppPayButton from '../components/CashAppPayButton';
 import { shippingFor } from '../lib/shipping';
 
 // Third and final step of the ad funnel — a single-page "order form" style
@@ -114,7 +112,7 @@ export default function Offer3Page() {
   const [squareReady, setSquareReady] = React.useState(false);
   const [squareError, setSquareError] = React.useState('');
 
-  // Apple Pay / Google Pay / Afterpay tokenize on click against the method
+  // Apple Pay / Google Pay tokenize on click against the method
   // instance Square attaches into each container below.
   const appleMethodRef = React.useRef(null);
   const googleMethodRef = React.useRef(null);
@@ -128,7 +126,7 @@ export default function Offer3Page() {
 
   // The error message renders once, near the "Place order" button at the
   // bottom of the form — fine for card errors (the shopper is already right
-  // there), but Apple Pay/Google Pay/Afterpay live mid-page in the Payment
+  // there), but Apple Pay/Google Pay live mid-page in the Payment
   // section. A validation failure from one of those buttons (e.g. missing
   // shipping address) used to set this same error with no visible reaction
   // near the button that was actually clicked. Scrolling it into view on
@@ -252,12 +250,6 @@ export default function Offer3Page() {
   // click time, and checks email/address are filled in first since this
   // page collects them on the same screen.
   const [amazonPayReady, setAmazonPayReady] = React.useState(false);
-  const [afterpayReady, setAfterpayReady] = React.useState(false);
-  // Cash App Pay (components/CashAppPayButton.jsx): its checkout can only
-  // be created once email and address are in, so the button appears then.
-  const [cashAppReady, setCashAppReady] = React.useState(false);
-  const cashAppEventId = React.useMemo(() => generateEventId(), []);
-  const cashAppAddrOk = Boolean(shipping.address.trim() && shipping.city.trim() && shipping.state && shipping.zip.trim());
   React.useEffect(() => {
     let cancelled = false;
     renderAmazonPayButton('amazon-pay-button', {
@@ -291,8 +283,7 @@ export default function Offer3Page() {
   // (scent/quantity/discount/shipping) — Apple Pay's on-device sheet
   // otherwise kept showing/authorizing whatever total was true when the
   // button first mounted, which a shopper who applied a discount code
-  // afterward would never see reflected. (Afterpay is no longer one of
-  // Square's buttons here: it has its own integration, AfterpayButton.)
+  // afterward would never see reflected.
   React.useEffect(() => {
     if (!squareReady) return;
     let cancelled = false;
@@ -590,7 +581,7 @@ export default function Offer3Page() {
                 whether that wallet is actually available on this
                 browser/device; Apple Pay is our own native <button>, styled
                 with Safari's -apple-pay-button appearance. The whole section
-                stays hidden until at least one of them is available. Sits above Amazon Pay / Afterpay / Cash App Pay,
+                stays hidden until at least one of them is available. Sits above Amazon Pay,
                 so shoppers see Apple/Google Pay first. */}
             <div style={{ display: (appleAvailable || googleAvailable) ? 'block' : 'none', marginBottom: 10 }}>
               <div style={{ display: 'grid', gap: 10 }}>
@@ -610,39 +601,9 @@ export default function Offer3Page() {
 
             {/* Amazon renders its own button here once configured; empty
                 and spaceless until then. */}
-            <div style={{ marginBottom: appleAvailable || googleAvailable || amazonPayReady || afterpayReady || cashAppReady ? 14 : 0 }}>
+            <div style={{ marginBottom: appleAvailable || googleAvailable || amazonPayReady ? 14 : 0 }}>
               <div id="amazon-pay-button" />
-              {/* Afterpay (components/AfterpayButton.jsx) — shown only when
-                  configured and the total is in Afterpay's range. */}
-              <AfterpayButton
-                total={grandTotal}
-                onError={setError}
-                onReady={setAfterpayReady}
-                getOrder={() => {
-                  const { email, shipping, product, quantity, grandTotal, shippingProtectionCost } = latestRef.current;
-                  const addrOk = Boolean(shipping.address.trim() && shipping.city.trim() && shipping.state && shipping.zip.trim());
-                  if (!email.trim() || !addrOk) return { error: 'Enter your email and shipping address before paying with Afterpay.' };
-                  rememberIdentity({ email, phone: shipping.phone });
-                  return {
-                    amount: grandTotal, items: [{ ...product, quantity }], email, shipping,
-                    eventId: generateEventId(), url: window.location.href,
-                    attribution: getStoredAttribution(), sessionId: getSessionId(),
-                    shippingProtection: shippingProtectionCost || 0,
-                  };
-                }}
-              />
-              <CashAppPayButton
-                purchaseKey="anese-purchase"
-                onError={setError}
-                onReady={setCashAppReady}
-                order={email.trim() && /@/.test(email) && cashAppAddrOk ? {
-                  amount: grandTotal, items: [{ ...product, quantity }], email, shipping,
-                  eventId: cashAppEventId, url: typeof window !== 'undefined' ? window.location.href : null,
-                  attribution: getStoredAttribution(), sessionId: getSessionId(),
-                  shippingProtection: shippingProtectionCost || 0,
-                } : null}
-              />
-              {(appleAvailable || googleAvailable || amazonPayReady || afterpayReady || cashAppReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
+              {(appleAvailable || googleAvailable || amazonPayReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
             </div>
 
             <div style={paymentList}>

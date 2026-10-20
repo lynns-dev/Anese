@@ -20,8 +20,6 @@ import { T, S } from '../lib/theme';
 import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
-import AfterpayButton from '../components/AfterpayButton';
-import CashAppPayButton from '../components/CashAppPayButton';
 import { shippingFor } from '../lib/shipping';
 
 // Live checkout — charges through Square. QuickBooks Payments is kept as a
@@ -601,13 +599,6 @@ export default function CheckoutPage() {
   const amazonOrderRef = React.useRef(null);
   amazonOrderRef.current = { email, shipping, cart, grandTotal };
   const [amazonPayReady, setAmazonPayReady] = React.useState(false);
-  // Afterpay (components/AfterpayButton.jsx, lib/afterpay.js) — same idea,
-  // shown only when configured and the total is in Afterpay's range.
-  const [afterpayReady, setAfterpayReady] = React.useState(false);
-  // Cash App Pay (components/CashAppPayButton.jsx), through the same
-  // Afterpay account; its checkout is created once Step 2 is reached.
-  const [cashAppReady, setCashAppReady] = React.useState(false);
-  const cashAppEventId = React.useMemo(() => generateEventId(), []);
   React.useEffect(() => {
     if (step !== 2) return undefined;
     let cancelled = false;
@@ -958,9 +949,9 @@ export default function CheckoutPage() {
 
                 {/* Every way to pay other than typing a card, stacked above the
                     card form: Square's Apple Pay / Google Pay, then Amazon
-                    Pay, Afterpay and Cash App Pay. Each one shows only when
-                    it's actually available, and the "or pay by card" line
-                    only when at least one of them is.
+                    Pay. Each one shows only when it's actually available,
+                    and the "or pay by card" line only when at least one of
+                    them is.
 
                     Google Pay's container always exists in the DOM (hidden
                     via display:none, not conditional rendering) since
@@ -986,32 +977,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <div id="amazon-pay-button" />
-                  <AfterpayButton
-                    total={grandTotal}
-                    onError={setError}
-                    onReady={setAfterpayReady}
-                    getOrder={() => {
-                      const { email, shipping, cart, grandTotal } = amazonOrderRef.current;
-                      rememberIdentity({ email, phone: shipping.phone });
-                      trackCart('pay_attempt', { method: 'Afterpay' });
-                      return {
-                        amount: grandTotal, items: cart, email, shipping,
-                        eventId: generateEventId(), url: window.location.href,
-                        attribution: getStoredAttribution(), sessionId: getSessionId(),
-                      };
-                    }}
-                  />
-                  <CashAppPayButton
-                    purchaseKey="anese-purchase"
-                    onError={setError}
-                    onReady={setCashAppReady}
-                    order={{
-                      amount: grandTotal, items: cart, email, shipping,
-                      eventId: cashAppEventId, url: typeof window !== 'undefined' ? window.location.href : null,
-                      attribution: getStoredAttribution(), sessionId: getSessionId(),
-                    }}
-                  />
-                  {(appleAvailable || googleAvailable || amazonPayReady || afterpayReady || cashAppReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
+                  {(appleAvailable || googleAvailable || amazonPayReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
                 </div>
 
                 <div style={{ ...paymentList, marginTop: 20 }}>

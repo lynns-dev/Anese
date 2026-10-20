@@ -540,7 +540,7 @@ export default function CartDrawer({
         applyDiscount={applyDiscount}
         discountCode="WELCOME10"
         discountLabel="10% off"
-        payments="card, Apple Pay, Google Pay, Shop Pay, Amazon Pay, Afterpay (4 interest-free payments) or Cash App Pay"
+        payments="card, Apple Pay, Google Pay, Shop Pay or Amazon Pay"
         freeShipAt={FREE_SHIPPING_THRESHOLD || null}
         shippingAlwaysFree={SHIPPING_ALWAYS_FREE}
       />

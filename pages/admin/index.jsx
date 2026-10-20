@@ -1425,11 +1425,35 @@ function visitorStatus(j) {
 const STATUS_COLORS = { purchase: '#1a7a3c', checkout: '#a13d2b', cart: '#9a6a12', browse: T.ink };
 const STATUS_FILTERS = [['all', 'All'], ['cart', 'Added to cart'], ['checkout', 'Reached checkout'], ['purchase', 'Purchased']];
 
+// "New" or "3rd visit": how many days this device has visited, this one
+// included (lib/analyticsStore.js countVisit). Nothing for visits logged
+// before counting began.
+function ordinal(n) {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${n}th`;
+  return `${n}${{ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'}`;
+}
+
+function VisitTag({ n }) {
+  if (!n) return null;
+  const returning = n > 1;
+  return (
+    <span style={{
+      marginLeft: 8, padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, verticalAlign: 'middle',
+      background: returning ? '#E3F1E4' : '#F1EEEA', color: returning ? '#1F6B2E' : '#6B625A',
+    }}
+    >
+      {returning ? `${ordinal(n)} visit` : 'New'}
+    </span>
+  );
+}
+
 function VisitorsTab() {
   const [visitors, setVisitors] = React.useState(null);
   const [error, setError] = React.useState('');
   const [query, setQuery] = React.useState('');
   const [onlyTagged, setOnlyTagged] = React.useState(false);
+  const [onlyReturning, setOnlyReturning] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState('all');
 
   const load = React.useCallback(() => {
@@ -1450,6 +1474,7 @@ function VisitorsTab() {
     return (visitors || []).filter((v) => {
       const params = v.params || {};
       if (onlyTagged && Object.keys(params).length === 0) return false;
+      if (onlyReturning && !(v.visitNumber > 1)) return false;
       const j = v.journey;
       if (statusFilter === 'purchase' && !j?.purchased) return false;
       if (statusFilter === 'checkout' && !j?.checkoutAt) return false;
@@ -1459,7 +1484,7 @@ function VisitorsTab() {
         .filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
-  }, [visitors, query, onlyTagged, statusFilter]);
+  }, [visitors, query, onlyTagged, onlyReturning, statusFilter]);
 
   const statusCounts = React.useMemo(() => {
     const list = visitors || [];
@@ -1515,6 +1540,10 @@ function VisitorsTab() {
             <input type="checkbox" checked={onlyTagged} onChange={(e) => setOnlyTagged(e.target.checked)} />
             Only visits with URL parameters
           </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <input type="checkbox" checked={onlyReturning} onChange={(e) => setOnlyReturning(e.target.checked)} />
+            Only returning visitors
+          </label>
         </div>
         <div style={{ maxHeight: 720, overflowY: 'auto' }}>
           {rows.map((v) => {
@@ -1526,7 +1555,7 @@ function VisitorsTab() {
             return (
               <div key={`${v.sessionId}-${v.ts}`} style={visitorListRow}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 600 }}>{v.source || 'Direct'}{v.campaign ? ` · ${v.campaign}` : ''}</span>
+                  <span style={{ fontWeight: 600 }}>{v.source || 'Direct'}{v.campaign ? ` · ${v.campaign}` : ''}<VisitTag n={v.visitNumber} /></span>
                   <span style={{ fontSize: 13, opacity: 0.7 }}>
                     {new Date(v.ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                     {place && ` · ${place}`}{v.device && ` · ${v.device}`}

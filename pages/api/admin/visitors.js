@@ -81,6 +81,7 @@ export default async function handler(req, res) {
         country: v.country && v.country !== 'XX' ? v.country : null,
         device: v.device || null,
         outsideServiceArea: Boolean(v.outsideServiceArea),
+        visitNumber: v.visitNumber || null,
         ts: v.ts,
         journey: buildJourney(steps, trail, last),
       };

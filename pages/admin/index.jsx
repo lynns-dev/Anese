@@ -230,9 +230,10 @@ export default function AdminDashboard() {
 
   // ShippingEasy setup + latest label callback (pages/api/admin/orders/shippingeasy.js).
   const [shippingEasyStatus, setShippingEasyStatus] = React.useState(null);
-  React.useEffect(() => {
+  const loadShippingEasy = React.useCallback(() => {
     fetch('/api/admin/orders/shippingeasy').then((r) => r.json()).then(setShippingEasyStatus).catch(() => {});
   }, []);
+  React.useEffect(() => { loadShippingEasy(); }, [loadShippingEasy]);
 
   const visibleOrders = React.useMemo(
     () => (showArchived ? orders : orders.filter((o) => o.status !== 'archived')),
@@ -316,6 +317,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
       if (!res.ok) throw new Error(data.error || 'ShippingEasy did not accept it.');
+      loadShippingEasy();
     } catch (err) {
       setOrderActionError((prev) => ({ ...prev, [key]: err.message }));
     } finally {
@@ -1081,7 +1083,7 @@ export default function AdminDashboard() {
             </label>
           }
         >
-          {shippingEasyStatus && <ShippingEasyStatus status={shippingEasyStatus} />}
+          {shippingEasyStatus && <ShippingEasyStatus status={shippingEasyStatus} onSent={() => { loadOrders(); loadShippingEasy(); }} />}
           {ordersLoading ? (
             <p style={{ color: T.soft, fontSize: 14 }}>Loading…</p>
           ) : visibleOrders.length === 0 ? (
@@ -1095,6 +1097,7 @@ export default function AdminDashboard() {
                 <span style={{ flex: '0 0 100px' }}>Payment</span>
                 <span style={{ flex: '0 0 90px' }}>Status</span>
                 <span style={{ flex: '0 0 116px' }}>Meta</span>
+                <span style={{ flex: '0 0 150px' }}>ShippingEasy</span>
               </div>
               {visibleOrders.map((o) => {
                 const { source, campaign, adset, ad } = attributionSource(o);
@@ -1124,6 +1127,23 @@ export default function AdminDashboard() {
                           busy={Boolean(orderActionBusy[`meta:${o.id}`])}
                           onSend={handleSendToMeta}
                         />
+                      </span>
+                      <span style={{ flex: '0 0 150px' }} onClick={(e) => e.stopPropagation()}>
+                        {o.shippingEasy?.sent ? (
+                          <span style={{ fontSize: 12, color: T.soft }}>✓ In ShippingEasy</span>
+                        ) : (o.status || 'paid') === 'paid' && !o.trackingNumber ? (
+                          <button
+                            type="button"
+                            disabled={Boolean(orderActionBusy[`shippingeasy:${o.id}`])}
+                            onClick={() => handleSendToShippingEasy(o)}
+                            title={o.shippingEasy?.lastError || ''}
+                            style={{ ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap', opacity: orderActionBusy[`shippingeasy:${o.id}`] ? 0.5 : 1, ...(o.shippingEasy?.lastError ? { borderColor: '#a13d2b', color: '#a13d2b' } : {}) }}
+                          >
+                            {orderActionBusy[`shippingeasy:${o.id}`] ? 'Sending…' : 'Send to ShippingEasy'}
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, color: T.soft }}>—</span>
+                        )}
                       </span>
                     </div>
 
@@ -1719,9 +1739,12 @@ const orderHeadRow = {
   display: 'flex', gap: 12, padding: '0 0 10px', borderBottom: `1px solid ${T.ink}`,
   fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.soft,
 };
-// One line above the Orders list: whether ShippingEasy is set up, and what
+// Panel above the Orders list: whether ShippingEasy is set up, how many
+// orders still need sending (with a button to send them all), and what
 // happened with the latest label callback (tracking coming back).
-function ShippingEasyStatus({ status }) {
+function ShippingEasyStatus({ status, onSent }) {
+  const [busy, setBusy] = React.useState(false);
+  const [message, setMessage] = React.useState('');
   const last = status.lastCallback;
   let lastText = 'No labels printed yet.';
   if (last) {
@@ -1730,12 +1753,51 @@ function ShippingEasyStatus({ status }) {
       ? `Last label: ${last.carrier ? `${last.carrier} ` : ''}${last.trackingNumber} · ${when}`
       : `Last callback ${when} failed — ${last.error}`;
   }
+  const sendAll = async () => {
+    setBusy(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/admin/orders/shippingeasy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not send.');
+      const parts = [`Sent ${data.sent} order${data.sent === 1 ? '' : 's'} to ShippingEasy.`];
+      if (data.failed?.length) parts.push(`${data.failed.length} failed — ${data.failed[0].error}`);
+      if (data.more) parts.push('More are waiting — click again.');
+      setMessage(parts.join(' '));
+      onSent();
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <p style={{ fontSize: 12, color: status.configured && last?.ok !== false ? T.soft : '#a13d2b', margin: '0 0 16px' }}>
-      {status.configured
-        ? `ShippingEasy connected — new orders are sent automatically and tracking comes back when you print a label. ${lastText}`
-        : 'ShippingEasy is not set up — add SHIPPINGEASY_API_KEY, SHIPPINGEASY_API_SECRET and SHIPPINGEASY_STORE_API_KEY in Vercel and redeploy.'}
-    </p>
+    <div style={{ border: `1px solid ${T.line}`, padding: '12px 14px', margin: '0 0 16px', fontSize: 13, lineHeight: 1.6 }}>
+      <div style={{ fontWeight: 600, color: status.configured ? T.ink : '#a13d2b' }}>
+        {status.configured ? 'ShippingEasy connected' : 'ShippingEasy is not set up'}
+      </div>
+      <div style={{ color: T.soft }}>
+        {status.configured
+          ? `New orders are sent automatically; tracking comes back when you print a label. ${lastText}`
+          : 'Add SHIPPINGEASY_API_KEY, SHIPPINGEASY_API_SECRET and SHIPPINGEASY_STORE_API_KEY to this site in Vercel, then redeploy.'}
+      </div>
+      {status.configured && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+          {status.unsent > 0 ? (
+            <button type="button" onClick={sendAll} disabled={busy} style={{ ...S.btnFill, height: 38, padding: '0 16px', fontSize: 13, opacity: busy ? 0.6 : 1 }}>
+              {busy ? 'Sending…' : `Send ${status.unsent} unsent order${status.unsent === 1 ? '' : 's'} to ShippingEasy`}
+            </button>
+          ) : (
+            <span style={{ color: T.soft }}>Every order that needs shipping is in ShippingEasy.</span>
+          )}
+          {message && <span>{message}</span>}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -228,6 +228,12 @@ export default function AdminDashboard() {
     loadOrders();
   }, [loadOrders]);
 
+  // ShippingEasy setup + latest label callback (pages/api/admin/orders/shippingeasy.js).
+  const [shippingEasyStatus, setShippingEasyStatus] = React.useState(null);
+  React.useEffect(() => {
+    fetch('/api/admin/orders/shippingeasy').then((r) => r.json()).then(setShippingEasyStatus).catch(() => {});
+  }, []);
+
   const visibleOrders = React.useMemo(
     () => (showArchived ? orders : orders.filter((o) => o.status !== 'archived')),
     [orders, showArchived]
@@ -289,6 +295,27 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
       if (!res.ok) throw new Error(data.error || 'Meta did not accept it.');
+    } catch (err) {
+      setOrderActionError((prev) => ({ ...prev, [key]: err.message }));
+    } finally {
+      setOrderActionBusy((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  // Per-order "Send to ShippingEasy" (pages/api/admin/orders/shippingeasy.js).
+  const handleSendToShippingEasy = async (order) => {
+    const key = `shippingeasy:${order.id}`;
+    setOrderActionBusy((prev) => ({ ...prev, [key]: true }));
+    setOrderActionError((prev) => ({ ...prev, [key]: '' }));
+    try {
+      const res = await fetch('/api/admin/orders/shippingeasy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const data = await res.json();
+      if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
+      if (!res.ok) throw new Error(data.error || 'ShippingEasy did not accept it.');
     } catch (err) {
       setOrderActionError((prev) => ({ ...prev, [key]: err.message }));
     } finally {
@@ -1054,6 +1081,7 @@ export default function AdminDashboard() {
             </label>
           }
         >
+          {shippingEasyStatus && <ShippingEasyStatus status={shippingEasyStatus} />}
           {ordersLoading ? (
             <p style={{ color: T.soft, fontSize: 14 }}>Loading…</p>
           ) : visibleOrders.length === 0 ? (
@@ -1142,6 +1170,30 @@ export default function AdminDashboard() {
                             />
                             {(orderActionError[`meta:${o.id}`] || (SHOW_META_ERRORS && !o.meta?.sent && o.meta?.lastError)) && (
                               <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`meta:${o.id}`] || o.meta.lastError}</div>
+                            )}
+                          </div>
+                          {/* Whether ShippingEasy has this order (lib/shippingEasy.js).
+                              Sent automatically at checkout and retried hourly;
+                              the button covers older orders and failures. */}
+                          <div>
+                            <div style={formLabel}>ShippingEasy</div>
+                            {o.shippingEasy?.sent && (
+                              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                                In ShippingEasy{o.shippingEasy.sentAt ? ` · ${new Date(o.shippingEasy.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
+                              </div>
+                            )}
+                            {!o.shippingEasy?.sent && (
+                              <button
+                                type="button"
+                                disabled={Boolean(orderActionBusy[`shippingeasy:${o.id}`])}
+                                onClick={() => handleSendToShippingEasy(o)}
+                                style={{ ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap', opacity: orderActionBusy[`shippingeasy:${o.id}`] ? 0.5 : 1 }}
+                              >
+                                {orderActionBusy[`shippingeasy:${o.id}`] ? 'Sending…' : 'Send to ShippingEasy'}
+                              </button>
+                            )}
+                            {(orderActionError[`shippingeasy:${o.id}`] || (!o.shippingEasy?.sent && o.shippingEasy?.lastError)) && (
+                              <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`shippingeasy:${o.id}`] || o.shippingEasy.lastError}</div>
                             )}
                           </div>
                           {o.shippingProtection > 0 && (
@@ -1667,6 +1719,26 @@ const orderHeadRow = {
   display: 'flex', gap: 12, padding: '0 0 10px', borderBottom: `1px solid ${T.ink}`,
   fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.soft,
 };
+// One line above the Orders list: whether ShippingEasy is set up, and what
+// happened with the latest label callback (tracking coming back).
+function ShippingEasyStatus({ status }) {
+  const last = status.lastCallback;
+  let lastText = 'No labels printed yet.';
+  if (last) {
+    const when = new Date(last.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    lastText = last.ok
+      ? `Last label: ${last.carrier ? `${last.carrier} ` : ''}${last.trackingNumber} · ${when}`
+      : `Last callback ${when} failed — ${last.error}`;
+  }
+  return (
+    <p style={{ fontSize: 12, color: status.configured && last?.ok !== false ? T.soft : '#a13d2b', margin: '0 0 16px' }}>
+      {status.configured
+        ? `ShippingEasy connected — new orders are sent automatically and tracking comes back when you print a label. ${lastText}`
+        : 'ShippingEasy is not set up — add SHIPPINGEASY_API_KEY, SHIPPINGEASY_API_SECRET and SHIPPINGEASY_STORE_API_KEY in Vercel and redeploy.'}
+    </p>
+  );
+}
+
 // Per-order manual send to Meta (pages/api/admin/orders/meta.js). Not yet
 // accepted: "Send to Meta". Already sent: "Resend", which resends with
 // the order's original event id so Meta keeps counting it once.

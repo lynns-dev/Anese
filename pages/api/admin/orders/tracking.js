@@ -1,12 +1,8 @@
 // Saves a tracking number for an order and emails the customer, in one
-// admin action. The email send (lib/email/orderHooks.js's notifyOrderShipped)
-// doesn't roll back the tracking info if it fails — that's real and worth
-// keeping regardless — but the outcome is reported back to admin
-// (emailSent/emailError) and appended to the order's emailLog either way,
-// so the order's email history shows failed attempts too.
+// admin action (lib/orderShipping.js). The email's outcome is reported back
+// to admin (emailSent/emailError) and kept in the order's emailLog.
 
-import { updateOrderStatus } from '../../../../lib/analyticsStore';
-import { notifyOrderShipped, emailLogEntry } from '../../../../lib/email/orderHooks';
+import { markOrderShipped } from '../../../../lib/orderShipping';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,27 +16,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const updated = await updateOrderStatus(orderId, {
+    const result = await markOrderShipped(orderId, {
       trackingNumber: trackingNumber.trim(),
       carrier: carrier?.trim() || null,
       trackingUrl: trackingUrl?.trim() || null,
-      shippedAt: new Date().toISOString(),
     });
-    if (!updated) return res.status(404).json({ error: 'Order not found.' });
-
-    const result = await notifyOrderShipped({
-      email: updated.email,
-      orderId: updated.id,
-      carrier: updated.carrier,
-      trackingNumber: updated.trackingNumber,
-      trackingUrl: updated.trackingUrl,
-    });
-
-    const logged = await updateOrderStatus(orderId, {
-      emailLog: [...(updated.emailLog || []), emailLogEntry('order_shipped', updated.email, result)],
-    });
-
-    return res.status(200).json({ order: logged || updated, emailSent: result.ok, emailError: result.error || null });
+    if (!result) return res.status(404).json({ error: 'Order not found.' });
+    return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

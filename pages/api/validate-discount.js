@@ -3,6 +3,7 @@
 // confirms whether the specific submitted code is valid.
 
 import { getDiscounts } from '../../lib/discountsStore';
+import { findUniqueDiscount } from '../../lib/uniqueDiscounts';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,7 +18,10 @@ export default async function handler(req, res) {
 
   try {
     const discounts = await getDiscounts();
-    const match = discounts.find((d) => d.code.toLowerCase() === code.trim().toLowerCase());
+    // Falls back to the one-off per-subscriber codes the abandoned-checkout
+    // email hands out (lib/uniqueDiscounts.js).
+    const match = discounts.find((d) => d.code.toLowerCase() === code.trim().toLowerCase())
+      || await findUniqueDiscount(code);
     if (!match) return res.status(200).json({ valid: false });
     return res.status(200).json({ valid: true, code: match.code, type: match.type, value: match.value });
   } catch (err) {

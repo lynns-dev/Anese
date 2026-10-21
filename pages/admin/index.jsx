@@ -9,6 +9,11 @@ import { T, S } from '../../lib/theme';
 import AdminInbox from '../../components/AdminInbox';
 import PathsTree from '../../components/PathsTree';
 import AdSpend from '../../components/AdSpend';
+
+// Meta error messages are hidden for now (owner's request): the
+// Conversions API status box, each order's stored Meta send error, and
+// the ad-spend error. Flip to true to bring them back.
+const SHOW_META_ERRORS = false;
 import CartFunnelReport from '../../components/CartFunnelReport';
 
 // Flexible header matching — review export files from different platforms
@@ -553,7 +558,7 @@ export default function AdminDashboard() {
         <>
         {/* META SERVER EVENTS — whether Meta is actually accepting the
             Conversions API sends (lib/metaCapi.js). */}
-        {dashboard?.capi && <CapiStatus capi={dashboard.capi} />}
+        {SHOW_META_ERRORS && dashboard?.capi && <CapiStatus capi={dashboard.capi} />}
 
         {/* TOP STATS */}
         <div style={revenueDateRow}>
@@ -1135,7 +1140,7 @@ export default function AdminDashboard() {
                               busy={Boolean(orderActionBusy[`meta:${o.id}`])}
                               onSend={handleSendToMeta}
                             />
-                            {(orderActionError[`meta:${o.id}`] || (!o.meta?.sent && o.meta?.lastError)) && (
+                            {(orderActionError[`meta:${o.id}`] || (SHOW_META_ERRORS && !o.meta?.sent && o.meta?.lastError)) && (
                               <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`meta:${o.id}`] || o.meta.lastError}</div>
                             )}
                           </div>

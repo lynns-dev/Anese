@@ -6,6 +6,10 @@ import { T } from '../lib/theme';
 // "Blended" ROAS divides all store revenue — ad-driven or not — by ad
 // spend; Meta's own purchase count is shown alongside as the attributed view.
 
+// Meta's ad-spend error is hidden for now (owner's request) — flip to
+// true to show it again.
+const SHOW_META_ERRORS = false;
+
 const RANGES = [['today', 'Today'], ['yesterday', 'Yesterday'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days']];
 const money = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -46,7 +50,7 @@ export default function AdSpend() {
         </p>
       )}
 
-      {data?.error && (
+      {SHOW_META_ERRORS && data?.error && (
         <p style={errorText}>
           Meta didn&rsquo;t return ad spend: {data.error}. The token in <code>META_ADS_ACCESS_TOKEN</code> needs the <code>ads_read</code> permission for ad account {data.account || 'act_…'}.
         </p>

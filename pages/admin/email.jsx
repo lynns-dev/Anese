@@ -54,6 +54,8 @@ export default function EmailAdmin() {
   const [testMessage, setTestMessage] = React.useState({});
   const [subscriberSearch, setSubscriberSearch] = React.useState('');
   const [subscriberSort, setSubscriberSort] = React.useState('date-desc');
+  const [subscriberFilter, setSubscriberFilter] = React.useState('all');
+  const [abandonStep, setAbandonStep] = React.useState({});
   const [newSubscriberEmail, setNewSubscriberEmail] = React.useState('');
   const [addingSubscriber, setAddingSubscriber] = React.useState(false);
   const [addSubscriberMessage, setAddSubscriberMessage] = React.useState('');
@@ -100,10 +102,15 @@ export default function EmailAdmin() {
 
   const visibleSubscribers = React.useMemo(() => {
     const query = subscriberSearch.trim().toLowerCase();
-    const filtered = query ? subscribers.filter((s) => s.email.toLowerCase().includes(query)) : subscribers;
+    const filtered = subscribers.filter((s) => (
+      (!query || s.email.toLowerCase().includes(query))
+      && (subscriberFilter !== 'abandoned' || s.checkoutStartedAt)
+    ));
     const direction = subscriberSort === 'date-asc' ? 1 : -1;
     return [...filtered].sort((a, b) => direction * ((a.createdAt || 0) - (b.createdAt || 0)));
-  }, [subscribers, subscriberSearch, subscriberSort]);
+  }, [subscribers, subscriberSearch, subscriberSort, subscriberFilter]);
+  const abandonedCount = React.useMemo(() => subscribers.filter((s) => s.checkoutStartedAt).length, [subscribers]);
+  const abandonedFlow = automations.find((a) => a.id === 'abandoned_checkout');
 
   const loadSubscribers = React.useCallback(() => {
     fetch('/api/admin/email/subscribers')
@@ -203,7 +210,9 @@ export default function EmailAdmin() {
   // sending it right now instead of waiting for the cron to catch it).
   // Keyed by `${email}:${flowId}` so a subscriber can have independent
   // sending/message state per flow.
-  const handleSendAutomationStep = async (email, flowId) => {
+  // stepIndex is optional — omitted, the subscriber's next due step goes
+  // out; given, that exact step does (the abandoned-checkout picker).
+  const handleSendAutomationStep = async (email, flowId, stepIndex) => {
     const key = `${email}:${flowId}`;
     setStepSending(key);
     setStepMessage((prev) => ({ ...prev, [key]: '' }));
@@ -211,10 +220,11 @@ export default function EmailAdmin() {
       const res = await fetch('/api/admin/email/send-automation-step', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, flowId }),
+        body: JSON.stringify({ email, flowId, stepIndex }),
       });
       const data = await res.json();
       setStepMessage((prev) => ({ ...prev, [key]: res.ok ? `Sent: "${data.subject}"` : data.error || 'Failed to send.' }));
+      if (res.ok) loadSubscribers();
     } finally {
       setStepSending(null);
     }
@@ -721,13 +731,23 @@ export default function EmailAdmin() {
             <p style={{ color: T.soft, fontSize: 14 }}>No subscribers yet.</p>
           ) : (
             <div>
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <input
                   placeholder="Search by email…"
                   value={subscriberSearch}
                   onChange={(e) => setSubscriberSearch(e.target.value)}
                   style={{ ...formInput, width: 260, maxWidth: '100%' }}
                 />
+                {[['all', `All (${subscribers.length})`], ['abandoned', `Abandoned checkout (${abandonedCount})`]].map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setSubscriberFilter(id)}
+                    style={{ ...filterChip, ...(subscriberFilter === id ? filterChipActive : {}) }}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               <div className="table-scroll">
               <div style={{ minWidth: 760 }}>
@@ -748,10 +768,13 @@ export default function EmailAdmin() {
                 <div style={{ width: 280 }} />
               </div>
               {visibleSubscribers.length === 0 ? (
-                <p style={{ color: T.soft, fontSize: 13, padding: '16px 0' }}>No subscribers match "{subscriberSearch}".</p>
+                <p style={{ color: T.soft, fontSize: 13, padding: '16px 0' }}>
+                  {subscriberSearch ? `No subscribers match "${subscriberSearch}".` : 'No subscribers with an abandoned checkout.'}
+                </p>
               ) : (
               visibleSubscribers.map((s) => (
-                <div key={s.email} style={row}>
+                <React.Fragment key={s.email}>
+                <div style={{ ...row, ...(s.checkoutStartedAt ? { borderBottom: 'none' } : {}) }}>
                   <div style={{ flex: 2 }}>{s.email}</div>
                   <div style={{ flex: 1 }}>{s.status}</div>
                   <div style={{ flex: 1 }}>{s.tier}</div>
@@ -770,24 +793,23 @@ export default function EmailAdmin() {
                         </button>
                       </>
                     )}
-                    {s.status === 'subscribed' && s.checkoutStartedAt && (
-                      <>
-                        {stepMessage[`${s.email}:abandoned_checkout`] && <span style={{ fontSize: 11, color: T.soft }}>{stepMessage[`${s.email}:abandoned_checkout`]}</span>}
-                        <button
-                          onClick={() => handleSendAutomationStep(s.email, 'abandoned_checkout')}
-                          disabled={stepSending === `${s.email}:abandoned_checkout`}
-                          style={S.btnOutline}
-                          title="Sends this subscriber's next due abandoned-checkout email now, including their cart contents"
-                        >
-                          {stepSending === `${s.email}:abandoned_checkout` ? 'Sending…' : 'Send abandoned-cart email'}
-                        </button>
-                      </>
-                    )}
                     {s.status !== 'suppressed' && (
                       <button onClick={() => handleSuppressSubscriber(s.email)} style={deleteBtn}>Suppress</button>
                     )}
                   </div>
                 </div>
+                {s.checkoutStartedAt && (
+                  <AbandonedCheckoutPanel
+                    subscriber={s}
+                    flow={abandonedFlow}
+                    selectedStep={abandonStep[s.email]}
+                    onSelectStep={(i) => setAbandonStep((prev) => ({ ...prev, [s.email]: i }))}
+                    onSend={(i) => handleSendAutomationStep(s.email, 'abandoned_checkout', i)}
+                    sending={stepSending === `${s.email}:abandoned_checkout`}
+                    message={stepMessage[`${s.email}:abandoned_checkout`]}
+                  />
+                )}
+                </React.Fragment>
               ))
               )}
               </div>
@@ -1109,6 +1131,59 @@ function Section({ title, action, children }) {
         {action}
       </div>
       {children}
+    </div>
+  );
+}
+
+const filterChip = {
+  background: 'transparent', border: `1px solid ${T.line}`, padding: '8px 14px', fontSize: 12,
+  fontFamily: T.sans, color: T.ink, cursor: 'pointer', borderRadius: 999,
+};
+const filterChipActive = { background: T.blush, borderColor: T.blush, fontWeight: 600 };
+
+// Shown under a subscriber who started a checkout and hasn't ordered since
+// (touchLastOrder clears checkoutStartedAt on purchase): what they left,
+// which abandoned-checkout emails they've had, and a send button for any
+// step — defaulting to the next one due. Works while the flow is switched
+// off (lib/email/automationSend.js sendAutomationStepNow).
+function AbandonedCheckoutPanel({ subscriber: s, flow, selectedStep, onSelectStep, onSend, sending, message }) {
+  const items = s.checkoutItems || [];
+  const itemsTotal = items.reduce((sum, i) => sum + (i.price != null ? Number(i.price) * (i.quantity || 1) : 0), 0);
+  const value = s.checkoutValue || itemsTotal;
+  const steps = flow?.steps || [];
+  const sentCount = Math.min(s.automationState?.abandoned_checkout?.step || 0, steps.length);
+  const nextDue = sentCount < steps.length ? sentCount : steps.length - 1;
+  const chosen = selectedStep ?? nextDue;
+  const canSend = s.status === 'subscribed' && steps.length > 0;
+
+  return (
+    <div style={{ padding: '4px 0 14px 16px', borderBottom: `1px solid ${T.line}`, fontSize: 12, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ flex: '1 1 320px', background: T.blush, padding: '10px 12px' }}>
+        <div style={{ fontWeight: 600, marginBottom: 2 }}>
+          Abandoned checkout · {new Date(s.checkoutStartedAt).toLocaleString()}{value ? ` · $${Number(value).toFixed(2)}` : ''}
+        </div>
+        <div>{items.length ? items.map((i) => `${i.name || i.id} × ${i.quantity || 1}`).join(', ') : 'No cart items captured'}</div>
+        <div style={{ color: T.soft, marginTop: 2 }}>
+          Emails sent: {sentCount} of {steps.length}{flow && !flow.enabled ? ' · automatic sending is off' : ''}
+        </div>
+      </div>
+      {canSend ? (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select value={chosen} onChange={(e) => onSelectStep(Number(e.target.value))} style={{ ...formInput, width: 'auto', height: 40 }}>
+            {steps.map((step, i) => (
+              <option key={i} value={i} disabled={!step.subject}>
+                Email {i + 1}: {step.subject || '(no content)'}{i < sentCount ? ' — sent' : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" onClick={() => onSend(chosen)} disabled={sending} style={S.btnOutline}>
+            {sending ? 'Sending…' : 'Send now'}
+          </button>
+          {message && <span style={{ fontSize: 11, color: T.soft }}>{message}</span>}
+        </div>
+      ) : (
+        <span style={{ color: T.soft }}>{s.status !== 'subscribed' ? `Can't email — ${s.status}.` : 'Loading automation…'}</span>
+      )}
     </div>
   );
 }

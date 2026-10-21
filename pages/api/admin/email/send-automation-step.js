@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, flowId } = req.body || {};
+  const { email, flowId, stepIndex } = req.body || {};
   if (!email || !flowId) return res.status(400).json({ error: 'Email and flowId are required.' });
 
   try {
@@ -18,7 +18,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Only subscribed contacts can be sent an automation email.' });
     }
 
-    const result = await sendAutomationStepNow(flowId, subscriber);
+    if (flowId === 'abandoned_checkout' && !subscriber.checkoutStartedAt) {
+      return res.status(400).json({ error: 'This subscriber has no abandoned checkout.' });
+    }
+
+    const result = await sendAutomationStepNow(flowId, subscriber, stepIndex ?? undefined);
     return res.status(200).json({ ok: true, ...result });
   } catch (err) {
     return res.status(400).json({ error: err.message });

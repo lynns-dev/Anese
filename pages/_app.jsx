@@ -5,6 +5,7 @@ import { CartProvider, useCart } from '../lib/useCart';
 import { loadPixel, fbTrack } from '../lib/fbPixel';
 import { loadClarity } from '../lib/clarity';
 import { captureAttribution, getStoredAttribution, describeTrafficSource, fbcToSync, markFbcSynced } from '../lib/attribution';
+import { captureTouches, touchesToSync, markTouchesSynced } from '../lib/touches';
 import { getSessionId } from '../lib/session';
 import { ensureVisitorCookie, getVisitSource } from '../lib/visitTracking';
 import { getCheckoutStage } from '../lib/checkoutStage';
@@ -86,6 +87,9 @@ function Tracking() {
   React.useEffect(() => {
     if (isAdmin) return;
     captureAttribution();
+    // First touch / last non-direct touch (lib/touches.js) — once per full
+    // page load, however many pages they click through after.
+    captureTouches();
   }, [router.asPath, isAdmin]);
 
   React.useEffect(() => {
@@ -98,6 +102,9 @@ function Tracking() {
     // The Meta click ID, once per visit, so the server can re-issue the _fbc
     // cookie with a lifetime the browser will honor (lib/metaClickId.js).
     const fbc = fbcToSync();
+    // The stored touches, when they changed, so the server can set their
+    // cookies back with a full 90-day lifetime (lib/touches.js).
+    const touches = touchesToSync();
     fetch('/api/track/event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,9 +123,13 @@ function Tracking() {
         // admin's Paths tab — lib/visitTracking.js.
         visitSource: getVisitSource(),
         ...(fbc ? { fbc } : {}),
+        ...(touches ? { touches } : {}),
       }),
       keepalive: true,
-    }).then((r) => { if (fbc && r.ok) markFbcSynced(fbc); }).catch(() => {});
+    }).then((r) => {
+      if (fbc && r.ok) markFbcSynced(fbc);
+      if (touches && r.ok) markTouchesSynced(touches);
+    }).catch(() => {});
   }, [router.asPath, isAdmin]);
 
   React.useEffect(() => {

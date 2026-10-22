@@ -7,6 +7,7 @@ import WorldMap from '../../components/WorldMap';
 import { describeAdPlacement } from '../../lib/attribution';
 import { T, S } from '../../lib/theme';
 import AdminInbox from '../../components/AdminInbox';
+import AttributionReport from '../../components/AttributionReport';
 import PathsTree from '../../components/PathsTree';
 import AdSpend from '../../components/AdSpend';
 
@@ -1066,6 +1067,10 @@ export default function AdminDashboard() {
           <AdminInbox onCount={setInboxNew} />
         </div>
 
+        {/* First touch / last non-direct / last click revenue by channel
+            (components/AttributionReport.jsx). */}
+        {activeTab === 'attribution' && <AttributionReport />}
+
         {/* Paths to purchase (components/PathsTree.jsx, lib/journeys.js). */}
         {activeTab === 'paths' && (
           <Section title="Paths to purchase">
@@ -1838,6 +1843,7 @@ const ADMIN_TABS = [
   ['discounts', 'Discounts'],
   ['inbox', 'Inbox'],
   ['paths', 'Paths'],
+  ['attribution', 'Attribution'],
 ];
 
 const reviewRow = { display: 'flex', gap: 16, alignItems: 'flex-start', padding: '14px 0', borderBottom: `1px solid ${T.line}` };

@@ -7,6 +7,7 @@ import { recordJourneyStep, pageLabel, EVENT_LABELS, visitorIdFrom } from '../..
 import { sendCapiEvent, getRequestUserData } from '../../../lib/metaCapi';
 import { isExcludedIp, isOutsideServiceArea } from '../../../lib/ipFilter';
 import { fbcSetCookieHeader } from '../../../lib/metaClickId';
+import { touchSetCookieHeaders } from '../../../lib/touchServer';
 
 const ALLOWED = ['pageview', 'addtocart', 'checkout_start', 'checkout_payment', 'checkout_review'];
 // Logged to the timestamped recent-events feed for the live-activity view.
@@ -46,20 +47,28 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const { event, productName, eventId, contentId, contentIds, contents, value, url, sessionId, email, phone, source, campaign, path, visitSource, fbc, params, referrer, device } = req.body || {};
+  const { event, productName, eventId, contentId, contentIds, contents, value, url, sessionId, email, phone, source, campaign, path, visitSource, fbc, params, referrer, device, touches } = req.body || {};
 
   // Re-issue the Meta click ID cookie from the server. The browser sends its
   // click ID on the first page view of a visit (pages/_app.jsx); setting the
   // same value back in a response header is what lets it outlive Safari's
   // 24-hour/7-day cap on cookies written by JavaScript, so it is still there
   // when the shopper comes back to buy — see lib/metaClickId.js.
+  const setCookies = [];
+  const secure = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() !== 'http';
   if (fbc) {
-    const cookie = fbcSetCookieHeader(fbc, {
-      hostname: req.headers.host,
-      secure: String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() !== 'http',
-    });
-    if (cookie) res.setHeader('Set-Cookie', cookie);
+    const cookie = fbcSetCookieHeader(fbc, { hostname: req.headers.host, secure });
+    if (cookie) setCookies.push(cookie);
   }
+  // Same for the first-touch / last-non-direct touch cookies (lib/touches.js).
+  if (touches) {
+    try {
+      setCookies.push(...touchSetCookieHeaders(touches, { hostname: req.headers.host, secure }));
+    } catch (err) {
+      console.error('Touch cookie re-issue failed:', err.message);
+    }
+  }
+  if (setCookies.length) res.setHeader('Set-Cookie', setCookies);
   if (ALLOWED.includes(event) && !isExcludedIp(req)) {
     // Outside the US (lib/ipFilter.js): still listed in admin's Visitors tab,
     // flagged, so unusual traffic stays visible — but kept out of the funnel

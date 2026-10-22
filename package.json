@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --no-warnings --import ./tests/register-js-extension.mjs --test \"tests/*.test.mjs\""
   },
   "dependencies": {
     "@amazonpay/amazon-pay-api-sdk-nodejs": "^2.3.6",

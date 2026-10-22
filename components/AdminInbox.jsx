@@ -1,7 +1,9 @@
 // Admin Inbox tab: questions and stories sent through the site's "Ask us
 // anything" and "Share your story" forms (pages/api/ask.js). Nothing here
-// is published automatically — answer by email if they left one, and add
-// the good ones to lib/brandContent.js / pages/stories.jsx by hand.
+// is published automatically. Anyone who left an email can be answered
+// right here — the reply is emailed to them and kept under their message
+// (pages/api/admin/inbox.js). Add the good ones to lib/brandContent.js /
+// pages/stories.jsx by hand.
 
 import React from 'react';
 import { T, S } from '../lib/theme';
@@ -19,6 +21,10 @@ export default function AdminInbox({ onCount }) {
   const [error, setError] = React.useState('');
   const [filter, setFilter] = React.useState('new');
   const [type, setType] = React.useState('all');
+  // Replying marks a message answered; keep it on screen (under the New
+  // filter too) so the sent reply is visible, until the filter changes.
+  const [justReplied, setJustReplied] = React.useState([]);
+  React.useEffect(() => { setJustReplied([]); }, [filter, type]);
 
   const load = React.useCallback(() => {
     setLoading(true);
@@ -47,6 +53,11 @@ export default function AdminInbox({ onCount }) {
     if (res.ok) setEntries((prev) => prev.map((e) => (e.id === id ? data.entry : e)));
   };
 
+  const replied = (entry) => {
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? entry : e)));
+    setJustReplied((prev) => [...prev, entry.id]);
+  };
+
   const remove = async (id) => {
     if (!confirm('Delete this permanently?')) return;
     const res = await fetch('/api/admin/inbox', {
@@ -57,7 +68,7 @@ export default function AdminInbox({ onCount }) {
     if (res.ok) setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const visible = entries.filter((e) => (filter === 'all' || e.status === filter) && (type === 'all' || e.type === type));
+  const visible = entries.filter((e) => (filter === 'all' || e.status === filter || justReplied.includes(e.id)) && (type === 'all' || e.type === type));
 
   return (
     <div style={card}>
@@ -97,6 +108,15 @@ export default function AdminInbox({ onCount }) {
             {e.name && <span>{e.name} · </span>}
             {e.email ? <a href={`mailto:${e.email}`} style={{ textDecoration: 'underline' }}>{e.email}</a> : 'No email (anonymous)'}
           </div>
+          {(e.replies || []).map((r) => (
+            <div key={r.id} style={replyBubble}>
+              <div style={{ fontSize: 11, color: T.soft, marginBottom: 4 }}>
+                You replied · {new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </div>
+              <div style={{ whiteSpace: 'pre-wrap' }}>{r.text}</div>
+            </div>
+          ))}
+          {e.email && <ReplyBox entry={e} onReplied={replied} />}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {e.status !== 'answered' && <button onClick={() => setStatus(e.id, 'answered')} style={smallBtn}>Mark answered</button>}
             {e.status !== 'archived' && <button onClick={() => setStatus(e.id, 'archived')} style={smallBtn}>Archive</button>}
@@ -109,6 +129,65 @@ export default function AdminInbox({ onCount }) {
   );
 }
 
+// Reply composer under one message: emails the reply to them and adds it to
+// the thread above. The draft stays put if sending fails.
+function ReplyBox({ entry, onReplied }) {
+  const [open, setOpen] = React.useState(false);
+  const [text, setText] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const send = async () => {
+    setSending(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/inbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: entry.id, reply: text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'The reply didn’t send.');
+      onReplied(data.entry);
+      setText('');
+      setOpen(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={{ ...smallBtn, background: T.ink, color: T.white, borderColor: T.ink, marginBottom: 10 }}>
+        {entry.replies?.length ? 'Reply again' : 'Reply'}
+      </button>
+    );
+  }
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <textarea
+        value={text}
+        onChange={(ev) => setText(ev.target.value)}
+        placeholder={`Write your reply to ${entry.name || entry.email}…`}
+        rows={5}
+        autoFocus
+        style={{ width: '100%', boxSizing: 'border-box', padding: 12, fontSize: 14, fontFamily: 'inherit', border: `1px solid ${T.line}`, resize: 'vertical' }}
+      />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+        <button onClick={send} disabled={sending || !text.trim()} style={{ ...smallBtn, background: T.ink, color: T.white, borderColor: T.ink, opacity: sending || !text.trim() ? 0.5 : 1 }}>
+          {sending ? 'Sending…' : `Send to ${entry.email}`}
+        </button>
+        <button onClick={() => { setOpen(false); setError(''); }} style={smallBtn}>Cancel</button>
+        {error && <span style={{ fontSize: 12, color: '#a13d2b' }}>{error}</span>}
+      </div>
+      <p style={{ fontSize: 11, color: T.soft, margin: '6px 0 0' }}>Sent by email — “Hi (their first name),” is added at the top and their message is quoted underneath. Marks this answered.</p>
+    </div>
+  );
+}
+
+const replyBubble = { background: T.blush, padding: '10px 12px', fontSize: 14, margin: '0 0 10px' };
 const card = { background: T.white, border: `1px solid ${T.line}`, padding: 24, marginBottom: 24 };
 const row = { padding: '16px 0', borderTop: `1px solid ${T.line}` };
 const tag = { fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '4px 8px', fontWeight: 700 };

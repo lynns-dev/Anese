@@ -17,7 +17,7 @@
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/shippingeasy-retry",
+      "path": "/api/cron/easyship-retry",
       "schedule": "20 * * * *"
     }
   ]

@@ -228,12 +228,12 @@ export default function AdminDashboard() {
     loadOrders();
   }, [loadOrders]);
 
-  // ShippingEasy setup + latest label callback (pages/api/admin/orders/shippingeasy.js).
-  const [shippingEasyStatus, setShippingEasyStatus] = React.useState(null);
-  const loadShippingEasy = React.useCallback(() => {
-    fetch('/api/admin/orders/shippingeasy').then((r) => r.json()).then(setShippingEasyStatus).catch(() => {});
+  // Easyship setup, tracking webhook + latest label (pages/api/admin/orders/easyship.js).
+  const [easyshipStatus, setEasyshipStatus] = React.useState(null);
+  const loadEasyship = React.useCallback(() => {
+    fetch('/api/admin/orders/easyship').then((r) => r.json()).then(setEasyshipStatus).catch(() => {});
   }, []);
-  React.useEffect(() => { loadShippingEasy(); }, [loadShippingEasy]);
+  React.useEffect(() => { loadEasyship(); }, [loadEasyship]);
 
   const visibleOrders = React.useMemo(
     () => (showArchived ? orders : orders.filter((o) => o.status !== 'archived')),
@@ -303,21 +303,21 @@ export default function AdminDashboard() {
     }
   };
 
-  // Per-order "Send to ShippingEasy" (pages/api/admin/orders/shippingeasy.js).
-  const handleSendToShippingEasy = async (order) => {
-    const key = `shippingeasy:${order.id}`;
+  // Per-order "Send to Easyship" (pages/api/admin/orders/easyship.js).
+  const handleSendToEasyship = async (order) => {
+    const key = `easyship:${order.id}`;
     setOrderActionBusy((prev) => ({ ...prev, [key]: true }));
     setOrderActionError((prev) => ({ ...prev, [key]: '' }));
     try {
-      const res = await fetch('/api/admin/orders/shippingeasy', {
+      const res = await fetch('/api/admin/orders/easyship', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId: order.id }),
       });
       const data = await res.json();
       if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
-      if (!res.ok) throw new Error(data.error || 'ShippingEasy did not accept it.');
-      loadShippingEasy();
+      if (!res.ok) throw new Error(data.error || 'Easyship did not accept it.');
+      loadEasyship();
     } catch (err) {
       setOrderActionError((prev) => ({ ...prev, [key]: err.message }));
     } finally {
@@ -1083,7 +1083,7 @@ export default function AdminDashboard() {
             </label>
           }
         >
-          {shippingEasyStatus && <ShippingEasyStatus status={shippingEasyStatus} onSent={() => { loadOrders(); loadShippingEasy(); }} />}
+          {easyshipStatus && <EasyshipStatus status={easyshipStatus} onSent={() => { loadOrders(); loadEasyship(); }} />}
           {ordersLoading ? (
             <p style={{ color: T.soft, fontSize: 14 }}>Loading…</p>
           ) : visibleOrders.length === 0 ? (
@@ -1097,7 +1097,7 @@ export default function AdminDashboard() {
                 <span style={{ flex: '0 0 100px' }}>Payment</span>
                 <span style={{ flex: '0 0 90px' }}>Status</span>
                 <span style={{ flex: '0 0 116px' }}>Meta</span>
-                <span style={{ flex: '0 0 150px' }}>ShippingEasy</span>
+                <span style={{ flex: '0 0 150px' }}>Easyship</span>
               </div>
               {visibleOrders.map((o) => {
                 const { source, campaign, adset, ad } = attributionSource(o);
@@ -1129,17 +1129,17 @@ export default function AdminDashboard() {
                         />
                       </span>
                       <span style={{ flex: '0 0 150px' }} onClick={(e) => e.stopPropagation()}>
-                        {o.shippingEasy?.sent ? (
-                          <span style={{ fontSize: 12, color: T.soft }}>✓ In ShippingEasy</span>
+                        {o.easyship?.sent ? (
+                          <span style={{ fontSize: 12, color: T.soft }}>✓ In Easyship</span>
                         ) : (o.status || 'paid') === 'paid' && !o.trackingNumber ? (
                           <button
                             type="button"
-                            disabled={Boolean(orderActionBusy[`shippingeasy:${o.id}`])}
-                            onClick={() => handleSendToShippingEasy(o)}
-                            title={o.shippingEasy?.lastError || ''}
-                            style={{ ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap', opacity: orderActionBusy[`shippingeasy:${o.id}`] ? 0.5 : 1, ...(o.shippingEasy?.lastError ? { borderColor: '#a13d2b', color: '#a13d2b' } : {}) }}
+                            disabled={Boolean(orderActionBusy[`easyship:${o.id}`])}
+                            onClick={() => handleSendToEasyship(o)}
+                            title={o.easyship?.lastError || ''}
+                            style={{ ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap', opacity: orderActionBusy[`easyship:${o.id}`] ? 0.5 : 1, ...(o.easyship?.lastError ? { borderColor: '#a13d2b', color: '#a13d2b' } : {}) }}
                           >
-                            {orderActionBusy[`shippingeasy:${o.id}`] ? 'Sending…' : 'Send to ShippingEasy'}
+                            {orderActionBusy[`easyship:${o.id}`] ? 'Sending…' : 'Send to Easyship'}
                           </button>
                         ) : (
                           <span style={{ fontSize: 12, color: T.soft }}>—</span>
@@ -1192,28 +1192,28 @@ export default function AdminDashboard() {
                               <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`meta:${o.id}`] || o.meta.lastError}</div>
                             )}
                           </div>
-                          {/* Whether ShippingEasy has this order (lib/shippingEasy.js).
+                          {/* Whether Easyship has this order (lib/easyship.js).
                               Sent automatically at checkout and retried hourly;
                               the button covers older orders and failures. */}
                           <div>
-                            <div style={formLabel}>ShippingEasy</div>
-                            {o.shippingEasy?.sent && (
+                            <div style={formLabel}>Easyship</div>
+                            {o.easyship?.sent && (
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
-                                In ShippingEasy{o.shippingEasy.sentAt ? ` · ${new Date(o.shippingEasy.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
+                                In Easyship{o.easyship.sentAt ? ` · ${new Date(o.easyship.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
                               </div>
                             )}
-                            {!o.shippingEasy?.sent && (
+                            {!o.easyship?.sent && (
                               <button
                                 type="button"
-                                disabled={Boolean(orderActionBusy[`shippingeasy:${o.id}`])}
-                                onClick={() => handleSendToShippingEasy(o)}
-                                style={{ ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap', opacity: orderActionBusy[`shippingeasy:${o.id}`] ? 0.5 : 1 }}
+                                disabled={Boolean(orderActionBusy[`easyship:${o.id}`])}
+                                onClick={() => handleSendToEasyship(o)}
+                                style={{ ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap', opacity: orderActionBusy[`easyship:${o.id}`] ? 0.5 : 1 }}
                               >
-                                {orderActionBusy[`shippingeasy:${o.id}`] ? 'Sending…' : 'Send to ShippingEasy'}
+                                {orderActionBusy[`easyship:${o.id}`] ? 'Sending…' : 'Send to Easyship'}
                               </button>
                             )}
-                            {(orderActionError[`shippingeasy:${o.id}`] || (!o.shippingEasy?.sent && o.shippingEasy?.lastError)) && (
-                              <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`shippingeasy:${o.id}`] || o.shippingEasy.lastError}</div>
+                            {(orderActionError[`easyship:${o.id}`] || (!o.easyship?.sent && o.easyship?.lastError)) && (
+                              <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`easyship:${o.id}`] || o.easyship.lastError}</div>
                             )}
                           </div>
                           {o.shippingProtection > 0 && (
@@ -1739,60 +1739,74 @@ const orderHeadRow = {
   display: 'flex', gap: 12, padding: '0 0 10px', borderBottom: `1px solid ${T.ink}`,
   fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.soft,
 };
-// Panel above the Orders list: whether ShippingEasy is set up, how many
+// Panel above the Orders list: whether Easyship is set up, whether the
+// tracking webhook is connected (with a button to connect it), how many
 // orders still need sending (with a button to send them all), and what
-// happened with the latest label callback (tracking coming back).
-function ShippingEasyStatus({ status, onSent }) {
-  const [busy, setBusy] = React.useState(false);
+// happened with the latest label webhook (tracking coming back).
+function EasyshipStatus({ status, onSent }) {
+  const [busy, setBusy] = React.useState('');
   const [message, setMessage] = React.useState('');
-  const last = status.lastCallback;
-  let lastText = 'No labels printed yet.';
+  const fmt = (iso) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const last = status.lastWebhook;
+  let lastText = 'No labels bought yet.';
   if (last) {
-    const when = new Date(last.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     lastText = last.ok
-      ? `Last label: ${last.carrier ? `${last.carrier} ` : ''}${last.trackingNumber} · ${when}`
-      : `Last callback ${when} failed — ${last.error}`;
+      ? `Last label: ${last.carrier ? `${last.carrier} ` : ''}${last.trackingNumber} · ${fmt(last.at)}`
+      : `Last webhook ${fmt(last.at)} didn't ship an order — ${last.error}`;
   }
-  const sendAll = async () => {
-    setBusy(true);
+  const post = async (kind, body) => {
+    setBusy(kind);
     setMessage('');
     try {
-      const res = await fetch('/api/admin/orders/shippingeasy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ all: true }),
-      });
+      const res = await fetch('/api/admin/orders/easyship', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not send.');
-      const parts = [`Sent ${data.sent} order${data.sent === 1 ? '' : 's'} to ShippingEasy.`];
-      if (data.failed?.length) parts.push(`${data.failed.length} failed — ${data.failed[0].error}`);
-      if (data.more) parts.push('More are waiting — click again.');
-      setMessage(parts.join(' '));
-      onSent();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+      return data;
     } catch (err) {
       setMessage(err.message);
+      return null;
     } finally {
-      setBusy(false);
+      setBusy('');
     }
+  };
+  const sendAll = async () => {
+    const data = await post('send', { all: true });
+    if (!data) return;
+    const parts = [`Sent ${data.sent} order${data.sent === 1 ? '' : 's'} to Easyship.`];
+    if (data.failed?.length) parts.push(`${data.failed.length} failed — ${data.failed[0].error}`);
+    if (data.more) parts.push('More are waiting — click again.');
+    setMessage(parts.join(' '));
+    onSent();
+  };
+  const connect = async () => {
+    const data = await post('connect', { action: 'connect-webhook' });
+    if (!data) return;
+    setMessage('Tracking connected — buying a label in Easyship will now mark the order shipped and email the customer.');
+    onSent();
   };
   return (
     <div style={{ border: `1px solid ${T.line}`, padding: '12px 14px', margin: '0 0 16px', fontSize: 13, lineHeight: 1.6 }}>
       <div style={{ fontWeight: 600, color: status.configured ? T.ink : '#a13d2b' }}>
-        {status.configured ? 'ShippingEasy connected' : 'ShippingEasy is not set up'}
+        {status.configured ? 'Easyship connected' : 'Easyship is not set up'}
       </div>
       <div style={{ color: T.soft }}>
         {status.configured
-          ? `New orders are sent automatically; tracking comes back when you print a label. ${lastText}`
-          : 'Add SHIPPINGEASY_API_KEY, SHIPPINGEASY_API_SECRET and SHIPPINGEASY_STORE_API_KEY to this site in Vercel, then redeploy.'}
+          ? `New orders are created in Easyship automatically. ${status.webhook ? `Tracking comes back when you buy a label. ${lastText}` : 'Tracking isn’t connected yet — connect it so labels mark orders shipped.'}`
+          : 'Add EASYSHIP_API_TOKEN (Easyship → Connect → API) to this site in Vercel, then redeploy.'}
       </div>
       {status.configured && (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+          {!status.webhook && (
+            <button type="button" onClick={connect} disabled={Boolean(busy)} style={{ ...S.btnFill, height: 38, padding: '0 16px', fontSize: 13, opacity: busy ? 0.6 : 1 }}>
+              {busy === 'connect' ? 'Connecting…' : 'Connect tracking'}
+            </button>
+          )}
           {status.unsent > 0 ? (
-            <button type="button" onClick={sendAll} disabled={busy} style={{ ...S.btnFill, height: 38, padding: '0 16px', fontSize: 13, opacity: busy ? 0.6 : 1 }}>
-              {busy ? 'Sending…' : `Send ${status.unsent} unsent order${status.unsent === 1 ? '' : 's'} to ShippingEasy`}
+            <button type="button" onClick={sendAll} disabled={Boolean(busy)} style={{ ...(status.webhook ? S.btnFill : S.btnOutline), height: 38, padding: '0 16px', fontSize: 13, opacity: busy ? 0.6 : 1 }}>
+              {busy === 'send' ? 'Sending…' : `Send ${status.unsent} unsent order${status.unsent === 1 ? '' : 's'} to Easyship`}
             </button>
           ) : (
-            <span style={{ color: T.soft }}>Every order that needs shipping is in ShippingEasy.</span>
+            <span style={{ color: T.soft }}>Every order that needs shipping is in Easyship.</span>
           )}
           {message && <span>{message}</span>}
         </div>

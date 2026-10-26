@@ -1406,6 +1406,7 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'visitors' && <VisitorsTab />}
+        {activeTab === 'subscribers' && <SubscribersTab />}
         </main>
       </div>
 
@@ -1580,6 +1581,149 @@ function ordinal(n) {
   const tens = n % 100;
   if (tens >= 11 && tens <= 13) return `${n}th`;
   return `${n}${{ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'}`;
+}
+
+// Subscribers tab: everyone who has given an email or phone — email signups,
+// text-alert opt-ins, checkouts (paid or abandoned) and customers — with
+// whether they bought, what was left in an abandoned cart, and whether
+// they're on the email list (pages/api/admin/subscribers.js). Adding,
+// suppressing and sending emails stay on the Email page.
+const SUB_FILTERS = [['all', 'All'], ['abandoned', 'Abandoned checkout'], ['customers', 'Customers'], ['signups', 'Signups'], ['optedin', 'Emails OK'], ['texts', 'Texts OK'], ['automated', 'Sent an automation'], ['noautomation', 'No automation yet']];
+const SUB_SOURCE_LABELS = { checkout: 'checkout', order: 'order', texts: 'text alerts', shopify: 'Shopify', manual: 'added by hand', lead: 'checkout', newsletter: 'signup' };
+
+function subscriberStatus(s) {
+  if (s.orders?.count) return { kind: 'customer', label: `Customer · ${s.orders.count} order${s.orders.count === 1 ? '' : 's'} · $${s.orders.spent.toFixed(2)}`, color: '#1a7a3c' };
+  if (s.lastCheckoutAt) return { kind: 'abandoned', label: 'Abandoned checkout', color: '#a13d2b' };
+  if (s.sources?.includes('order')) return { kind: 'customer', label: 'Customer', color: '#1a7a3c' };
+  return { kind: 'signup', label: s.sources?.includes('texts') && !s.email ? 'Text alerts signup' : 'Signup', color: T.soft };
+}
+
+function subscriberCart(s) {
+  const items = s.cart || [];
+  const total = s.cartValue || items.reduce((t, i) => t + (Number(i.price) || 0) * (i.quantity || 1), 0);
+  return `${items.map((i) => `${i.name} ×${i.quantity || 1}`).join(', ')}${total ? ` ($${total.toFixed(2)})` : ''}`;
+}
+
+function subscriberCsvCell(v) {
+  const t = v == null ? '' : String(v);
+  return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+
+const shortDate = (v) => (v ? new Date(v).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+
+function SubscribersTab() {
+  const [list, setList] = React.useState(null);
+  const [error, setError] = React.useState('');
+  const [filter, setFilter] = React.useState('all');
+  const [query, setQuery] = React.useState('');
+
+  const load = React.useCallback(() => {
+    setError('');
+    fetch('/api/admin/subscribers')
+      .then((r) => r.json().then((d) => (r.ok ? d : Promise.reject(new Error(d.error || 'Could not load subscribers.')))))
+      .then((d) => setList(d.subscribers || []))
+      .catch((err) => setError(err.message));
+  }, []);
+  React.useEffect(() => { load(); }, [load]);
+
+  const matches = (s, f) => {
+    const st = subscriberStatus(s).kind;
+    if (f === 'abandoned') return st === 'abandoned';
+    if (f === 'customers') return st === 'customer';
+    if (f === 'signups') return st === 'signup';
+    if (f === 'optedin') return Boolean(s.consent);
+    if (f === 'texts') return Boolean(s.textsOk);
+    if (f === 'automated') return s.automations?.length > 0;
+    if (f === 'noautomation') return Boolean(s.email) && !s.automations?.length;
+    return true;
+  };
+  const counts = React.useMemo(() => Object.fromEntries(SUB_FILTERS.map(([k]) => [k, (list || []).filter((s) => matches(s, k)).length])), [list]);
+  const rows = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (list || []).filter((s) => matches(s, filter) && (!q || [s.email, s.phone, s.name, s.city, s.state, ...(s.cart || []).map((i) => i.name)].filter(Boolean).join(' ').toLowerCase().includes(q)));
+  }, [list, filter, query]);
+
+  const exportCsv = () => {
+    const header = ['Email', 'Phone', 'Name', 'City', 'State', 'Status', 'Email list', 'Texts OK', 'Sources', 'Abandoned cart', 'Automations sent', 'First seen', 'Last seen'];
+    const lines = rows.map((s) => [s.email, s.phone, s.name, s.city, s.state, subscriberStatus(s).label, s.status || '', s.textsOk ? 'yes' : 'no', (s.sources || []).join(' '),
+      subscriberStatus(s).kind === 'abandoned' ? subscriberCart(s) : '',
+      (s.automations || []).map((a) => `${a.flow} email ${a.step} (${a.sentAt ? new Date(a.sentAt).toLocaleString() : '?'})`).join('; '),
+      s.firstSeen ? new Date(s.firstSeen).toLocaleString() : '', s.lastSeen ? new Date(s.lastSeen).toLocaleString() : ''].map(subscriberCsvCell).join(','));
+    const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `anese-subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  return (
+    <Section
+      title={list ? `${rows.length} ${rows.length === 1 ? 'person' : 'people'}` : 'Subscribers'}
+      action={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <a href="/admin/email" style={S.btnOutline}>Email tools</a>
+        <button type="button" onClick={exportCsv} disabled={!rows.length} style={S.btnOutline}>Export CSV</button>
+        <button type="button" onClick={load} style={S.btnOutline}>Refresh</button>
+      </div>}
+    >
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+        {SUB_FILTERS.map(([key, label]) => (
+          <button key={key} type="button" onClick={() => setFilter(key)} style={{ ...chip, cursor: 'pointer', background: filter === key ? T.ink : T.white, color: filter === key ? T.white : T.ink }}>{label} · {counts[key] ?? 0}</button>
+        ))}
+      </div>
+      <input placeholder="Search email, phone, name, city, product…" value={query} onChange={(e) => setQuery(e.target.value)}
+        style={{ width: '100%', boxSizing: 'border-box', height: 40, padding: '0 12px', border: `1px solid ${T.line}`, background: T.white, fontSize: 14, marginBottom: 16 }} />
+
+      {list === null && !error && <p style={{ color: T.soft, fontSize: 14 }}>Loading…</p>}
+      {error && <p style={{ color: '#a13d2b', fontSize: 14 }}>{error}</p>}
+      {list && rows.length === 0 && <p style={{ color: T.soft, fontSize: 14 }}>No one here yet. People appear as soon as they sign up or type their email at checkout.</p>}
+
+      {rows.map((s) => {
+        const st = subscriberStatus(s);
+        return (
+          <div key={s.key} style={{ padding: '14px 0', borderTop: `1px solid ${T.line}`, fontSize: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ wordBreak: 'break-word' }}>
+                <span style={{ fontWeight: 600 }}>{s.name || s.email || s.phone}</span>
+                {s.name && s.email && <span style={{ color: T.soft }}> · {s.email}</span>}
+                {s.phone && (s.name || s.email) && <span style={{ color: T.soft }}> · {s.phone}</span>}
+              </span>
+              <span style={{ color: T.soft, fontSize: 13 }}>
+                {[s.city, s.state].filter(Boolean).join(', ')}{(s.city || s.state) ? ' · ' : ''}last seen {shortDate(s.lastSeen)}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
+              <span style={{ fontWeight: 600, color: st.color }}>{st.label}</span>
+              {st.kind === 'abandoned' && s.cart?.length > 0 && <span style={{ color: T.soft }}>left {subscriberCart(s)}</span>}
+              <span style={{ color: T.soft, fontSize: 13 }}>via {(s.sources || []).map((x) => SUB_SOURCE_LABELS[x] || x).filter((x, i, a) => a.indexOf(x) === i).join(', ')}</span>
+              {s.email && (
+                <span title="Whether they're on the email list (manage on the Email page)"
+                  style={{ ...chip, background: s.consent ? '#e7f4ea' : T.white, color: s.consent ? '#1a7a3c' : T.soft }}>
+                  {s.consent ? 'Emails OK' : s.status ? `Email: ${s.status}` : 'Not on email list'}
+                </span>
+              )}
+              {s.textsOk && <span style={{ ...chip, background: '#e7f4ea', color: '#1a7a3c' }}>Texts OK</span>}
+            </div>
+            {s.email && (
+              <div style={{ marginTop: 6, fontSize: 13, color: T.soft }}>
+                {s.automations?.length ? (
+                  <>
+                    <span>Automations sent:</span>
+                    {s.automations.map((a) => (
+                      <div key={`${a.flowId}:${a.step}:${a.sentAt}`} style={{ paddingLeft: 12 }}>
+                        <span style={{ color: T.ink }}>{a.flow}</span> · email {a.step}{a.steps > 1 ? ` of ${a.steps}` : ''}
+                        {a.subject && <> · &ldquo;{a.subject}&rdquo;</>} · {shortDate(a.sentAt)}
+                      </div>
+                    ))}
+                  </>
+                ) : 'No automation emails sent yet'}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </Section>
+  );
 }
 
 function VisitTag({ n }) {
@@ -1990,6 +2134,7 @@ const ADMIN_TABS = [
   ['dashboard', 'Dashboard'],
   ['orders', 'Orders'],
   ['visitors', 'Visitors'],
+  ['subscribers', 'Subscribers'],
   ['reviews', 'Reviews'],
   ['discounts', 'Discounts'],
   ['inbox', 'Inbox'],

@@ -10,6 +10,9 @@
 // - POST { orderId }: sends that order to Easyship now and saves the
 //   outcome on the order — for orders placed before the keys were added,
 //   or one the automatic send and hourly retry couldn't get through.
+// - POST { orderIds: [...] }: sends just those orders (admin's checkboxes),
+//   skipping any already in Easyship, shipped, refunded or without an
+//   address, each with the reason.
 // - POST { all: true }: the same for every order from the last 45 days that
 //   isn't in Easyship yet and still needs shipping (paid, no tracking),
 //   up to BULK_LIMIT per click, saved one day at a time.
@@ -51,6 +54,9 @@ export default async function handler(req, res) {
       webhook: await kvGet('easyship_webhook'),
       lastWebhook: await kvGet('easyship_last_webhook'),
       unsent: orders.filter(needsEasyship).length,
+      // Paid, unshipped, not in Easyship — but no address to ship to (e.g.
+      // Shop Pay orders, whose address stays in Shopify).
+      noAddress: orders.filter((o) => (o.status || 'paid') === 'paid' && !o.trackingNumber && !o.easyship?.sent && !o.shipping?.address).length,
       autobuy: await getAutobuySettings().catch(() => null),
       boughtToday: await autoBoughtToday().catch(() => 0),
       labelQueue: (await labelQueue().catch(() => [])).length,
@@ -85,6 +91,43 @@ export default async function handler(req, res) {
       const settings = await getAutobuySettings();
       return res.status(200).json(await buyLabels({ limit: 1, trigger: 'manual', capUsd: settings.capUsd }));
     } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  if (Array.isArray(req.body?.orderIds)) {
+    if (!easyshipConfig().configured) return res.status(400).json({ error: 'Easyship is not set up yet.' });
+    const wanted = new Set(req.body.orderIds.map(String).slice(0, BULK_LIMIT));
+    try {
+      let sent = 0;
+      const failed = [];
+      const skipped = [];
+      for (const key of dateKeysForRange('45d')) {
+        if (!wanted.size) break;
+        const orders = await getOrders(key);
+        let changed = false;
+        for (let i = 0; i < orders.length; i += 1) {
+          const o = orders[i];
+          if (!wanted.has(String(o.id))) continue;
+          wanted.delete(String(o.id));
+          const reason = o.easyship?.sent ? 'already in Easyship'
+            : o.trackingNumber ? 'already shipped'
+            : (o.status || 'paid') !== 'paid' ? `order is ${o.status}`
+            : !o.shipping?.address ? 'no shipping address'
+            : null;
+          if (reason) { skipped.push({ id: o.id, reason }); continue; }
+          const easyship = await sendOrderToEasyship(o);
+          orders[i] = { ...o, easyship };
+          changed = true;
+          if (easyship.sent) sent += 1;
+          else failed.push({ id: o.id, error: easyship.lastError });
+        }
+        if (changed) await saveOrdersForDay(key, orders);
+      }
+      for (const id of wanted) skipped.push({ id, reason: 'not found in the last 45 days' });
+      return res.status(200).json({ sent, failed, skipped });
+    } catch (err) {
+      console.error('Send selected to Easyship failed:', err);
       return res.status(500).json({ error: err.message });
     }
   }

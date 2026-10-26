@@ -235,6 +235,41 @@ export default function AdminDashboard() {
   }, []);
   React.useEffect(() => { loadEasyship(); }, [loadEasyship]);
 
+  // Orders ticked in the list for "Send selected to Easyship".
+  const [selectedOrders, setSelectedOrders] = React.useState([]);
+  const [selectedSending, setSelectedSending] = React.useState(false);
+  const [selectedMessage, setSelectedMessage] = React.useState('');
+  const canSendToEasyship = (o) => (o.status || 'paid') === 'paid' && !o.trackingNumber && !o.easyship?.sent && Boolean(o.shipping?.address);
+  const toggleSelected = (id) => setSelectedOrders((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const handleSendSelected = async () => {
+    setSelectedSending(true);
+    setSelectedMessage('');
+    let sent = 0;
+    const problems = [];
+    try {
+      // 40 per request (the endpoint's batch size).
+      for (let i = 0; i < selectedOrders.length; i += 40) {
+        const res = await fetch('/api/admin/orders/easyship', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderIds: selectedOrders.slice(i, i + 40) }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not send.');
+        sent += data.sent;
+        problems.push(...data.failed.map((f) => `${f.id}: ${f.error}`), ...data.skipped.map((k) => `${k.id}: ${k.reason}`));
+      }
+      setSelectedMessage(`Sent ${sent} to Easyship.${problems.length ? ` Not sent — ${problems.slice(0, 3).join(' · ')}${problems.length > 3 ? ` (+${problems.length - 3} more)` : ''}` : ''}`);
+      setSelectedOrders([]);
+    } catch (err) {
+      setSelectedMessage(err.message);
+    } finally {
+      setSelectedSending(false);
+      loadOrders();
+      loadEasyship();
+    }
+  };
+
   const visibleOrders = React.useMemo(
     () => (showArchived ? orders : orders.filter((o) => o.status !== 'archived')),
     [orders, showArchived]
@@ -1084,6 +1119,19 @@ export default function AdminDashboard() {
           }
         >
           {easyshipStatus && <EasyshipStatus status={easyshipStatus} onSent={() => { loadOrders(); loadEasyship(); }} />}
+          {(selectedOrders.length > 0 || selectedMessage) && (
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 12px', fontSize: 13 }}>
+              {selectedOrders.length > 0 && (
+                <>
+                  <button type="button" onClick={handleSendSelected} disabled={selectedSending} style={{ ...S.btnFill, height: 36, padding: '0 16px', fontSize: 13, opacity: selectedSending ? 0.6 : 1 }}>
+                    {selectedSending ? 'Sending…' : `Send ${selectedOrders.length} selected to Easyship`}
+                  </button>
+                  <button type="button" onClick={() => setSelectedOrders([])} style={{ ...S.btnOutline, height: 36, padding: '0 14px', fontSize: 12 }}>Clear</button>
+                </>
+              )}
+              {selectedMessage && <span>{selectedMessage}</span>}
+            </div>
+          )}
           {ordersLoading ? (
             <p style={{ color: T.soft, fontSize: 14 }}>Loading…</p>
           ) : visibleOrders.length === 0 ? (
@@ -1091,6 +1139,22 @@ export default function AdminDashboard() {
           ) : (
             <div>
               <div style={orderHeadRow}>
+                <span style={{ flex: '0 0 22px' }}>
+                  {(() => {
+                    const eligible = visibleOrders.filter(canSendToEasyship).map((o) => o.id);
+                    const all = eligible.length > 0 && eligible.every((id) => selectedOrders.includes(id));
+                    return (
+                      <input
+                        type="checkbox"
+                        aria-label="Select all orders that can go to Easyship"
+                        title="Select all orders not yet in Easyship"
+                        checked={all}
+                        disabled={eligible.length === 0}
+                        onChange={() => setSelectedOrders(all ? [] : eligible)}
+                      />
+                    );
+                  })()}
+                </span>
                 <span style={{ flex: '0 0 130px' }}>Date</span>
                 <span style={{ flex: 1 }}>Items</span>
                 <span style={{ flex: '0 0 90px' }}>Amount</span>
@@ -1110,6 +1174,11 @@ export default function AdminDashboard() {
                       style={{ ...orderRow, borderBottom: 'none', cursor: 'pointer' }}
                       onClick={() => setExpandedOrderId(expanded ? null : o.id)}
                     >
+                      <span style={{ flex: '0 0 22px' }} onClick={(e) => e.stopPropagation()}>
+                        {canSendToEasyship(o) && (
+                          <input type="checkbox" aria-label="Select for Easyship" checked={selectedOrders.includes(o.id)} onChange={() => toggleSelected(o.id)} />
+                        )}
+                      </span>
                       <span style={{ flex: '0 0 130px', color: T.soft }}>
                         {new Date(o.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                       </span>
@@ -1131,6 +1200,8 @@ export default function AdminDashboard() {
                       <span style={{ flex: '0 0 150px' }} onClick={(e) => e.stopPropagation()}>
                         {o.easyship?.sent ? (
                           <span style={{ fontSize: 12, color: T.soft }}>✓ In Easyship</span>
+                        ) : (o.status || 'paid') === 'paid' && !o.trackingNumber && !o.shipping?.address ? (
+                          <span style={{ fontSize: 12, color: T.soft }} title="No shipping address saved for this order">No address</span>
                         ) : (o.status || 'paid') === 'paid' && !o.trackingNumber ? (
                           <button
                             type="button"
@@ -1809,6 +1880,11 @@ function EasyshipStatus({ status, onSent }) {
             <span style={{ color: T.soft }}>Every order that needs shipping is in Easyship.</span>
           )}
           {message && <span>{message}</span>}
+        </div>
+      )}
+      {status.configured && status.noAddress > 0 && (
+        <div style={{ color: T.soft, marginTop: 6 }}>
+          {status.noAddress} paid order{status.noAddress === 1 ? ' has' : 's have'} no shipping address saved here (Shop Pay orders keep theirs in Shopify), so {status.noAddress === 1 ? 'it' : 'they'} can’t be sent to Easyship from this page.
         </div>
       )}
       {status.configured && status.autobuy && <AutobuyLabels status={status} onChange={onSent} />}

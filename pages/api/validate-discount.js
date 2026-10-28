@@ -3,6 +3,7 @@
 // confirms whether the specific submitted code is valid.
 
 import { getDiscounts } from '../../lib/discountsStore';
+import { findPromo } from '../../lib/promos';
 import { findUniqueDiscount } from '../../lib/uniqueDiscounts';
 
 export default async function handler(req, res) {
@@ -17,6 +18,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Running time-boxed promos (lib/promos.js) win over the admin list.
+    const promo = findPromo(code);
+    if (promo) return res.status(200).json({ valid: true, code: promo.code, type: promo.type, value: promo.value });
+
     const discounts = await getDiscounts();
     // Falls back to the one-off per-subscriber codes the abandoned-checkout
     // email hands out (lib/uniqueDiscounts.js).

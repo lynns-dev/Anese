@@ -9,6 +9,7 @@ import { getFeaturedProducts } from '../lib/products';
 import { useCart } from '../lib/useCart';
 import { useAllReviews } from '../lib/useReviews';
 import { T, S } from '../lib/theme';
+import { activePromo } from '../lib/promos';
 import {
   ConcernExplorer, IngredientExplorer, UgcVideoStrip, DemoSteps, RitualCards, MythFacts, QuizBand, Faq, HOME_FAQS, Lightbox, HomeSectionsStyles,
 } from '../components/HomeSections';
@@ -69,7 +70,7 @@ const HOME_JSON_LD = {
 };
 
 // Free shipping is already in the TopBanner above every page.
-const BANNER_MESSAGES = ANNOUNCEMENTS.filter((a) => !/free shipping/i.test(a.short));
+const DEFAULT_MESSAGES = ANNOUNCEMENTS.filter((a) => !/free shipping/i.test(a.short));
 
 const UGC_VIDEOS = [
   '/videos/anese-ugc-1.mp4',
@@ -97,16 +98,22 @@ export default function HomePage() {
     return { all, count, average, recommendPct };
   }, [reviewsByProduct]);
   const [bannerIndex, setBannerIndex] = React.useState(0);
+  // While a holiday sale is running (lib/promos.js) the bar shows only the
+  // sale, so a smaller code never sits next to it. Checked after mount since
+  // this page is statically built.
+  const [promo, setPromo] = React.useState(null);
+  React.useEffect(() => { setPromo(activePromo()); setBannerIndex(0); }, []);
+  const bannerMessages = promo ? [{ text: promo.banner, short: `${promo.value}% off with code ${promo.code}` }] : DEFAULT_MESSAGES;
   const [scrolled, setScrolled] = React.useState(false);
   const [lightboxIndex, setLightboxIndex] = React.useState(null);
   const closeLightbox = React.useCallback(() => setLightboxIndex(null), []);
 
   React.useEffect(() => {
     const id = setInterval(() => {
-      setBannerIndex((i) => (i + 1) % BANNER_MESSAGES.length);
+      setBannerIndex((i) => (i + 1) % bannerMessages.length);
     }, 3500);
     return () => clearInterval(id);
-  }, []);
+  }, [bannerMessages.length]);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -129,13 +136,13 @@ export default function HomePage() {
         <div
           style={{
             display: 'flex',
-            width: `${BANNER_MESSAGES.length * 100}%`,
-            transform: `translateX(-${(100 / BANNER_MESSAGES.length) * bannerIndex}%)`,
+            width: `${bannerMessages.length * 100}%`,
+            transform: `translateX(-${(100 / bannerMessages.length) * bannerIndex}%)`,
             transition: 'transform 0.6s ease',
           }}
         >
-          {BANNER_MESSAGES.map((msg, i) => (
-            <span key={i} className="announce-msg" style={{ width: `${100 / BANNER_MESSAGES.length}%` }}>
+          {bannerMessages.map((msg, i) => (
+            <span key={i} className="announce-msg" style={{ width: `${100 / bannerMessages.length}%` }}>
               <span className="announce-long">{msg.text}</span>
               <span className="announce-short">{msg.short}</span>
             </span>

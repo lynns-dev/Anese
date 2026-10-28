@@ -14,6 +14,7 @@ import { getIdentity } from '../lib/identity';
 import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
 import TopBanner from './TopBanner';
+import SaleCallout, { useActivePromo } from './SaleCallout';
 import CartExitPopup, { shouldAskCartExit } from './CartExitPopup';
 import { shippingFor, FREE_SHIPPING_THRESHOLD, SHIPPING_ALWAYS_FREE } from '../lib/shipping';
 
@@ -28,6 +29,9 @@ export default function CartDrawer({
 }) {
   const router = useRouter();
   const [discountCode, setDiscountCode] = React.useState('');
+  // During a holiday sale the exit popup offers the sale code, so it can't
+  // swap a shopper's 20% code for a smaller one.
+  const salePromo = useActivePromo();
   const [discountMessage, setDiscountMessage] = React.useState('');
   const [discountSubmitting, setDiscountSubmitting] = React.useState(false);
   const [shopPayReady, setShopPayReady] = React.useState(false);
@@ -187,11 +191,13 @@ export default function CartDrawer({
     if (appliedDiscount) setDiscountCode(appliedDiscount.code);
   }, [appliedDiscount]);
 
-  const handleApplyDiscount = async () => {
-    if (!discountCode.trim()) return;
+  const handleApplyDiscount = async (codeArg) => {
+    // The sale callout passes its code; the Apply button passes a click event.
+    const code = typeof codeArg === 'string' ? codeArg : discountCode;
+    if (!code.trim()) return null;
     setDiscountSubmitting(true);
     setDiscountMessage('Checking…');
-    const data = await applyDiscount(discountCode);
+    const data = await applyDiscount(code);
     setDiscountSubmitting(false);
     if (data.valid) {
       setDiscountMessage(`Code "${data.code}" applied.`);
@@ -199,8 +205,9 @@ export default function CartDrawer({
       setDiscountMessage('Could not check that code — please try again.');
     } else {
       setDiscountMessage('That code isn’t valid.');
-      trackCart('discount_rejected', { code: discountCode });
+      trackCart('discount_rejected', { code });
     }
+    return data;
   };
 
   // Cart drop-off report (lib/cartFunnel.js): opening the cart, and closing
@@ -408,6 +415,7 @@ export default function CartDrawer({
 
         {cart.length > 0 && (
           <div style={{ marginTop: 16, flexShrink: 0 }}>
+            <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 10 }} />
             <div style={{ display: 'flex', gap: 10 }}>
               <input
                 placeholder="Discount code"
@@ -542,8 +550,8 @@ export default function CartDrawer({
         onClose={() => setExitOpen(false)}
         cart={cart}
         applyDiscount={applyDiscount}
-        discountCode="WELCOME10"
-        discountLabel="10% off"
+        discountCode={salePromo ? salePromo.code : 'WELCOME10'}
+        discountLabel={salePromo ? `${salePromo.value}% off` : '10% off'}
         payments="card, Apple Pay, Google Pay, Shop Pay or Amazon Pay"
         freeShipAt={FREE_SHIPPING_THRESHOLD || null}
         shippingAlwaysFree={SHIPPING_ALWAYS_FREE}

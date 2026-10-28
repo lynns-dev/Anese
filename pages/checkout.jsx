@@ -21,6 +21,7 @@ import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import TopBanner from '../components/TopBanner';
+import SaleCallout from '../components/SaleCallout';
 import { shippingFor } from '../lib/shipping';
 
 // Live checkout — charges through Square. QuickBooks Payments is kept as a
@@ -129,6 +130,7 @@ function OrderItemsPanel({
       </div>
 
       <div style={{ marginTop: 6 }}>
+        <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 10 }} />
         <div style={{ display: 'flex', gap: 10 }}>
           <input
             placeholder="Discount code"
@@ -619,18 +621,21 @@ export default function CheckoutPage() {
     return () => { cancelled = true; setAmazonPayReady(false); };
   }, [step]);
 
-  const handleApplyDiscount = async () => {
-    if (!discountCode.trim()) return;
+  const handleApplyDiscount = async (codeArg) => {
+    // The sale callout passes its code; the Apply button passes a click event.
+    const code = typeof codeArg === 'string' ? codeArg : discountCode;
+    if (!code.trim()) return null;
     setDiscountMessage('Checking…');
-    const data = await applyDiscount(discountCode);
+    const data = await applyDiscount(code);
     if (data.valid) {
       setDiscountMessage(`Code "${data.code}" applied.`);
     } else if (data.error) {
       setDiscountMessage('Could not check that code — please try again.');
     } else {
       setDiscountMessage('That code isn’t valid.');
-      trackCart('discount_rejected', { code: discountCode });
+      trackCart('discount_rejected', { code });
     }
+    return data;
   };
 
   const goToStep = (n) => {
@@ -1059,6 +1064,8 @@ export default function CheckoutPage() {
               </div>
             ))}
           </div>
+
+          <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 16 }} />
 
           <div style={summaryRow}>
             <span style={{ color: T.soft }}>Subtotal</span>

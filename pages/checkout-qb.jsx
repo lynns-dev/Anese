@@ -16,6 +16,7 @@ import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import TopBanner from '../components/TopBanner';
+import SaleCallout from '../components/SaleCallout';
 import { shippingFor } from '../lib/shipping';
 
 // QuickBooks Payments version of the checkout, at a stable, unlinked URL
@@ -142,6 +143,7 @@ function OrderItemsPanel({
       </div>
 
       <div style={{ marginTop: 6 }}>
+        <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 10 }} />
         <div style={{ display: 'flex', gap: 10 }}>
           <input
             placeholder="Discount code"
@@ -452,10 +454,12 @@ export default function CheckoutPage({ qbEnvironment }) {
     return () => { cancelled = true; setAmazonPayReady(false); };
   }, [step]);
 
-  const handleApplyDiscount = async () => {
-    if (!discountCode.trim()) return;
+  const handleApplyDiscount = async (codeArg) => {
+    // The sale callout passes its code; the Apply button passes a click event.
+    const code = typeof codeArg === 'string' ? codeArg : discountCode;
+    if (!code.trim()) return null;
     setDiscountMessage('Checking…');
-    const data = await applyDiscount(discountCode);
+    const data = await applyDiscount(code);
     if (data.valid) {
       setDiscountMessage(`Code "${data.code}" applied.`);
     } else if (data.error) {
@@ -463,6 +467,7 @@ export default function CheckoutPage({ qbEnvironment }) {
     } else {
       setDiscountMessage('That code isn’t valid.');
     }
+    return data;
   };
 
   const goToStep = (n) => {
@@ -789,6 +794,8 @@ export default function CheckoutPage({ qbEnvironment }) {
               </div>
             ))}
           </div>
+
+          <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 16 }} />
 
           <div style={summaryRow}>
             <span style={{ color: T.soft }}>Subtotal</span>

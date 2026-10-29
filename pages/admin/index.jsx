@@ -163,10 +163,17 @@ function attributionSource(order) {
 
 const ORDER_STATUS_COLORS = {
   paid: { color: T.ink, background: T.blush },
+  fulfilled: { color: '#1a7a3c', background: 'rgba(26,122,60,0.12)' },
   refunded: { color: '#a13d2b', background: 'rgba(161,61,43,0.1)' },
   cancelled: { color: T.soft, background: T.paper },
   archived: { color: T.soft, background: T.paper },
 };
+
+// A paid order counts as fulfilled once a tracking number has been saved.
+function displayStatus(o) {
+  const status = o.status || 'paid';
+  return status === 'paid' && o.trackingNumber ? 'fulfilled' : status;
+}
 
 function orderStatusBadge(status) {
   const colors = ORDER_STATUS_COLORS[status] || ORDER_STATUS_COLORS.paid;
@@ -1207,7 +1214,12 @@ export default function AdminDashboard() {
                       <span style={{ flex: '0 0 90px' }}>${Number(o.amount).toFixed(2)}</span>
                       <span style={{ flex: '0 0 100px', color: T.soft }}>{o.paymentMethod || 'Unknown'}</span>
                       <span style={{ flex: '0 0 90px' }}>
-                        <span style={orderStatusBadge(o.status)}>{o.status || 'paid'}</span>
+                        <span
+                          style={orderStatusBadge(displayStatus(o))}
+                          title={o.trackingNumber ? `${o.carrier ? `${o.carrier} ` : ''}${o.trackingNumber}` : undefined}
+                        >
+                          {displayStatus(o) === 'fulfilled' ? '✓ fulfilled' : displayStatus(o)}
+                        </span>
                       </span>
                       {/* Manual send on every row — stopPropagation so the
                           click doesn't also open/close the order. */}
@@ -1219,7 +1231,11 @@ export default function AdminDashboard() {
                         />
                       </span>
                       <span style={{ flex: '0 0 150px' }} onClick={(e) => e.stopPropagation()}>
-                        {o.easyship?.sent ? (
+                        {o.trackingNumber ? (
+                          <span style={{ fontSize: 12, color: '#1a7a3c', wordBreak: 'break-all' }} title="Tracking number">
+                            {o.carrier ? `${o.carrier} ` : ''}{o.trackingNumber}
+                          </span>
+                        ) : o.easyship?.sent ? (
                           <span style={{ fontSize: 12, color: T.soft }}>✓ In Easyship</span>
                         ) : (o.status || 'paid') === 'paid' && !o.trackingNumber && !o.shipping?.address ? (
                           <span style={{ fontSize: 12, color: T.soft }} title="No shipping address saved for this order">No address</span>
@@ -1917,7 +1933,7 @@ const chip = { display: 'inline-block', border: `1px solid ${T.line}`, backgroun
 function orderSearchText(o) {
   const sh = o.shipping || {};
   return [
-    o.id, o.email, o.status || 'paid', o.paymentMethod, o.trackingNumber, o.carrier,
+    o.id, o.email, displayStatus(o), o.paymentMethod, o.trackingNumber, o.carrier,
     sh.name, sh.address, sh.apt, sh.city, sh.state, sh.zip, sh.phone, String(sh.phone || '').replace(/\D/g, ''),
     ...(o.items || []).map((i) => i.name),
     Number.isFinite(Number(o.amount)) ? Number(o.amount).toFixed(2) : '',

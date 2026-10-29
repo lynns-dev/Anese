@@ -242,7 +242,8 @@ export default function AdminDashboard() {
   }, []);
   React.useEffect(() => { loadEasyship(); }, [loadEasyship]);
 
-  // Orders ticked in the list for "Send selected to Easyship".
+  // Orders ticked in the list, for "Export selected" and "Send to Easyship"
+  // (only the ticked orders that can go to Easyship are sent).
   const [selectedOrders, setSelectedOrders] = React.useState([]);
   const [selectedSending, setSelectedSending] = React.useState(false);
   const [selectedMessage, setSelectedMessage] = React.useState('');
@@ -255,11 +256,12 @@ export default function AdminDashboard() {
     const problems = [];
     try {
       // 40 per request (the endpoint's batch size).
-      for (let i = 0; i < selectedOrders.length; i += 40) {
+      const toSend = orders.filter((o) => selectedOrders.includes(o.id) && canSendToEasyship(o)).map((o) => o.id);
+      for (let i = 0; i < toSend.length; i += 40) {
         const res = await fetch('/api/admin/orders/easyship', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderIds: selectedOrders.slice(i, i + 40) }),
+          body: JSON.stringify({ orderIds: toSend.slice(i, i + 40) }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not send.');
@@ -267,7 +269,7 @@ export default function AdminDashboard() {
         problems.push(...data.failed.map((f) => `${f.id}: ${f.error}`), ...data.skipped.map((k) => `${k.id}: ${k.reason}`));
       }
       setSelectedMessage(`Sent ${sent} to Easyship.${problems.length ? ` Not sent — ${problems.slice(0, 3).join(' · ')}${problems.length > 3 ? ` (+${problems.length - 3} more)` : ''}` : ''}`);
-      setSelectedOrders([]);
+      setSelectedOrders((prev) => prev.filter((id) => !toSend.includes(id)));
     } catch (err) {
       setSelectedMessage(err.message);
     } finally {
@@ -275,6 +277,23 @@ export default function AdminDashboard() {
       loadOrders();
       loadEasyship();
     }
+  };
+
+  // Just the ticked orders: who, where to ship, and what's in the order.
+  const handleExportSelected = () => {
+    const header = ['Order ID', 'Date', 'Name', 'Email', 'Phone', 'Address', 'Apt', 'City', 'State', 'ZIP', 'Items', 'Total qty'];
+    const lines = orders.filter((o) => selectedOrders.includes(o.id)).map((o) => {
+      const s = o.shipping || {};
+      const items = o.items || [];
+      return [o.id, new Date(o.createdAt).toLocaleString(), s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim(), o.email, s.phone,
+        s.address, s.apt, s.city, s.state, s.zip, items.map((i) => `${i.name} x${i.quantity || 1}`).join('; '), items.reduce((n, i) => n + Number(i.quantity || 1), 0)];
+    });
+    const blob = new Blob([[header, ...lines].map((l) => l.map(subscriberCsvCell).join(',')).join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `anese-selected-orders-${lines.length}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   // Search box: matches name, email, phone, address, items, order id,
@@ -1145,13 +1164,26 @@ export default function AdminDashboard() {
           }
         >
           {easyshipStatus && <EasyshipStatus status={easyshipStatus} onSent={() => { loadOrders(); loadEasyship(); }} />}
-          {(selectedOrders.length > 0 || selectedMessage) && (
+          {(selectedOrders.length > 0 || selectedMessage || visibleOrders.some(canSendToEasyship)) && (
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 12px', fontSize: 13 }}>
+              {visibleOrders.some(canSendToEasyship) && (
+                <button type="button" onClick={() => setSelectedOrders(visibleOrders.filter(canSendToEasyship).map((o) => o.id))} style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: T.ink, textDecoration: 'underline', cursor: 'pointer' }}>
+                  Select not in Easyship ({visibleOrders.filter(canSendToEasyship).length})
+                </button>
+              )}
               {selectedOrders.length > 0 && (
                 <>
-                  <button type="button" onClick={handleSendSelected} disabled={selectedSending} style={{ ...S.btnFill, height: 36, padding: '0 16px', fontSize: 13, opacity: selectedSending ? 0.6 : 1 }}>
-                    {selectedSending ? 'Sending…' : `Send ${selectedOrders.length} selected to Easyship`}
+                  <button type="button" onClick={handleExportSelected} style={{ ...S.btnFill, height: 36, padding: '0 16px', fontSize: 13 }}>
+                    Export {selectedOrders.length} selected to CSV
                   </button>
+                  {(() => {
+                    const sendable = orders.filter((o) => selectedOrders.includes(o.id) && canSendToEasyship(o)).length;
+                    return sendable > 0 && (
+                      <button type="button" onClick={handleSendSelected} disabled={selectedSending} style={{ ...S.btnOutline, height: 36, padding: '0 16px', fontSize: 13, opacity: selectedSending ? 0.6 : 1 }}>
+                        {selectedSending ? 'Sending…' : `Send ${sendable} to Easyship`}
+                      </button>
+                    );
+                  })()}
                   <button type="button" onClick={() => setSelectedOrders([])} style={{ ...S.btnOutline, height: 36, padding: '0 14px', fontSize: 12 }}>Clear</button>
                 </>
               )}
@@ -1169,16 +1201,16 @@ export default function AdminDashboard() {
               <div style={orderHeadRow}>
                 <span style={{ flex: '0 0 22px' }}>
                   {(() => {
-                    const eligible = visibleOrders.filter(canSendToEasyship).map((o) => o.id);
-                    const all = eligible.length > 0 && eligible.every((id) => selectedOrders.includes(id));
+                    const shown = visibleOrders.map((o) => o.id);
+                    const all = shown.length > 0 && shown.every((id) => selectedOrders.includes(id));
                     return (
                       <input
                         type="checkbox"
-                        aria-label="Select all orders that can go to Easyship"
-                        title="Select all orders not yet in Easyship"
+                        aria-label="Select all shown orders"
+                        title="Select all shown orders"
                         checked={all}
-                        disabled={eligible.length === 0}
-                        onChange={() => setSelectedOrders(all ? [] : eligible)}
+                        disabled={shown.length === 0}
+                        onChange={() => setSelectedOrders(all ? selectedOrders.filter((id) => !shown.includes(id)) : [...new Set([...selectedOrders, ...shown])])}
                       />
                     );
                   })()}
@@ -1203,9 +1235,7 @@ export default function AdminDashboard() {
                       onClick={() => setExpandedOrderId(expanded ? null : o.id)}
                     >
                       <span style={{ flex: '0 0 22px' }} onClick={(e) => e.stopPropagation()}>
-                        {canSendToEasyship(o) && (
-                          <input type="checkbox" aria-label="Select for Easyship" checked={selectedOrders.includes(o.id)} onChange={() => toggleSelected(o.id)} />
-                        )}
+                        <input type="checkbox" aria-label="Select order" checked={selectedOrders.includes(o.id)} onChange={() => toggleSelected(o.id)} />
                       </span>
                       <span style={{ flex: '0 0 130px', color: T.soft }}>
                         {new Date(o.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}

@@ -3,17 +3,11 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { PRODUCTS } from '../../lib/products';
 import { parseCsv } from '../../lib/csv';
-import WorldMap from '../../components/WorldMap';
 import { describeAdPlacement } from '../../lib/attribution';
 import { T, S } from '../../lib/theme';
 import AdminInbox from '../../components/AdminInbox';
 import PathsTree from '../../components/PathsTree';
-import AdSpend from '../../components/AdSpend';
 
-// Meta error messages are hidden for now (owner's request): the
-// Conversions API status box, each order's stored Meta send error, and
-// the ad-spend error. Flip to true to bring them back.
-const SHOW_META_ERRORS = false;
 import CartFunnelReport from '../../components/CartFunnelReport';
 
 // Flexible header matching — review export files from different platforms
@@ -199,7 +193,6 @@ export default function AdminDashboard() {
   const [discounts, setDiscounts] = React.useState([]);
   const [discountForm, setDiscountForm] = React.useState({ code: '', type: 'percent', value: 10 });
   const [discountFormMessage, setDiscountFormMessage] = React.useState('');
-  const [hoveredCountry, setHoveredCountry] = React.useState(null);
   const [orders, setOrders] = React.useState([]);
   const [ordersLoading, setOrdersLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState('dashboard');
@@ -352,27 +345,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Per-order "Send to Meta" (pages/api/admin/orders/meta.js).
-  const handleSendToMeta = async (order, resend = false) => {
-    const key = `meta:${order.id}`;
-    setOrderActionBusy((prev) => ({ ...prev, [key]: true }));
-    setOrderActionError((prev) => ({ ...prev, [key]: '' }));
-    try {
-      const res = await fetch('/api/admin/orders/meta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id, resend }),
-      });
-      const data = await res.json();
-      if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
-      if (!res.ok) throw new Error(data.error || 'Meta did not accept it.');
-    } catch (err) {
-      setOrderActionError((prev) => ({ ...prev, [key]: err.message }));
-    } finally {
-      setOrderActionBusy((prev) => ({ ...prev, [key]: false }));
-    }
-  };
-
   // Per-order "Send to Easyship" (pages/api/admin/orders/easyship.js).
   const handleSendToEasyship = async (order) => {
     const key = `easyship:${order.id}`;
@@ -435,10 +407,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const mapCounts = React.useMemo(
-    () => Object.fromEntries(Object.entries(live.byCountry).map(([code, data]) => [code.toLowerCase(), data.count])),
-    [live.byCountry]
-  );
 
   const loadDashboard = React.useCallback((range, date) => {
     fetch(`/api/admin/dashboard?range=${range}&date=${date}`).then((r) => r.json()).then(setDashboard).catch(() => {});
@@ -655,9 +623,6 @@ export default function AdminDashboard() {
 
         {activeTab === 'dashboard' && (
         <>
-        {/* META SERVER EVENTS — whether Meta is actually accepting the
-            Conversions API sends (lib/metaCapi.js). */}
-        {SHOW_META_ERRORS && dashboard?.capi && <CapiStatus capi={dashboard.capi} />}
 
         {/* TOP STATS */}
         <div style={revenueDateRow}>
@@ -692,13 +657,8 @@ export default function AdminDashboard() {
           <StatCard label="Orders" value={dashboard ? dashboard.orderCount : '—'} />
         </div>
 
-        {/* AD SPEND — this store's Meta ad spend vs. revenue (components/AdSpend.jsx). */}
-        <Section title="Ad spend (Meta)">
-          <AdSpend />
-        </Section>
-
         {/* LIVE VIEW — Shopify-style unified live module: big visitor count,
-            funnel-stage breakdown as one segmented bar, map + locations,
+            funnel-stage breakdown as one segmented bar, locations,
             all in one card instead of split across several boxed sections. */}
         <div style={liveViewCard}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 28 }}>
@@ -736,17 +696,7 @@ export default function AdminDashboard() {
                 })}
               </div>
 
-              <div style={{ position: 'relative', marginTop: 28, marginBottom: 24 }}>
-                <WorldMap counts={mapCounts} onHoverCountry={setHoveredCountry} />
-                <div style={{ position: 'absolute', top: 8, left: 8, fontSize: 12, color: T.soft, background: T.paper, padding: hoveredCountry ? '4px 8px' : 0 }}>
-                  {hoveredCountry && (
-                    <span>
-                      {countryFlag(hoveredCountry.toUpperCase())} {countryName(hoveredCountry.toUpperCase())} — {live.byCountry[hoveredCountry.toUpperCase()]?.count ?? mapCounts[hoveredCountry]}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 28 }}>
               {Object.entries(live.byCountry)
                 .sort((a, b) => b[1].count - a[1].count)
                 .map(([code, data]) => (
@@ -1220,7 +1170,6 @@ export default function AdminDashboard() {
                 <span style={{ flex: '0 0 90px' }}>Amount</span>
                 <span style={{ flex: '0 0 100px' }}>Payment</span>
                 <span style={{ flex: '0 0 90px' }}>Status</span>
-                <span style={{ flex: '0 0 116px' }}>Meta</span>
                 <span style={{ flex: '0 0 150px' }}>Easyship</span>
               </div>
               {visibleOrders.map((o) => {
@@ -1250,15 +1199,6 @@ export default function AdminDashboard() {
                         >
                           {displayStatus(o) === 'fulfilled' ? '✓ fulfilled' : displayStatus(o)}
                         </span>
-                      </span>
-                      {/* Manual send on every row — stopPropagation so the
-                          click doesn't also open/close the order. */}
-                      <span style={{ flex: '0 0 116px' }} onClick={(e) => e.stopPropagation()}>
-                        <MetaSendButton
-                          order={o}
-                          busy={Boolean(orderActionBusy[`meta:${o.id}`])}
-                          onSend={handleSendToMeta}
-                        />
                       </span>
                       <span style={{ flex: '0 0 150px' }} onClick={(e) => e.stopPropagation()}>
                         {o.trackingNumber ? (
@@ -1310,25 +1250,6 @@ export default function AdminDashboard() {
                             <div style={{ fontSize: 13 }}>{source}{campaign && ` · ${campaign}`}</div>
                             {adset && <div style={{ fontSize: 13, color: T.soft, marginTop: 2 }}>Ad set: {adset}</div>}
                             {ad && <div style={{ fontSize: 13, color: T.soft, marginTop: 2 }}>Creative: {ad}</div>}
-                          </div>
-                          {/* Whether Meta has this order's Purchase (lib/metaPurchase.js),
-                              with a button to send it now if not. New orders are sent
-                              automatically at checkout and retried hourly. */}
-                          <div>
-                            <div style={formLabel}>Meta</div>
-                            {o.meta?.sent && (
-                              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
-                                Sent{o.meta.sentAt ? ` · ${new Date(o.meta.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
-                              </div>
-                            )}
-                            <MetaSendButton
-                              order={o}
-                              busy={Boolean(orderActionBusy[`meta:${o.id}`])}
-                              onSend={handleSendToMeta}
-                            />
-                            {(orderActionError[`meta:${o.id}`] || (SHOW_META_ERRORS && !o.meta?.sent && o.meta?.lastError)) && (
-                              <div style={{ fontSize: 12, color: '#a13d2b', marginTop: 4 }}>{orderActionError[`meta:${o.id}`] || o.meta.lastError}</div>
-                            )}
                           </div>
                           {/* Whether Easyship has this order (lib/easyship.js).
                               Sent automatically at checkout and retried hourly;
@@ -1576,32 +1497,6 @@ function sinceIso(iso) {
   return `${Math.round(hrs / 24)} days ago`;
 }
 
-function CapiStatus({ capi }) {
-  const okAt = capi.lastOk?.at ? new Date(capi.lastOk.at).getTime() : 0;
-  const errAt = capi.lastError?.at ? new Date(capi.lastError.at).getTime() : 0;
-  const failing = !capi.configured || errAt > okAt;
-  const color = failing ? '#a13d2b' : '#1a7a3c';
-  return (
-    <Section title="Meta server events (Conversions API)">
-      <p style={{ fontSize: 14, margin: '0 0 6px', color, fontWeight: 600 }}>
-        {!capi.configured
-          ? 'Not configured — set META_CAPI_ACCESS_TOKEN and NEXT_PUBLIC_META_PIXEL_ID in Vercel.'
-          : failing
-            ? 'Meta rejected the most recent event.'
-            : capi.lastOk
-              ? 'Meta is receiving server events.'
-              : 'No server events sent yet since this check was added.'}
-      </p>
-      <div style={{ fontSize: 13, color: T.soft, lineHeight: 1.7 }}>
-        {capi.lastOk && <div>Last accepted: {capi.lastOk.eventName} · {sinceIso(capi.lastOk.at)}</div>}
-        {capi.lastError && (
-          <div>Last error: {capi.lastError.eventName || 'event'} · {sinceIso(capi.lastError.at)} — {capi.lastError.error}</div>
-        )}
-        <div>API version {capi.graphVersion}{capi.testMode ? ' · test mode on (META_CAPI_TEST_EVENT_CODE is set — events only show in Test Events)' : ''}</div>
-      </div>
-    </Section>
-  );
-}
 
 // Admin → Visitors (same as the Smells Iconic admin): everyone who visited,
 // newest first, with where they came from, their URL parameters, what they
@@ -2185,29 +2080,6 @@ function AutobuyLabels({ status, onChange }) {
   );
 }
 
-// Per-order manual send to Meta (pages/api/admin/orders/meta.js). Not yet
-// accepted: "Send to Meta". Already sent: "Resend", which resends with
-// the order's original event id so Meta keeps counting it once.
-function MetaSendButton({ order, busy, onSend }) {
-  const sent = Boolean(order.meta?.sent);
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={() => {
-        if (sent && !confirm('Meta already has this order. Send it again? (It uses the same event id, so Meta should still count it once.)')) return;
-        onSend(order, sent);
-      }}
-      style={{
-        ...S.btnOutline, height: 30, padding: '0 10px', fontSize: 11, whiteSpace: 'nowrap',
-        opacity: busy ? 0.5 : 1,
-        ...(sent ? { borderColor: T.line, color: T.soft } : {}),
-      }}
-    >
-      {busy ? 'Sending…' : sent ? '✓ Sent · Resend' : 'Send to Meta'}
-    </button>
-  );
-}
 
 const orderRow = {
   display: 'flex', gap: 12, padding: '12px 0', borderBottom: `1px solid ${T.line}`,

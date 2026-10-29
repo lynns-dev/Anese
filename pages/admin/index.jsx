@@ -270,10 +270,19 @@ export default function AdminDashboard() {
     }
   };
 
-  const visibleOrders = React.useMemo(
-    () => (showArchived ? orders : orders.filter((o) => o.status !== 'archived')),
-    [orders, showArchived]
-  );
+  // Search box: matches name, email, phone, address, items, order id,
+  // tracking number, amount, payment method or status. A search also looks
+  // through archived orders, so an old order can always be found.
+  const [orderQuery, setOrderQuery] = React.useState('');
+  const visibleOrders = React.useMemo(() => {
+    const q = orderQuery.trim().toLowerCase();
+    if (!q) return showArchived ? orders : orders.filter((o) => o.status !== 'archived');
+    const words = q.split(/\s+/);
+    return orders.filter((o) => {
+      const text = orderSearchText(o);
+      return words.every((w) => text.includes(w) || (/^[\d\s().+-]+$/.test(w) && w.replace(/\D/g, '').length >= 3 && text.includes(w.replace(/\D/g, ''))));
+    });
+  }, [orders, showArchived, orderQuery]);
 
   const getTrackingForm = (order) =>
     trackingForms[order.id] ?? {
@@ -1110,12 +1119,22 @@ export default function AdminDashboard() {
 
         {activeTab === 'orders' && (
         <Section
-          title={`Orders (${visibleOrders.length})`}
+          title={`Orders (${visibleOrders.length}${orderQuery.trim() ? ` matching “${orderQuery.trim()}”` : ''})`}
           action={
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.soft }}>
-              <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-              Show archived
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <input
+                type="search"
+                value={orderQuery}
+                onChange={(e) => setOrderQuery(e.target.value)}
+                placeholder="Search name, email, phone, item, order #, tracking…"
+                aria-label="Search orders"
+                style={orderSearchInput}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.soft }}>
+                <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} disabled={Boolean(orderQuery.trim())} />
+                Show archived
+              </label>
+            </div>
           }
         >
           {easyshipStatus && <EasyshipStatus status={easyshipStatus} onSent={() => { loadOrders(); loadEasyship(); }} />}
@@ -1135,7 +1154,9 @@ export default function AdminDashboard() {
           {ordersLoading ? (
             <p style={{ color: T.soft, fontSize: 14 }}>Loading…</p>
           ) : visibleOrders.length === 0 ? (
-            <p style={{ color: T.soft, fontSize: 14 }}>No orders to show.</p>
+            <p style={{ color: T.soft, fontSize: 14 }}>
+              {orderQuery.trim() ? 'No orders match that search (searches the last 30 days).' : 'No orders to show.'}
+            </p>
           ) : (
             <div>
               <div style={orderHeadRow}>
@@ -1891,6 +1912,18 @@ function VisitorsTab() {
 const visitorListRow = { padding: '14px 0', borderTop: `1px solid ${T.line}`, fontSize: 14 };
 const chip = { display: 'inline-block', border: `1px solid ${T.line}`, background: T.white, padding: '3px 8px', fontSize: 12, borderRadius: 999, wordBreak: 'break-all' };
 
+// Everything the Orders search box matches against, lowercased. Phone
+// numbers are added as bare digits too, so "555-0100" finds "(555) 010-0100".
+function orderSearchText(o) {
+  const sh = o.shipping || {};
+  return [
+    o.id, o.email, o.status || 'paid', o.paymentMethod, o.trackingNumber, o.carrier,
+    sh.name, sh.address, sh.apt, sh.city, sh.state, sh.zip, sh.phone, String(sh.phone || '').replace(/\D/g, ''),
+    ...(o.items || []).map((i) => i.name),
+    Number.isFinite(Number(o.amount)) ? Number(o.amount).toFixed(2) : '',
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
 function Section({ title, action, children }) {
   return (
     <div style={{ background: T.white, border: `1px solid ${T.line}`, boxShadow: cardShadow, padding: 24, marginBottom: 24 }}>
@@ -1937,6 +1970,11 @@ const visitorRow = {
   gap: 12, padding: '10px 0', borderBottom: `1px solid ${T.line}`,
   fontSize: 13, alignItems: 'center',
 };
+const orderSearchInput = {
+  height: 36, width: 300, maxWidth: '100%', padding: '0 12px', fontSize: 13,
+  border: `1px solid ${T.line}`, background: T.white, color: T.ink, fontFamily: 'inherit',
+};
+
 const funnelRangeSelect = {
   height: 34, padding: '0 10px', border: `1px solid ${T.line}`, background: T.white,
   fontFamily: T.sans, fontSize: 12, color: T.ink, outline: 'none',

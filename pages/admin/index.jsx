@@ -5,6 +5,7 @@ import { PRODUCTS } from '../../lib/products';
 import { parseCsv } from '../../lib/csv';
 import { describeAdPlacement } from '../../lib/attribution';
 import { T, S } from '../../lib/theme';
+import { orderLabel } from '../../lib/orderNumbers';
 import AdminInbox from '../../components/AdminInbox';
 import PathsTree from '../../components/PathsTree';
 
@@ -274,11 +275,11 @@ export default function AdminDashboard() {
 
   // Just the ticked orders: who, where to ship, and what's in the order.
   const handleExportSelected = () => {
-    const header = ['Order ID', 'Date', 'Name', 'Email', 'Phone', 'Address', 'Apt', 'City', 'State', 'ZIP', 'Items', 'Total qty'];
+    const header = ['Order #', 'Order ID', 'Date', 'Name', 'Email', 'Phone', 'Address', 'Apt', 'City', 'State', 'ZIP', 'Items', 'Total qty'];
     const lines = orders.filter((o) => selectedOrders.includes(o.id)).map((o) => {
       const s = o.shipping || {};
       const items = o.items || [];
-      return [o.id, new Date(o.createdAt).toLocaleString(), s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim(), o.email, s.phone,
+      return [o.orderNumber || '', o.id, new Date(o.createdAt).toLocaleString(), s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim(), o.email, s.phone,
         s.address, s.apt, s.city, s.state, s.zip, items.map((i) => `${i.name} x${i.quantity || 1}`).join('; '), items.reduce((n, i) => n + Number(i.quantity || 1), 0)];
     });
     const blob = new Blob([[header, ...lines].map((l) => l.map(subscriberCsvCell).join(',')).join('\n')], { type: 'text/csv' });
@@ -346,6 +347,32 @@ export default function AdminDashboard() {
   };
 
   // Per-order "Send to Easyship" (pages/api/admin/orders/easyship.js).
+  // "Resend confirmation" on an order (pages/api/admin/orders/confirmation.js):
+  // to the address typed in, which starts as the order's own email.
+  const [confirmTo, setConfirmTo] = React.useState({});
+  const [confirmMessage, setConfirmMessage] = React.useState({});
+  const handleResendConfirmation = async (order) => {
+    const key = `confirm:${order.id}`;
+    const to = (confirmTo[order.id] ?? order.email ?? '').trim();
+    setOrderActionBusy((prev) => ({ ...prev, [key]: true }));
+    setConfirmMessage((prev) => ({ ...prev, [order.id]: null }));
+    try {
+      const res = await fetch('/api/admin/orders/confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, to }),
+      });
+      const data = await res.json();
+      if (data.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? data.order : o)));
+      if (!res.ok) throw new Error(data.error || 'Could not send.');
+      setConfirmMessage((prev) => ({ ...prev, [order.id]: { ok: true, text: `Confirmation sent to ${to}.` } }));
+    } catch (err) {
+      setConfirmMessage((prev) => ({ ...prev, [order.id]: { ok: false, text: err.message } }));
+    } finally {
+      setOrderActionBusy((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handleSendToEasyship = async (order) => {
     const key = `easyship:${order.id}`;
     setOrderActionBusy((prev) => ({ ...prev, [key]: true }));
@@ -1165,6 +1192,7 @@ export default function AdminDashboard() {
                     );
                   })()}
                 </span>
+                <span style={{ flex: '0 0 64px' }}>Order</span>
                 <span style={{ flex: '0 0 130px' }}>Date</span>
                 <span style={{ flex: 1 }}>Items</span>
                 <span style={{ flex: '0 0 90px' }}>Amount</span>
@@ -1186,6 +1214,7 @@ export default function AdminDashboard() {
                       <span style={{ flex: '0 0 22px' }} onClick={(e) => e.stopPropagation()}>
                         <input type="checkbox" aria-label="Select order" checked={selectedOrders.includes(o.id)} onChange={() => toggleSelected(o.id)} />
                       </span>
+                      <span style={{ flex: '0 0 64px', fontWeight: 600 }}>{orderLabel(o)}</span>
                       <span style={{ flex: '0 0 130px', color: T.soft }}>
                         {new Date(o.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                       </span>
@@ -1228,6 +1257,11 @@ export default function AdminDashboard() {
                     {expanded && (
                       <div style={orderDetail}>
                         <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', marginBottom: 16 }}>
+                          <div>
+                            <div style={formLabel}>Order</div>
+                            <div style={{ fontSize: 13, fontWeight: 700 }}>{orderLabel(o)}</div>
+                            <div style={{ fontSize: 11, color: T.soft, marginTop: 2, wordBreak: 'break-all' }} title="The payment company's id for this order">{o.id}</div>
+                          </div>
                           <div>
                             <div style={formLabel}>Contact</div>
                             <div style={{ fontSize: 13 }}>{o.email || 'Not provided'}</div>
@@ -1351,6 +1385,29 @@ export default function AdminDashboard() {
                                 </span>
                               </div>
                             ))
+                          )}
+                          {/* Resend the confirmation — to the order's
+                              email, or whoever's typed in instead. */}
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
+                            <input
+                              type="email"
+                              placeholder="Email address"
+                              aria-label="Send confirmation to"
+                              value={confirmTo[o.id] ?? o.email ?? ''}
+                              onChange={(e) => setConfirmTo((prev) => ({ ...prev, [o.id]: e.target.value }))}
+                              style={{ ...formInput, width: 260 }}
+                            />
+                            <button
+                              type="button"
+                              disabled={Boolean(orderActionBusy[`confirm:${o.id}`]) || !(confirmTo[o.id] ?? o.email ?? '').trim()}
+                              onClick={() => handleResendConfirmation(o)}
+                              style={{ ...S.btnOutline, opacity: orderActionBusy[`confirm:${o.id}`] ? 0.5 : 1 }}
+                            >
+                              {orderActionBusy[`confirm:${o.id}`] ? 'Sending…' : (o.emailLog || []).some((e) => e.type === 'order_confirmation') ? 'Resend confirmation' : 'Send confirmation'}
+                            </button>
+                          </div>
+                          {confirmMessage[o.id] && (
+                            <p style={{ fontSize: 12, color: confirmMessage[o.id].ok ? T.ink : '#a13d2b', marginTop: 8 }}>{confirmMessage[o.id].text}</p>
                           )}
                         </div>
 
@@ -1858,7 +1915,7 @@ const chip = { display: 'inline-block', border: `1px solid ${T.line}`, backgroun
 function orderSearchText(o) {
   const sh = o.shipping || {};
   return [
-    o.id, o.email, displayStatus(o), o.paymentMethod, o.trackingNumber, o.carrier,
+    o.id, o.orderNumber, o.orderNumber && `#${o.orderNumber}`, o.email, displayStatus(o), o.paymentMethod, o.trackingNumber, o.carrier,
     sh.name, sh.address, sh.apt, sh.city, sh.state, sh.zip, sh.phone, String(sh.phone || '').replace(/\D/g, ''),
     ...(o.items || []).map((i) => i.name),
     Number.isFinite(Number(o.amount)) ? Number(o.amount).toFixed(2) : '',

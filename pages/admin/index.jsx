@@ -4,9 +4,10 @@ import { useRouter } from 'next/router';
 import { PRODUCTS } from '../../lib/products';
 import { parseCsv } from '../../lib/csv';
 import { describeAdPlacement } from '../../lib/attribution';
-import { T, S } from '../../lib/theme';
+import { T, S } from '../../lib/adminTheme';
 import { orderLabel } from '../../lib/orderNumbers';
 import AdminInbox from '../../components/AdminInbox';
+import AdminNavIcon from '../../components/AdminNavIcon';
 import PathsTree from '../../components/PathsTree';
 
 import CartFunnelReport from '../../components/CartFunnelReport';
@@ -158,7 +159,7 @@ function attributionSource(order) {
 
 const ORDER_STATUS_COLORS = {
   paid: { color: T.ink, background: T.blush },
-  fulfilled: { color: '#1a7a3c', background: 'rgba(26,122,60,0.12)' },
+  fulfilled: { color: T.white, background: T.ink },
   refunded: { color: '#a13d2b', background: 'rgba(161,61,43,0.1)' },
   cancelled: { color: T.soft, background: T.paper },
   archived: { color: T.soft, background: T.paper },
@@ -173,8 +174,8 @@ function displayStatus(o) {
 function orderStatusBadge(status) {
   const colors = ORDER_STATUS_COLORS[status] || ORDER_STATUS_COLORS.paid;
   return {
-    display: 'inline-block', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
-    padding: '3px 8px', borderRadius: 3, ...colors,
+    display: 'inline-block', fontSize: 12, fontWeight: 600,
+    padding: '3px 10px', borderRadius: 999, ...colors,
   };
 }
 
@@ -629,24 +630,25 @@ export default function AdminDashboard() {
             (#orders) so a refresh stays on it. */}
         <nav className="admin-nav">
           <div className="admin-nav-logo">
-            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 52, width: 'auto', display: 'block' }} />
+            <img src="/images/anese_logo_transparent.png" alt="anese" style={{ height: 44, width: 'auto', display: 'block' }} />
           </div>
           {ADMIN_TABS.map(([key, label]) => (
-            <button key={key} type="button" onClick={() => selectTab(key)} className={`admin-nav-item${activeTab === key ? ' active' : ''}`}>
-              {label}
+            <button key={key} type="button" onClick={() => selectTab(key)} className={`admin-nav-item${activeTab === key ? ' active' : ''}`} aria-current={activeTab === key ? 'page' : undefined}>
+              <AdminNavIcon name={key} />
+              <span className="admin-nav-label">{label}</span>
               {key === 'orders' && orders.length > 0 && <span className="admin-nav-count">{orders.length}</span>}
               {key === 'reviews' && pendingReviews.length > 0 && <span className="admin-nav-badge">{pendingReviews.length}</span>}
               {key === 'inbox' && inboxNew > 0 && <span className="admin-nav-badge">{inboxNew}</span>}
             </button>
           ))}
           {/* Email marketing lives on its own page (pages/admin/email.jsx). */}
-          <a href="/admin/email" className="admin-nav-item">Email</a>
-          <a href="/" target="_blank" rel="noopener noreferrer" className="admin-nav-item admin-nav-gap">View website</a>
-          <button type="button" onClick={handleLogout} className="admin-nav-item">Sign out</button>
+          <a href="/admin/email" className="admin-nav-item"><AdminNavIcon name="email" /><span className="admin-nav-label">Email</span></a>
+          <a href="/" target="_blank" rel="noopener noreferrer" className="admin-nav-item admin-nav-gap"><AdminNavIcon name="website" /><span className="admin-nav-label">Website</span></a>
+          <button type="button" onClick={handleLogout} className="admin-nav-item admin-nav-quiet"><AdminNavIcon name="signout" /><span className="admin-nav-label">Sign out</span></button>
         </nav>
 
         <main className="admin-main">
-        <h1 style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 26, margin: '0 0 24px', color: T.ink }}>{ADMIN_TABS.find(([k]) => k === activeTab)?.[1]}</h1>
+        <h1 className="admin-serif" style={{ fontWeight: 400, fontSize: 36, lineHeight: 1.1, margin: '4px 0 24px', color: T.ink }}>{ADMIN_TABS.find(([k]) => k === activeTab)?.[1]}</h1>
 
         {activeTab === 'dashboard' && (
         <>
@@ -694,7 +696,7 @@ export default function AdminDashboard() {
                 <span className={live.count > 0 ? 'live-dot' : 'live-dot live-dot-idle'} />
                 <span style={{ ...S.label, margin: 0 }}>Live view</span>
               </div>
-              <div style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 56, lineHeight: 1 }}>{live.count}</div>
+              <div style={{ fontWeight: 700, fontSize: 56, letterSpacing: '-0.03em', lineHeight: 1 }}>{live.count}</div>
               <div style={{ fontSize: 13, color: T.soft, marginTop: 8 }}>
                 {live.count === 0 ? 'No one on the site right now' : `visitor${live.count === 1 ? '' : 's'} on your site right now`}
               </div>
@@ -703,8 +705,8 @@ export default function AdminDashboard() {
               <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
                 {Object.entries(STAGE_LABELS).map(([key, label]) => (
                   <div key={key} style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: T.serif, fontSize: 26 }}>{live.byStage[key] || 0}</div>
-                    <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft }}>{label}</div>
+                    <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-0.02em' }}>{live.byStage[key] || 0}</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: T.soft }}>{label}</div>
                   </div>
                 ))}
               </div>
@@ -731,8 +733,8 @@ export default function AdminDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={{ fontSize: 18, width: 24, flexShrink: 0 }}>{countryFlag(code)}</span>
                       <span style={{ fontSize: 13, width: 140, flexShrink: 0 }}>{countryName(code)}</span>
-                      <div style={{ flex: 1, height: 8, background: T.paper }}>
-                        <div style={{ height: '100%', width: `${(data.count / live.count) * 100}%`, background: T.ink }} />
+                      <div style={{ flex: 1, height: 8, background: T.paper, borderRadius: 999 }}>
+                        <div style={{ height: '100%', width: `${(data.count / live.count) * 100}%`, background: T.accent, borderRadius: 999 }} />
                       </div>
                       <span style={{ fontSize: 13, color: T.soft, width: 20, textAlign: 'right', flexShrink: 0 }}>{data.count}</span>
                     </div>
@@ -776,8 +778,8 @@ export default function AdminDashboard() {
                           {v.activeField || '—'}
                         </span>
                         <span className="visitor-col-scroll" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, height: 6, background: T.paper, maxWidth: 60 }}>
-                            <div style={{ height: '100%', width: `${v.scrollPct ?? 0}%`, background: T.ink }} />
+                          <div style={{ flex: 1, height: 6, background: T.paper, maxWidth: 60, borderRadius: 999 }}>
+                            <div style={{ height: '100%', width: `${v.scrollPct ?? 0}%`, background: T.accent, borderRadius: 999 }} />
                           </div>
                           <span style={{ color: T.soft, fontSize: 12, flexShrink: 0 }}>{v.scrollPct != null ? `${v.scrollPct}%` : '—'}</span>
                         </span>
@@ -810,7 +812,7 @@ export default function AdminDashboard() {
                     <div style={{ height: barHeight, display: 'flex', flexDirection: 'column-reverse' }}>
                       {bucket.addtocart > 0 && <div style={{ flex: bucket.addtocart, background: 'rgba(22,20,15,0.25)' }} />}
                       {bucket.checkout_start > 0 && <div style={{ flex: bucket.checkout_start, background: 'rgba(22,20,15,0.55)' }} />}
-                      {bucket.purchase > 0 && <div style={{ flex: bucket.purchase, background: T.ink }} />}
+                      {bucket.purchase > 0 && <div style={{ flex: bucket.purchase, background: T.accent }} />}
                     </div>
                   ) : (
                     <div style={{ height: 2, background: T.line }} />
@@ -826,7 +828,7 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', gap: 16, fontSize: 11, color: T.soft, marginBottom: 24 }}>
             <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'rgba(22,20,15,0.25)', marginRight: 6 }} />Added to cart</span>
             <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'rgba(22,20,15,0.55)', marginRight: 6 }} />Checkout started</span>
-            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: T.ink, marginRight: 6 }} />Purchased</span>
+            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: T.accent, borderRadius: 2, marginRight: 6 }} />Purchased</span>
           </div>
 
           {live.activity.recent.length === 0 ? (
@@ -905,8 +907,8 @@ export default function AdminDashboard() {
                 return (
                   <div key={method} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span style={{ fontSize: 13, width: 110, flexShrink: 0 }}>{method}</span>
-                    <div style={{ flex: 1, height: 8, background: T.paper }}>
-                      <div style={{ height: '100%', width: `${(count / maxCount) * 100}%`, background: T.ink }} />
+                    <div style={{ flex: 1, height: 8, background: T.paper, borderRadius: 999 }}>
+                      <div style={{ height: '100%', width: `${(count / maxCount) * 100}%`, background: T.accent, borderRadius: 999 }} />
                     </div>
                     <span style={{ fontSize: 13, color: T.soft, width: 90, textAlign: 'right', flexShrink: 0 }}>
                       {count} order{count === 1 ? '' : 's'} · ${revenue.toFixed(2)}
@@ -1174,7 +1176,9 @@ export default function AdminDashboard() {
               {orderQuery.trim() ? 'No orders match that search (searches the last 30 days).' : 'No orders to show.'}
             </p>
           ) : (
-            <div>
+            // Scrolls sideways on phones instead of squeezing the columns.
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <div style={{ minWidth: 760 }}>
               <div style={orderHeadRow}>
                 <span style={{ flex: '0 0 22px' }}>
                   {(() => {
@@ -1231,7 +1235,7 @@ export default function AdminDashboard() {
                       </span>
                       <span style={{ flex: '0 0 150px' }} onClick={(e) => e.stopPropagation()}>
                         {o.trackingNumber ? (
-                          <span style={{ fontSize: 12, color: '#1a7a3c', wordBreak: 'break-all' }} title="Tracking number">
+                          <span style={{ fontSize: 12, color: T.ink, wordBreak: 'break-all' }} title="Tracking number">
                             {o.carrier ? `${o.carrier} ` : ''}{o.trackingNumber}
                           </span>
                         ) : o.easyship?.sent ? (
@@ -1445,6 +1449,7 @@ export default function AdminDashboard() {
                   </div>
                 );
               })}
+              </div>
             </div>
           )}
         </Section>
@@ -1462,24 +1467,7 @@ export default function AdminDashboard() {
         button, input, select, textarea { font-family: inherit; }
       `}</style>
       <style jsx>{`
-        .admin-shell { display: flex; gap: 32px; max-width: 1240px; margin: 0 auto; align-items: flex-start; }
-        .admin-nav { position: sticky; top: 24px; width: 200px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; }
-        .admin-nav-logo { padding: 0 12px 18px; }
-        .admin-nav-item { display: flex; justify-content: space-between; align-items: center; text-align: left; padding: 10px 12px; border: none; border-radius: 8px; background: none; font-size: 15px; color: ${T.ink}; opacity: 0.7; cursor: pointer; text-decoration: none; font-family: inherit; }
-        .admin-nav-item:hover { background: rgba(0, 0, 0, 0.04); opacity: 1; }
-        .admin-nav-item.active { background: ${T.white}; opacity: 1; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
-        .admin-nav-badge { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: ${T.ink}; color: ${T.white}; font-size: 11px; text-align: center; }
-        .admin-nav-count { font-size: 12px; opacity: 0.6; }
-        .admin-nav-gap { margin-top: 16px; }
-        .admin-main { flex: 1; min-width: 0; }
-        @media (max-width: 760px) {
-          .admin-shell { flex-direction: column; gap: 16px; }
-          .admin-nav { position: sticky; top: 0; z-index: 5; width: 100%; flex-direction: row; overflow-x: auto; background: ${T.paper}; padding: 8px 0; }
-          .admin-nav-logo { display: none; }
-          .admin-nav-item { white-space: nowrap; flex-shrink: 0; gap: 6px; }
-          .admin-nav-gap { margin-top: 0; }
-        }
-        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
         .funnel-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         @media (max-width: 640px) {
           .stat-grid { grid-template-columns: 1fr; }
@@ -1527,9 +1515,9 @@ export default function AdminDashboard() {
 
 function StatCard({ label, value, highlight }) {
   return (
-    <div style={{ ...statCard, ...(highlight ? { borderColor: T.ink } : {}) }}>
-      <div style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 34 }}>{value}</div>
-      <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.soft, marginTop: 4 }}>{label}</div>
+    <div style={{ ...statCard, ...(highlight ? { boxShadow: `inset 0 0 0 2px ${T.accent}, ${T.shadow}` } : {}) }}>
+      <div style={{ fontSize: 13, fontWeight: 500, color: T.soft, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontWeight: 600, fontSize: 32, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
     </div>
   );
 }
@@ -1537,9 +1525,9 @@ function StatCard({ label, value, highlight }) {
 function FunnelStep({ label, value, rate }) {
   return (
     <div>
-      <div style={{ fontFamily: T.serif, fontSize: 28 }}>{value ?? 0}</div>
-      <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft }}>{label}</div>
-      {rate && <div style={{ fontSize: 12, color: T.ink, marginTop: 2 }}>{rate}</div>}
+      <div style={{ fontSize: 13, fontWeight: 500, color: T.soft }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em' }}>{value ?? 0}</div>
+      {rate && <div style={{ fontSize: 12, color: T.accent, fontWeight: 500, marginTop: 2 }}>{rate}</div>}
     </div>
   );
 }
@@ -1590,7 +1578,7 @@ function visitorStatus(j) {
   return { kind: 'browse', text: active ? 'Browsing now' : 'Browsed only' };
 }
 
-const STATUS_COLORS = { purchase: '#1a7a3c', checkout: '#a13d2b', cart: '#9a6a12', browse: T.ink };
+const STATUS_COLORS = { purchase: T.ink, checkout: T.ink, cart: T.soft, browse: T.soft };
 const STATUS_FILTERS = [['all', 'All'], ['cart', 'Added to cart'], ['checkout', 'Reached checkout'], ['purchase', 'Purchased']];
 
 // "New" or "3rd visit": how many days this device has visited, this one
@@ -1611,9 +1599,9 @@ const SUB_FILTERS = [['all', 'All'], ['abandoned', 'Abandoned checkout'], ['cust
 const SUB_SOURCE_LABELS = { checkout: 'checkout', order: 'order', texts: 'text alerts', shopify: 'Shopify', manual: 'added by hand', lead: 'checkout', newsletter: 'signup' };
 
 function subscriberStatus(s) {
-  if (s.orders?.count) return { kind: 'customer', label: `Customer · ${s.orders.count} order${s.orders.count === 1 ? '' : 's'} · $${s.orders.spent.toFixed(2)}`, color: '#1a7a3c' };
+  if (s.orders?.count) return { kind: 'customer', label: `Customer · ${s.orders.count} order${s.orders.count === 1 ? '' : 's'} · $${s.orders.spent.toFixed(2)}`, color: T.ink };
   if (s.lastCheckoutAt) return { kind: 'abandoned', label: 'Abandoned checkout', color: '#a13d2b' };
-  if (s.sources?.includes('order')) return { kind: 'customer', label: 'Customer', color: '#1a7a3c' };
+  if (s.sources?.includes('order')) return { kind: 'customer', label: 'Customer', color: T.ink };
   return { kind: 'signup', label: s.sources?.includes('texts') && !s.email ? 'Text alerts signup' : 'Signup', color: T.soft };
 }
 
@@ -1687,11 +1675,11 @@ function SubscribersTab() {
     >
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         {SUB_FILTERS.map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setFilter(key)} style={{ ...chip, cursor: 'pointer', background: filter === key ? T.ink : T.white, color: filter === key ? T.white : T.ink }}>{label} · {counts[key] ?? 0}</button>
+          <button key={key} type="button" onClick={() => setFilter(key)} style={{ ...chip, cursor: 'pointer', background: filter === key ? T.ink : 'rgba(0,0,0,0.05)', color: filter === key ? T.white : T.ink }}>{label} · {counts[key] ?? 0}</button>
         ))}
       </div>
       <input placeholder="Search email, phone, name, city, product…" value={query} onChange={(e) => setQuery(e.target.value)}
-        style={{ width: '100%', boxSizing: 'border-box', height: 40, padding: '0 12px', border: `1px solid ${T.line}`, background: T.white, fontSize: 14, marginBottom: 16 }} />
+        style={{ width: '100%', boxSizing: 'border-box', height: 40, padding: '0 12px', border: '1px solid rgba(0,0,0,0.12)', background: T.white, fontSize: 14, marginBottom: 16 }} />
 
       {list === null && !error && <p style={{ color: T.soft, fontSize: 14 }}>Loading…</p>}
       {error && <p style={{ color: '#a13d2b', fontSize: 14 }}>{error}</p>}
@@ -1717,11 +1705,11 @@ function SubscribersTab() {
               <span style={{ color: T.soft, fontSize: 13 }}>via {(s.sources || []).map((x) => SUB_SOURCE_LABELS[x] || x).filter((x, i, a) => a.indexOf(x) === i).join(', ')}</span>
               {s.email && (
                 <span title="Whether they're on the email list (manage on the Email page)"
-                  style={{ ...chip, background: s.consent ? '#e7f4ea' : T.white, color: s.consent ? '#1a7a3c' : T.soft }}>
+                  style={{ ...chip, background: s.consent ? T.blush : T.white, color: s.consent ? T.ink : T.soft }}>
                   {s.consent ? 'Emails OK' : s.status ? `Email: ${s.status}` : 'Not on email list'}
                 </span>
               )}
-              {s.textsOk && <span style={{ ...chip, background: '#e7f4ea', color: '#1a7a3c' }}>Texts OK</span>}
+              {s.textsOk && <span style={{ ...chip, background: T.blush, color: T.ink }}>Texts OK</span>}
             </div>
             {s.email && (
               <div style={{ marginTop: 6, fontSize: 13, color: T.soft }}>
@@ -1813,7 +1801,7 @@ function VisitorsTab() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   }, [rows]);
 
-  const chipBtn = (on) => ({ ...chip, cursor: 'pointer', background: on ? T.ink : T.white, color: on ? T.white : T.ink });
+  const chipBtn = (on) => ({ ...chip, cursor: 'pointer', background: on ? T.ink : 'rgba(0,0,0,0.05)', color: on ? T.white : T.ink });
 
   return (
     <>
@@ -1845,7 +1833,7 @@ function VisitorsTab() {
             placeholder="Search source, page, city, utm_campaign=…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            style={{ flex: 1, minWidth: 220, height: 40, padding: '0 12px', border: `1px solid ${T.line}`, background: T.white, fontSize: 14 }}
+            style={{ flex: 1, minWidth: 220, height: 40, padding: '0 12px', border: '1px solid rgba(0,0,0,0.12)', background: T.white, fontSize: 14 }}
           />
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
             <input type="checkbox" checked={onlyTagged} onChange={(e) => setOnlyTagged(e.target.checked)} />
@@ -1908,7 +1896,7 @@ function VisitorsTab() {
 }
 
 const visitorListRow = { padding: '14px 0', borderTop: `1px solid ${T.line}`, fontSize: 14 };
-const chip = { display: 'inline-block', border: `1px solid ${T.line}`, background: T.white, padding: '3px 8px', fontSize: 12, borderRadius: 999, wordBreak: 'break-all' };
+const chip = { display: 'inline-block', border: 'none', background: 'rgba(0,0,0,0.05)', padding: '5px 12px', fontSize: 13, fontWeight: 500, borderRadius: 999, wordBreak: 'break-all' };
 
 // Everything the Orders search box matches against, lowercased. Phone
 // numbers are added as bare digits too, so "555-0100" finds "(555) 010-0100".
@@ -1924,9 +1912,9 @@ function orderSearchText(o) {
 
 function Section({ title, action, children }) {
   return (
-    <div style={{ background: T.white, border: `1px solid ${T.line}`, boxShadow: cardShadow, padding: 24, marginBottom: 24 }}>
+    <div style={{ background: T.white, borderRadius: T.radius, boxShadow: cardShadow, padding: 24, marginBottom: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
-        <p style={{ ...S.label, margin: 0 }}>{title}</p>
+        <p style={{ margin: 0, fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', color: T.ink }}>{title}</p>
         {action}
       </div>
       {children}
@@ -1934,61 +1922,61 @@ function Section({ title, action, children }) {
   );
 }
 
-// Same white/border palette as before — this just lifts each card off the
-// paper background a little instead of leaving them perfectly flat.
-const cardShadow = '0 1px 2px rgba(22,20,15,0.04), 0 4px 12px rgba(22,20,15,0.06)';
-const statGrid = { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 };
-const statCard = { background: T.white, border: `1px solid ${T.line}`, boxShadow: cardShadow, padding: '24px 20px', textAlign: 'center' };
+// Soft lift for the white rounded cards on the gray canvas (lib/adminTheme.js).
+const cardShadow = T.shadow;
+// gridTemplateColumns comes from the .stat-grid class, so phones can change it.
+const statGrid = { display: 'grid', gap: 16, marginBottom: 24 };
+const statCard = { background: T.white, borderRadius: T.radius, boxShadow: cardShadow, padding: '20px 22px' };
 // gridTemplateColumns is deliberately left out and set by the .funnel-grid
 // CSS class instead (see <style jsx> below) — an inline value here would
 // always beat that class's mobile media-query override, regardless of
 // specificity, the same footgun already documented on mobileTopbar in
 // pages/checkout.jsx.
 const funnelGrid = { display: 'grid', gap: 16 };
-const liveViewCard = { background: T.white, border: `1px solid ${T.line}`, boxShadow: cardShadow, padding: '28px 24px', marginBottom: 24 };
-const stageBarTrack = { display: 'flex', height: 10, width: '100%', background: T.paper, overflow: 'hidden' };
+const liveViewCard = { background: T.white, borderRadius: T.radius, boxShadow: cardShadow, padding: '24px', marginBottom: 20 };
+const stageBarTrack = { display: 'flex', height: 10, width: '100%', background: T.paper, overflow: 'hidden', borderRadius: 999 };
 const stageBarSeg = { height: '100%', transition: 'width .3s ease' };
 // Lightest (browsing) to darkest (just purchased), same "further down the
 // funnel = more solid" convention as the live-activity sparkline below.
 // One entry per STAGE_LABELS key, in order.
 const STAGE_BAR_COLORS = [
-  'rgba(22,20,15,0.15)', 'rgba(22,20,15,0.3)',
-  'rgba(22,20,15,0.45)', 'rgba(22,20,15,0.6)', 'rgba(22,20,15,0.8)',
-  T.ink,
+  'rgba(20,20,20,0.15)', 'rgba(20,20,20,0.3)',
+  'rgba(20,20,20,0.45)', 'rgba(20,20,20,0.6)', 'rgba(20,20,20,0.8)',
+  T.accent,
 ];
 // display is intentionally left out of these two and set in CSS instead
 // (.visitor-head-row/.visitor-row below) — an inline `display` would always
 // beat the mobile media query's `display: none` / `flex-wrap`, regardless
 // of specificity.
 const visitorHeadRow = {
-  gap: 12, padding: '0 0 8px', borderBottom: `1px solid ${T.ink}`,
-  fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft,
+  gap: 12, padding: '0 0 8px', borderBottom: `1px solid ${T.line}`,
+  fontSize: 12, fontWeight: 500, color: T.soft,
 };
 const visitorRow = {
   gap: 12, padding: '10px 0', borderBottom: `1px solid ${T.line}`,
   fontSize: 13, alignItems: 'center',
 };
 const orderSearchInput = {
-  height: 36, width: 300, maxWidth: '100%', padding: '0 12px', fontSize: 13,
-  border: `1px solid ${T.line}`, background: T.white, color: T.ink, fontFamily: 'inherit',
+  height: 36, width: 300, maxWidth: '100%', padding: '0 14px', fontSize: 14,
+  border: '1px solid rgba(0,0,0,0.12)', borderRadius: 980, background: T.white, color: T.ink, fontFamily: 'inherit',
 };
 
 const funnelRangeSelect = {
-  height: 34, padding: '0 10px', border: `1px solid ${T.line}`, background: T.white,
-  fontFamily: T.sans, fontSize: 12, color: T.ink, outline: 'none',
+  height: 34, padding: '0 10px', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, background: T.white,
+  fontFamily: T.sans, fontSize: 13, color: T.ink, outline: 'none',
 };
 const revenueDateRow = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
   flexWrap: 'wrap', gap: 12, marginBottom: 12,
 };
 const dateQuickBtn = {
-  height: 34, padding: '0 12px', border: `1px solid ${T.line}`, background: T.white,
-  fontFamily: T.sans, fontSize: 12, color: T.soft, cursor: 'pointer',
+  height: 32, padding: '0 14px', border: 'none', borderRadius: 980, background: 'rgba(0,0,0,0.05)',
+  fontFamily: T.sans, fontSize: 13, fontWeight: 500, color: T.ink, cursor: 'pointer',
 };
-const dateQuickBtnActive = { color: T.ink, borderColor: T.ink, fontWeight: 600 };
+const dateQuickBtnActive = { background: T.ink, color: T.white, fontWeight: 600 };
 const orderHeadRow = {
-  display: 'flex', gap: 12, padding: '0 0 10px', borderBottom: `1px solid ${T.ink}`,
-  fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.soft,
+  display: 'flex', gap: 12, padding: '0 0 10px', borderBottom: `1px solid ${T.line}`,
+  fontSize: 12, fontWeight: 500, color: T.soft,
 };
 // Panel above the Orders list: whether Easyship is set up, whether the
 // tracking webhook is connected (with a button to connect it), how many
@@ -2036,7 +2024,7 @@ function EasyshipStatus({ status, onSent }) {
     onSent();
   };
   return (
-    <div style={{ border: `1px solid ${T.line}`, padding: '12px 14px', margin: '0 0 16px', fontSize: 13, lineHeight: 1.6 }}>
+    <div style={{ background: T.paper, borderRadius: 12, padding: '12px 14px', margin: '0 0 16px', fontSize: 13, lineHeight: 1.6 }}>
       <div style={{ fontWeight: 600, color: status.configured ? T.ink : '#a13d2b' }}>
         {status.configured ? 'Easyship connected' : 'Easyship is not set up'}
       </div>
@@ -2156,8 +2144,8 @@ const ADMIN_TABS = [
 
 const reviewRow = { display: 'flex', gap: 16, alignItems: 'flex-start', padding: '14px 0', borderBottom: `1px solid ${T.line}` };
 const deleteBtn = {
-  fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', border: `1px solid ${T.line}`,
-  background: 'none', padding: '8px 12px', cursor: 'pointer', fontFamily: T.sans, flexShrink: 0, color: '#a13d2b',
+  fontSize: 13, fontWeight: 500, border: 'none', borderRadius: 980,
+  background: 'rgba(255,59,48,0.1)', padding: '7px 14px', cursor: 'pointer', fontFamily: T.sans, flexShrink: 0, color: '#D70015',
 };
 // Labels for order.emailLog entries (lib/email/orderHooks.js's emailLogEntry).
 const EMAIL_TYPE_LABELS = {
@@ -2166,9 +2154,9 @@ const EMAIL_TYPE_LABELS = {
 };
 
 const formInput = {
-  width: '100%', height: 44, padding: '0 12px', border: `1px solid ${T.line}`, background: T.white,
+  width: '100%', height: 40, padding: '0 12px', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 10, background: T.white,
   fontFamily: T.sans, fontSize: 14, color: T.ink, outline: 'none', boxSizing: 'border-box',
 };
 const formLabel = {
-  display: 'block', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft, marginBottom: 6,
+  display: 'block', fontSize: 12, fontWeight: 500, color: T.soft, marginBottom: 6,
 };

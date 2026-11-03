@@ -17,8 +17,8 @@ const TABS = [
 const FLOW_DESCRIPTIONS = {
   welcome_series: 'Fires when someone signs up — step 1 goes out right away, later steps on schedule.',
   sunset_winback: 'Fires when a subscriber goes quiet — win-back attempt, then auto-suppress if still inactive.',
-  abandoned_checkout: 'Fires when someone enters their email at checkout (with marketing consent) and doesn\'t complete the order.',
-  add_to_cart: 'For cart activity that never reached checkout. Not triggered on this store yet — nothing records cart activity for it.',
+  abandoned_checkout: 'Fires when someone enters their email at checkout (with marketing consent) and doesn\'t complete the order. Checkouts more than 7 days old are skipped.',
+  add_to_cart: 'For a cart that never reached checkout, from shoppers the site already knows (they signed up or typed their email at checkout before, on this device). Times off their last cart change.',
   order_received: 'Fires on every completed order — a marketing thank-you and later review nudge, not a receipt.',
 };
 
@@ -28,6 +28,7 @@ export default function EmailAdmin() {
   const [gradeSummary, setGradeSummary] = React.useState(null);
   const [campaigns, setCampaigns] = React.useState([]);
   const [automations, setAutomations] = React.useState([]);
+  const [sendingReady, setSendingReady] = React.useState(null);
   const [campaignForm, setCampaignForm] = React.useState({ subject: '', fromName: '', segment: 'all', contentHtml: '' });
   const [campaignFormMessage, setCampaignFormMessage] = React.useState('');
   const [sendingCampaignId, setSendingCampaignId] = React.useState(null);
@@ -134,7 +135,10 @@ export default function EmailAdmin() {
   }, []);
 
   const loadAutomations = React.useCallback(() => {
-    fetch('/api/admin/email/automations').then((r) => r.json()).then((data) => setAutomations(data.automations || [])).catch(() => {});
+    fetch('/api/admin/email/automations').then((r) => r.json()).then((data) => {
+      setAutomations(data.automations || []);
+      setSendingReady(data.sendingReady || null);
+    }).catch(() => {});
   }, []);
 
   const loadTemplates = React.useCallback(() => {
@@ -986,6 +990,13 @@ export default function EmailAdmin() {
 
         {activeTab === 'automations' && (
         <>
+        {sendingReady && (!sendingReady.cronSecret || !sendingReady.resendKey) && (
+          <div style={{ background: '#FDECEA', color: '#8A1F11', borderRadius: 14, padding: '14px 18px', marginBottom: 16, fontSize: 13, lineHeight: 1.5 }}>
+            <strong>Automatic sending is not running.</strong> Flows switched on below won&rsquo;t send until{' '}
+            {[!sendingReady.cronSecret && 'CRON_SECRET', !sendingReady.resendKey && 'RESEND_API_KEY'].filter(Boolean).join(' and ')}{' '}
+            {!sendingReady.cronSecret && !sendingReady.resendKey ? 'are' : 'is'} set in Vercel (Project → Settings → Environment Variables), followed by a redeploy.
+          </div>
+        )}
         <Section
           title="Automations"
           action={
@@ -1024,7 +1035,7 @@ export default function EmailAdmin() {
                 <strong style={{ fontSize: 14 }}>{a.name}</strong>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.soft }}>
                   <input type="checkbox" checked={a.enabled} onChange={() => handleToggleAutomation(a)} />
-                  Enabled
+                  {a.enabled ? 'On' : 'Off'}
                 </label>
               </div>
               {FLOW_DESCRIPTIONS[a.id] && <p style={{ fontSize: 12, color: T.soft, marginBottom: 16 }}>{FLOW_DESCRIPTIONS[a.id]}</p>}

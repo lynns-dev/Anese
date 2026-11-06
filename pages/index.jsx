@@ -17,6 +17,7 @@ import AskBox from '../components/AskBox';
 import NewsletterSignup from '../components/NewsletterSignup';
 import ProductGrid from '../components/ProductGrid';
 import { ANNOUNCEMENTS, HOW_TO } from '../lib/brandContent';
+import { useVariant, exposeExperiment } from '../lib/experiments';
 
 // Minimal line-art icons for the trust badges — matching the site's thin-
 // stroke aesthetic (see ProductVisual's SVG fallbacks) rather than emoji
@@ -122,6 +123,11 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Split test hero_real_skin (lib/experiments.js): relaunch hero vs current.
+  const heroVariant = useVariant('hero_real_skin');
+  React.useEffect(() => { exposeExperiment('hero_real_skin'); }, []);
+  const realSkin = heroVariant === 'realskin';
+
   return (
     <div>
       <Seo path="/" />
@@ -152,17 +158,17 @@ export default function HomePage() {
       {/* HERO */}
       <section style={heroWrap}>
         <Header cartCount={c.count} onCartClick={() => c.setOpen(true)} overlay overlayTone="dark" scrolled={scrolled} />
-        <div className="hero-bg" style={heroBg}>
+        <div className={realSkin ? 'hero-bg hero-realskin' : 'hero-bg'} style={realSkin ? { ...heroBg, backgroundImage: 'url(/images/anese-hero-scrub-sink.webp)', backgroundPosition: '70% center' } : heroBg} role={realSkin ? 'img' : undefined} aria-label={realSkin ? 'That Booty Tho. booty scrub jar on a sunlit bathroom sink with a pink towel' : undefined}>
           <div style={heroContent}>
-            <span style={{ ...S.label, display: 'block', marginBottom: 22 }}>Booty scrubs, serums &amp; body care</span>
+            <span style={{ ...S.label, display: 'block', marginBottom: 22 }}>{realSkin ? 'That Booty Tho. · booty scrub' : <>Booty scrubs, serums &amp; body care</>}</span>
             <h1 style={heroH1}>
-              Butt skincare, <span style={S.it}>minus the awkward.</span>
+              {realSkin ? <>real skin. <span style={S.it}>real scrub.</span></> : <>Butt skincare, <span style={S.it}>minus the awkward.</span></>}
             </h1>
             <p style={heroSub}>
-              Gentle scrubs and body care for your butt, thighs and hips. No judgment, no complicated routine — just a little help figuring out what feels right for you.
+              {realSkin ? 'Walnut grain + botanical oils. No filter, just your routine.' : 'Gentle scrubs and body care for your butt, thighs and hips. No judgment, no complicated routine — just a little help figuring out what feels right for you.'}
             </p>
             <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Link href="/product/that-booty-tho" style={heroBtn}>Shop the scrub — ${featured[0]?.price}</Link>
+              <Link href="/product/that-booty-tho" style={heroBtn}>{realSkin ? 'Shop That Booty Tho.' : <>Shop the scrub — ${featured[0]?.price}</>}</Link>
               <a href="#ask" style={heroLink}>Got a question? Ask us</a>
             </div>
           </div>
@@ -406,6 +412,10 @@ export default function HomePage() {
             background-position: center, 72% center !important;
             background-size: cover, cover !important;
             background-repeat: no-repeat !important;
+          }
+          .hero-realskin {
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0) 38%, rgba(255,255,255,0.88) 64%, #fff 82%), url(/images/anese-hero-scrub-sink-mobile.webp) !important;
+            background-position: center, center !important;
           }
         }
       `}</style>

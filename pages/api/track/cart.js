@@ -4,6 +4,7 @@
 
 import { recordCartEvent, STEPS, SIGNALS } from '../../../lib/cartFunnel';
 import { visitorIdFrom } from '../../../lib/journeys';
+import { recordExperimentStep } from '../../../lib/experimentsStore';
 import { isExcludedIp, isOutsideServiceArea } from '../../../lib/ipFilter';
 
 const STEP_LABELS = Object.fromEntries(STEPS);
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).end();
   }
-  const { kind, sessionId, detail, path, source, device } = req.body || {};
+  const { kind, sessionId, detail, path, source, device, exps } = req.body || {};
   // One count per person: the visitor cookie, else this tab's session id.
   const id = [visitorIdFrom(req), sessionId].find((v) => typeof v === 'string' && ID_RE.test(v));
   if (!id || !(STEP_LABELS[kind] || SIGNALS.includes(kind)) || isExcludedIp(req) || isOutsideServiceArea(req)) return res.status(204).end();
@@ -39,6 +40,8 @@ export default async function handler(req, res) {
   };
   try {
     await recordCartEvent({ visitorId: id, kind, detail: safeDetail, context: { path, source, device } });
+    // Split tests this visitor has seen (lib/experiments.js).
+    try { await recordExperimentStep(exps, kind, id, safeDetail); } catch (err) { console.error('Experiment step failed:', err.message); }
   } catch (err) {
     console.error('Cart step tracking failed:', err.message);
   }

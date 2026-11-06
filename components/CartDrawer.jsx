@@ -14,6 +14,8 @@ import { getIdentity } from '../lib/identity';
 import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
 import TopBanner from './TopBanner';
+import { useVariant, exposeExperiment } from '../lib/experiments';
+import { useAllReviews } from '../lib/useReviews';
 import SaleCallout, { useActivePromo } from './SaleCallout';
 import CartExitPopup, { shouldAskCartExit } from './CartExitPopup';
 import { shippingFor, FREE_SHIPPING_THRESHOLD, SHIPPING_ALWAYS_FREE } from '../lib/shipping';
@@ -215,11 +217,21 @@ export default function CartDrawer({
   // looking at (shipping charge, total, how long the cart was open).
   const openedAtRef = React.useRef(0);
   const checkoutClickedRef = React.useRef(false);
+  // Split test cart_trust: star rating across all products + guarantee.
+  const trustVariant = useVariant('cart_trust');
+  const allReviews = useAllReviews();
+  const reviewTotals = React.useMemo(() => {
+    let count = 0, sum = 0;
+    Object.values(allReviews || {}).forEach((r) => { const n = Number(r?.count) || 0; count += n; sum += (Number(r?.average) || 0) * n; });
+    return { count, average: count ? sum / count : 0 };
+  }, [allReviews]);
   const dropoffRef = React.useRef({});
   dropoffRef.current = { cart, freeShipping: shipsFree, discountedTotal };
   React.useEffect(() => {
     const { cart: items, freeShipping: free, discountedTotal: due } = dropoffRef.current;
     if (open && items.length > 0) {
+      // Split test: reviews + guarantee above Checkout (lib/experiments.js).
+      exposeExperiment('cart_trust');
       openedAtRef.current = Date.now();
       checkoutClickedRef.current = false;
       // A beat after the add-to-cart ping (adding opens the cart).
@@ -457,6 +469,14 @@ export default function CartDrawer({
             <span style={S.label}>Total</span>
             <span style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 20 }}>${discountedTotal.toFixed(2)}</span>
           </div>
+          {trustVariant === 'trust' && cart.length > 0 && (
+            <div style={trustBox}>
+              {reviewTotals.count > 0 && (
+                <div><span style={{ color: T.honey, letterSpacing: '1px' }}>★★★★★</span> {reviewTotals.average.toFixed(1)} from {reviewTotals.count}+ reviews</div>
+              )}
+              <div>30-day money-back guarantee · Free shipping on every order</div>
+            </div>
+          )}
           <Link
             href="/checkout"
             onClick={(e) => {
@@ -594,3 +614,5 @@ const shippingNote = { fontSize: 11, color: T.soft, marginTop: 8, letterSpacing:
 const orDivider = { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' };
 const orDividerLine = { flex: 1, height: 1, background: T.line };
 const orDividerText = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.soft };
+
+const trustBox = { border: `1px solid ${T.line}`, borderRadius: 14, padding: '10px 12px', margin: '0 0 12px', fontSize: 13, lineHeight: 1.5, color: T.ink, background: T.blush, textAlign: 'center' };

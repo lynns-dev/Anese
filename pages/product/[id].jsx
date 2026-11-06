@@ -12,6 +12,11 @@ import { PRODUCTS, getProductById } from '../../lib/products';
 import { useCart } from '../../lib/useCart';
 import { fbTrack } from '../../lib/fbPixel';
 import { T, S } from '../../lib/theme';
+import { useVariant, exposeExperiment } from '../../lib/experiments';
+
+// Split tests on this page (lib/experiments.js).
+const SET_OFFER_ID = 'glazed-set';
+const SET_OFFER_PAGES = ['that-booty-tho', 'booty-glaze'];
 
 const BENEFITS = [
   ['Smoother texture', "Walnut grain buffs away rough, uneven, dull skin — what's left feels like a compliment."],
@@ -145,6 +150,14 @@ export default function ProductPage({ product }) {
     setSlideIndex((cur) => (cur === i ? cur : i));
   };
   const [reviewData, setReviewData] = React.useState({ reviews: [], average: 0, count: 0 });
+  const proofVariant = useVariant('pdp_proof');
+  const setVariant = useVariant('set_offer');
+  const inProofTest = Boolean(product && product.category !== 'accessory' && product.category !== 'gift');
+  const inSetTest = Boolean(product && SET_OFFER_PAGES.includes(product.id));
+  React.useEffect(() => {
+    if (inProofTest) exposeExperiment('pdp_proof');
+    if (inSetTest) exposeExperiment('set_offer');
+  }, [inProofTest, inSetTest, product?.id]);
   const [reviewForm, setReviewForm] = React.useState({ rating: 5, text: '', author: '' });
   const [reviewSubmitting, setReviewSubmitting] = React.useState(false);
   const [reviewError, setReviewError] = React.useState('');
@@ -356,6 +369,38 @@ export default function ProductPage({ product }) {
             <p className="pdp-desc" style={pdpDesc}>{product.description}</p>
 
             <div className="pdp-price" style={pdpPrice}>${unitPrice} <span style={{ fontSize: 14, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
+
+            {inProofTest && proofVariant === 'proof' && (() => {
+              const top = reviewData.reviews.find((r) => (r.rating || 5) >= 5 && String(r.text || '').length > 20) || reviewData.reviews[0];
+              if (!top && !product.finish) return null;
+              return (
+                <div style={proofBox}>
+                  {product.finish && <p style={{ margin: top ? '0 0 8px' : 0, fontSize: 13, fontWeight: 600 }}>{product.finish}</p>}
+                  {top && (
+                    <p style={{ margin: 0, fontSize: 14, lineHeight: 1.45 }}>
+                      <span style={{ color: T.honey, letterSpacing: '1px' }}>{'★'.repeat(Math.round(top.rating || 5))}</span>{' '}
+                      “{String(top.text).slice(0, 150)}{String(top.text).length > 150 ? '…' : ''}”
+                      {top.author && <span style={{ color: T.soft }}> — {top.author}, Verified Buyer</span>}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {inSetTest && setVariant === 'set' && getProductById(SET_OFFER_ID) && !c.cart.some((i) => i.id === SET_OFFER_ID) && (
+              <div style={{ ...upsellCard, marginTop: 0, marginBottom: 14, borderColor: T.ink }}>
+                <div style={upsellVisual}><ProductVisual id={SET_OFFER_ID} images={getProductById(SET_OFFER_ID).images} alt="The Glazed Set" width={54} /></div>
+                <div style={{ flex: 1 }}>
+                  <div style={S.label}>Full routine · better together</div>
+                  <div style={{ fontFamily: T.serif, fontWeight: 400, fontSize: 19, marginTop: 4 }}>The Glazed Set</div>
+                  <div style={{ fontSize: 14, color: T.soft, marginTop: 2 }}>That Booty Tho. scrub + Booty Glaze serum</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: T.serif, fontSize: 18, marginBottom: 8 }}>${getProductById(SET_OFFER_ID).price}</div>
+                  <button onClick={() => c.add(getProductById(SET_OFFER_ID), 1)} style={upsellAddBtn}>Add set</button>
+                </div>
+              </div>
+            )}
 
             <div ref={addToCartRef} style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap', marginBottom: 14 }}>
               <div style={qtyWrap}>
@@ -798,6 +843,7 @@ const pdpPrice = { fontFamily: T.sans, fontWeight: 600, fontSize: 20, marginBott
 const qtyWrap = { display: 'flex', alignItems: 'center', border: `1px solid ${T.line}`, background: T.shell, height: 56 };
 const qtyBtn = { width: 44, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: T.ink };
 const qtyValue = { width: 30, textAlign: 'center', fontSize: 14, fontWeight: 500 };
+const proofBox = { border: `1px solid ${T.line}`, borderRadius: 16, background: T.blush, padding: '12px 14px', marginBottom: 14 };
 const badgeRow = { fontSize: 14, color: T.soft, marginTop: 4, marginBottom: 8 };
 
 const upsellCard = {

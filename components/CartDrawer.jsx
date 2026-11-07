@@ -219,6 +219,10 @@ export default function CartDrawer({
   const checkoutClickedRef = React.useRef(false);
   // Split test cart_trust: star rating across all products + guarantee.
   const trustVariant = useVariant('cart_trust');
+  const checkoutCtaVariant = useVariant('cart_checkout_cta');
+  const discountVisibilityVariant = useVariant('cart_discount_visibility');
+  const totalReassuranceVariant = useVariant('cart_total_reassurance');
+  const [discountExpanded, setDiscountExpanded] = React.useState(false);
   const allReviews = useAllReviews();
   const reviewTotals = React.useMemo(() => {
     let count = 0, sum = 0;
@@ -232,6 +236,9 @@ export default function CartDrawer({
     if (open && items.length > 0) {
       // Split test: reviews + guarantee above Checkout (lib/experiments.js).
       exposeExperiment('cart_trust');
+      exposeExperiment('cart_checkout_cta');
+      exposeExperiment('cart_discount_visibility');
+      exposeExperiment('cart_total_reassurance');
       openedAtRef.current = Date.now();
       checkoutClickedRef.current = false;
       // A beat after the add-to-cart ping (adding opens the cart).
@@ -427,22 +434,17 @@ export default function CartDrawer({
 
         {cart.length > 0 && (
           <div style={{ marginTop: 16, flexShrink: 0 }}>
-            <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 10 }} />
-            <div style={{ display: 'flex', gap: 10 }}>
-              <input
-                placeholder="Discount code"
-                value={discountCode}
-                onChange={(e) => {
-                  setDiscountCode(e.target.value);
-                  if (appliedDiscount) clearDiscount();
-                  setDiscountMessage('');
-                }}
-                style={discountInput}
-              />
-              <button type="button" style={S.btnOutline} onClick={handleApplyDiscount} disabled={discountSubmitting}>Apply</button>
-            </div>
-            {discountMessage && (
-              <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 6 }}>{discountMessage}</p>
+            {(discountVisibilityVariant === 'control' || discountExpanded || appliedDiscount) ? (
+              <>
+                <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 10 }} />
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <input placeholder="Discount code" value={discountCode} onChange={(e) => { setDiscountCode(e.target.value); if (appliedDiscount) clearDiscount(); setDiscountMessage(''); }} style={discountInput} />
+                  <button type="button" style={S.btnOutline} onClick={handleApplyDiscount} disabled={discountSubmitting}>Apply</button>
+                </div>
+                {discountMessage && <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 6 }}>{discountMessage}</p>}
+              </>
+            ) : (
+              <button type="button" onClick={() => setDiscountExpanded(true)} style={{ background: 'none', border: 'none', padding: '8px 0', color: T.ink, fontSize: 12, textDecoration: 'underline', cursor: 'pointer' }}>Have a discount code? Add it</button>
             )}
           </div>
         )}
@@ -464,6 +466,7 @@ export default function CartDrawer({
               <span>−${codeDiscountAmount.toFixed(2)}</span>
             </div>
           )}
+          {totalReassuranceVariant === 'shipping' && shipsFree && <div style={summaryRow}><span style={{ color: T.soft }}>Shipping</span><span>Free</span></div>}
           <p style={shippingNote}>{shipsFree ? 'Free shipping' : 'Shipping and taxes calculated at checkout'}</p>
           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '14px 0 18px' }}>
             <span style={S.label}>Total</span>
@@ -486,7 +489,7 @@ export default function CartDrawer({
             }}
             style={{ ...S.btnFill, width: '100%', justifyContent: 'center', opacity: cart.length === 0 ? 0.4 : 1, textAlign: 'center' }}
           >
-            Checkout
+            {checkoutCtaVariant === 'secure' ? '🔒 Continue to secure checkout →' : 'Checkout'}
           </Link>
           {/* Apple Pay + Google Pay, under the main Checkout button and
               split off by an "or". Each renders only once Square confirms

@@ -30,7 +30,7 @@ export default function TopBanner({ forcePromo = false } = {}) {
   // The homepage puts the sale in its own announcement bar instead.
   const { pathname } = useRouter();
   const [promo, setPromo] = useState(null);
-  useEffect(() => { setPromo(activePromo()); }, []);
+  useEffect(() => { setPromo(activePromo() || { code: 'WELCOME10', type: 'percent', value: 10, banner: '10% OFF — USE CODE WELCOME10' }); }, []);
 
   return (
     <>

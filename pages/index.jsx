@@ -156,13 +156,13 @@ export default function HomePage() {
           <div style={heroContent}>
             <span style={{ ...S.label, display: 'block', marginBottom: 22 }}><>Booty scrubs, serums &amp; body care</></span>
             <h1 style={heroH1}>
-              <>Butt skincare, <span style={S.it}>minus the awkward.</span></>
+              Butt skincare, <span style={S.it}>minus the awkward.</span>
             </h1>
             <p style={heroSub}>
-              'Gentle scrubs and body care for your butt, thighs and hips. No judgment, no complicated routine — just a little help figuring out what feels right for you.'
+              Gentle scrubs and body care for your butt, thighs and hips. No judgment, no complicated routine — just a little help figuring out what feels right for you.
             </p>
             <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Link href="/product/that-booty-tho" style={heroBtn}><>Shop the scrub — ${featured[0]?.price}</></Link>
+              <Link href="/product/that-booty-tho" style={heroBtn}>Shop the scrub — ${featured[0]?.price}</Link>
               <a href="#ask" style={heroLink}>Got a question? Ask us</a>
             </div>
           </div>

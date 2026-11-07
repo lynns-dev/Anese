@@ -467,7 +467,7 @@ export default function CartDrawer({
             </div>
           )}
           {totalReassuranceVariant === 'shipping' && shipsFree && <div style={summaryRow}><span style={{ color: T.soft }}>Shipping</span><span>Free</span></div>}
-          <p style={shippingNote}>{shipsFree ? 'Free shipping' : 'Shipping and taxes calculated at checkout'}</p>
+          <p style={shippingNote}>{shipsFree ? (totalReassuranceVariant === 'shipping' ? 'Taxes calculated at checkout' : 'Free shipping') : 'Shipping and taxes calculated at checkout'}</p>
           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '14px 0 18px' }}>
             <span style={S.label}>Total</span>
             <span style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 20 }}>${discountedTotal.toFixed(2)}</span>

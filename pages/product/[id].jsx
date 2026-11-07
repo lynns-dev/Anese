@@ -150,12 +150,10 @@ export default function ProductPage({ product }) {
     setSlideIndex((cur) => (cur === i ? cur : i));
   };
   const [reviewData, setReviewData] = React.useState({ reviews: [], average: 0, count: 0 });
-  const proofVariant = useVariant('pdp_proof');
   const setVariant = useVariant('set_offer');
   const inProofTest = Boolean(product && product.category !== 'accessory' && product.category !== 'gift');
   const inSetTest = Boolean(product && SET_OFFER_PAGES.includes(product.id));
   React.useEffect(() => {
-    if (inProofTest) exposeExperiment('pdp_proof');
     if (inSetTest) exposeExperiment('set_offer');
   }, [inProofTest, inSetTest, product?.id]);
   const [reviewForm, setReviewForm] = React.useState({ rating: 5, text: '', author: '' });
@@ -370,7 +368,7 @@ export default function ProductPage({ product }) {
 
             <div className="pdp-price" style={pdpPrice}>${unitPrice} <span style={{ fontSize: 14, color: T.soft, fontFamily: T.sans }}>· {product.size}</span></div>
 
-            {inProofTest && proofVariant === 'proof' && (() => {
+            {inProofTest && (() => {
               const top = reviewData.reviews.find((r) => (r.rating || 5) >= 5 && String(r.text || '').length > 20) || reviewData.reviews[0];
               if (!top && !product.finish) return null;
               return (

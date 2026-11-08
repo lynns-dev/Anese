@@ -57,6 +57,10 @@ export default function Tests() {
                 {t.winner ? `Ended: "${t.winner}" for everyone` : `Running since ${t.started}`}
               </span>
             </div>
+            {t.id === 'shop_pay_checkout_v1' && <p style={{ fontSize: 12 }}>
+              Mobile: {t.variants.map(v => `${v.variant} ${v.purchased_mobile || 0}/${v.visitors_mobile || 0}`).join(' · ')}
+              {' | '}Desktop: {t.variants.map(v => `${v.variant} ${v.purchased_desktop || 0}/${v.visitors_desktop || 0}`).join(' · ')}
+            </p>}
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 10, minWidth: 560 }}>
               <thead>
                 <tr style={{ textAlign: 'right', color: '#5f6368' }}>

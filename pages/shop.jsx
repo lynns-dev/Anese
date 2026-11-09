@@ -37,7 +37,7 @@ export default function ShopPage() {
       </section>
 
       <section style={{ padding: '40px 0 64px' }}>
-        <ProductGrid products={PRODUCTS.filter((p) => p.id !== 'scent-trio')} onAdd={(p) => c.add(p)} reviews={reviews} />
+        <ProductGrid products={PRODUCTS.filter((p) => p.id !== 'scent-trio' && p.id !== 'cloud-slippers')} onAdd={(p) => c.add(p)} reviews={reviews} />
       </section>
 
       <Marquee />

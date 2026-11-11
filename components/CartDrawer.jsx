@@ -1,3 +1,4 @@
+import { paymentFetch } from '../lib/paymentFetch';
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -142,7 +143,7 @@ export default function CartDrawer({
       trackCart('pay_attempt', { method: label });
       const { cart: currentCart, grandTotal: amount } = latestRef.current;
       const purchaseEventId = generateEventId();
-      const res = await fetch('/api/square-checkout', {
+      const res = await paymentFetch('/api/square-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -282,7 +283,7 @@ export default function CartDrawer({
           const { cart: items, grandTotal: amount, shippingCost: shipping, discountCode: code } = latestRef.current;
           const purchaseEventId = generateEventId();
           shopPayEventIdRef.current = purchaseEventId;
-          const res = await fetch('/api/shop-pay/session', {
+          const res = await paymentFetch('/api/shop-pay/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

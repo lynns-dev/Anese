@@ -1,3 +1,4 @@
+import { paymentFetch } from '../lib/paymentFetch';
 import ShopPayWallet from '../components/ShopPayWallet';
 import React from 'react';
 import Link from 'next/link';
@@ -655,7 +656,7 @@ export default function CheckoutPage() {
     const { email, shipping, cart, grandTotal } = { ...latestRef.current, ...overrides };
     const purchaseEventId = generateEventId();
 
-    const res = await fetch('/api/square-checkout', {
+    const res = await paymentFetch('/api/square-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

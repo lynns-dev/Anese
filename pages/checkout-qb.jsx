@@ -1,3 +1,4 @@
+import { paymentFetch } from '../lib/paymentFetch';
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -479,7 +480,7 @@ export default function CheckoutPage({ qbEnvironment }) {
     const { email, shipping, cart, grandTotal } = latestRef.current;
     const purchaseEventId = generateEventId();
 
-    const res = await fetch('/api/qb-checkout', {
+    const res = await paymentFetch('/api/qb-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

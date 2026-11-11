@@ -1,3 +1,5 @@
+import { activePromo } from '../lib/promos';
+import { paymentFetch } from '../lib/paymentFetch';
 import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -36,7 +38,7 @@ import { shippingFor } from '../lib/shipping';
 // policy, and there's no fabricated accreditation badge, press logo, phone
 // number, or countdown timer that doesn't correspond to something real.
 
-const DISCOUNT_CODE = 'ANESE15';
+const DEFAULT_DISCOUNT_CODE = 'ANESE15';
 
 // Flat optional add-on for reshipment/refund if a package is lost, damaged,
 // or stolen in transit — same offering and price as /checkout. Adjust
@@ -122,6 +124,7 @@ export default function Offer3Page() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const errorRef = React.useRef(null);
+  const DISCOUNT_CODE = activePromo()?.code || DEFAULT_DISCOUNT_CODE;
   const [discountApplied, setDiscountApplied] = React.useState(false);
 
   // The error message renders once, near the "Place order" button at the
@@ -369,7 +372,7 @@ export default function Offer3Page() {
     const purchaseEventId = generateEventId();
     const items = [{ ...product, quantity }];
 
-    const res = await fetch('/api/square-checkout', {
+    const res = await paymentFetch('/api/square-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

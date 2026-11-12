@@ -8,6 +8,7 @@
 import { getCampaigns } from '../../../../lib/email/campaignsStore';
 import { getAutomations } from '../../../../lib/email/automationsStore';
 import { getSubscribers } from '../../../../lib/email/subscribersStore';
+import { computeFlowPerformance } from '../../../../lib/email/flowPerformance';
 import { computeCampaignConversion, computeAutomationStepConversion } from '../../../../lib/email/campaignAnalytics';
 
 export default async function handler(req, res) {
@@ -36,13 +37,15 @@ export default async function handler(req, res) {
       totalClicked += campaign.stats.clicked || 0;
     }
 
+    const flows = await computeFlowPerformance(automations);
     const perAutomation = {};
     for (const flow of automations) {
       const perStep = {};
       for (let stepIndex = 0; stepIndex < flow.steps.length; stepIndex += 1) {
         const step = flow.steps[stepIndex];
-        const stepSent = step.stats?.sent || 0;
-        const stepClicked = step.stats?.clicked || 0;
+        const perf = flows.find(f => f.id === flow.id)?.steps.find(s => s.index === stepIndex);
+        const stepSent = perf?.sent || 0;
+        const stepClicked = perf?.clickers || 0;
         if (stepSent === 0) continue; // never sent — nothing to report, keeps the response small
 
         const result = await computeAutomationStepConversion(flow.id, stepIndex, subscribersByEmail);
@@ -64,7 +67,7 @@ export default async function handler(req, res) {
       conversionRate: totalUniqueClickers > 0 ? Math.round((totalConverted / totalUniqueClickers) * 1000) / 10 : 0,
     };
 
-    return res.status(200).json({ campaigns: perCampaign, automations: perAutomation, aggregate });
+    return res.status(200).json({ campaigns: perCampaign, automations: perAutomation, flows, aggregate });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

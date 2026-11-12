@@ -130,7 +130,7 @@ export default function EmailAdmin() {
   const loadEmailAnalytics = React.useCallback(() => {
     fetch('/api/admin/email/analytics')
       .then((r) => r.json())
-      .then((data) => setEmailAnalytics({ campaigns: data.campaigns || {}, automations: data.automations || {}, aggregate: data.aggregate || null }))
+      .then((data) => setEmailAnalytics({ campaigns: data.campaigns || {}, automations: data.automations || {}, aggregate: data.aggregate || null, flows: data.flows || [] }))
       .catch(() => {});
   }, []);
 
@@ -1061,9 +1061,9 @@ export default function EmailAdmin() {
                       )}
                     </div>
 
-                    {!isSuppress && step.stats?.sent > 0 && (
+                    {!isSuppress && (emailAnalytics.flows || []).find(f => f.id === a.id)?.steps.find(s => s.index === i)?.sent > 0 && (
                       <div style={{ fontSize: 12, color: T.soft, marginBottom: 12 }}>
-                        Sent {step.stats.sent} · Click rate {Math.round((step.stats.clicked / step.stats.sent) * 1000) / 10}%
+                        Sent {(emailAnalytics.flows || []).find(f => f.id === a.id)?.steps.find(s => s.index === i)?.sent ?? 0} · Click rate {((emailAnalytics.flows || []).find(f => f.id === a.id)?.steps.find(s => s.index === i)?.clickRate ?? 0)}%
                         {emailAnalytics.automations?.[a.id]?.[i] && (
                           <span> · Conversion rate {emailAnalytics.automations[a.id][i].conversionRate}% ({emailAnalytics.automations[a.id][i].converted}/{emailAnalytics.automations[a.id][i].uniqueClickers} clickers ordered within 7d)</span>
                         )}
@@ -1101,6 +1101,18 @@ export default function EmailAdmin() {
                             style={{ width: '100%', height: 320, border: `1px solid ${T.line}`, marginTop: 10, background: T.paper }}
                           />
                         )}
+                        <AbTestPanel
+                          automation={a}
+                          settings={settings}
+                          stepIndex={i}
+                          step={step}
+                          perf={(emailAnalytics.flows || []).find((f) => f.id === a.id)?.steps.find((r) => r.index === i)}
+                          onChangeB={(patch) => updateAutomationStep(a.id, i, { abTest: { ...step.abTest, ...patch } })}
+                          onUpdated={(automation) => {
+                            setAutomations((prev) => prev.map((x) => (x.id === automation.id ? automation : x)));
+                            loadEmailAnalytics();
+                          }}
+                        />
                       </>
                     )}
                   </div>
@@ -1335,5 +1347,123 @@ function SmsSubscribers() {
         </div>
       </div>
     </Section>
+  );
+}
+
+function AbTestPanel({ automation, stepIndex, step, perf, onChangeB, onUpdated, settings }) {
+  const [open, setOpen] = React.useState(Boolean(step.abTest?.enabled));
+  const [draft, setDraft] = React.useState({ subject: '', html: '' });
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState('');
+  const running = step.abTest?.enabled ? step.abTest : null;
+  const results = perf?.abTest?.results;
+
+  const call = async (body) => {
+    setBusy(true);
+    setMsg('');
+    try {
+      const res = await fetch('/api/admin/email/automations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: automation.id, stepIndex, ...body }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed.');
+      onUpdated(data.automation);
+      return true;
+    } catch (err) {
+      setMsg(err.message);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const box = { marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.line}` };
+  if (!open && !running) {
+    return (
+      <div style={box}>
+        <button type="button" onClick={() => setOpen(true)} style={S.btnOutline}>A/B test this email</button>
+        {step.abHistory?.length > 0 && <span style={{ fontSize: 12, color: T.soft, marginLeft: 10 }}>{step.abHistory.length} past test{step.abHistory.length === 1 ? '' : 's'} · last winner: {step.abHistory[step.abHistory.length - 1].winner.toUpperCase()}</span>}
+      </div>
+    );
+  }
+
+  const row = (label, m) => (
+    <tr>
+      <td style={{ padding: '6px 8px', fontWeight: 600 }}>{label}</td>
+      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{m?.sent ?? 0}</td>
+      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{m?.sent ? `${m.openRate}%` : '—'}</td>
+      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{m?.sent ? `${m.clickRate}%` : '—'}</td>
+      <td style={{ padding: '6px 8px', textAlign: 'right' }}>{m?.clickers ?? 0}</td>
+    </tr>
+  );
+
+  return (
+    <div style={box}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <strong style={{ fontSize: 13 }}>A/B test {running ? '· running' : ''}</strong>
+        {!running && <button type="button" onClick={() => setOpen(false)} style={{ ...S.btnOutline, height: 28, fontSize: 12 }}>Cancel</button>}
+      </div>
+      <p style={{ fontSize: 12, color: T.soft, margin: '0 0 10px', lineHeight: 1.5 }}>
+        Variant A is the email above. Half of the people who reach this step get variant B (each person always gets the same one). Leave B&rsquo;s HTML blank to test only the subject line. Pick a winner once each side has a few hundred sends.
+      </p>
+      <label style={formLabel}>Variant B subject</label>
+      <input
+        value={running ? running.subject || '' : draft.subject}
+        onChange={(e) => (running ? onChangeB({ subject: e.target.value }) : setDraft({ ...draft, subject: e.target.value }))}
+        placeholder={step.subject}
+        style={{ ...formInput, marginBottom: 10 }}
+      />
+      <label style={formLabel}>Variant B HTML (optional)</label>
+      <textarea
+        value={running ? running.html || '' : draft.html}
+        onChange={(e) => (running ? onChangeB({ html: e.target.value }) : setDraft({ ...draft, html: e.target.value }))}
+        placeholder="Blank = same HTML as variant A"
+        style={{ ...formInput, height: 140, padding: 12, fontFamily: 'monospace', fontSize: 12, lineHeight: 1.5 }}
+      />
+      {running && <p style={{ fontSize: 11, color: T.soft, margin: '6px 0 0' }}>Edits to B are saved with &ldquo;Save changes&rdquo; below.</p>}
+
+      {running ? (
+        <>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 12 }}>
+            <thead>
+              <tr style={{ color: T.soft, textAlign: 'right' }}>
+                <th style={{ padding: '6px 8px', textAlign: 'left' }}>Variant</th><th style={{ padding: '6px 8px' }}>Sent</th><th style={{ padding: '6px 8px' }}>Open rate</th><th style={{ padding: '6px 8px' }}>Click rate</th><th style={{ padding: '6px 8px' }}>Clicked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {row('A', results?.a)}
+              {row('B', results?.b)}
+            </tbody>
+          </table>
+          <p style={{ fontSize: 12, color: T.ink, margin: '8px 0' }}>
+            {perf?.abTest?.leader
+              ? `${perf.abTest.leader.toUpperCase()} is ahead on click rate · ${perf.abTest.confidence}% confidence${perf.abTest.confidence < 95 ? ' (wait for 95%+ before calling it)' : ' — review sample size and conversions before choosing'}`
+              : 'No clicks to compare yet.'}
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button type="button" disabled={busy} onClick={() => window.confirm('End the test and keep variant A?') && call({ action: 'ab-end', winner: 'a' })} style={S.btnOutline}>Keep A, end test</button>
+            <button type="button" disabled={busy} onClick={() => window.confirm('End the test and replace this step with variant B?') && call({ action: 'ab-end', winner: 'b' })} style={S.btnFill}>B wins, use B</button>
+            <details style={{ marginTop: 12 }}><summary>Preview variant B</summary>
+        <iframe title="Variant B preview" sandbox="" srcDoc={renderEmailHtml((running ? running.html : draft.html) || step.html, settings || {}, { preview: true })} style={{ width: '100%', maxWidth: 600, height: 480, border: '1px solid #ddd' }} />
+      </details>
+      {msg && <span style={{ fontSize: 12, color: T.danger }}>{msg}</span>}
+          </div>
+        </>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+          <button
+            type="button"
+            disabled={busy || (!draft.subject.trim() && !draft.html.trim())}
+            onClick={async () => { if (await call({ action: 'ab-start', subject: draft.subject, html: draft.html })) setDraft({ subject: '', html: '' }); }}
+            style={S.btnFill}
+          >
+            {busy ? 'Starting…' : 'Start A/B test'}
+          </button>
+          {msg && <span style={{ fontSize: 12, color: T.danger }}>{msg}</span>}
+        </div>
+      )}
+    </div>
   );
 }

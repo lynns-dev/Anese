@@ -21,7 +21,7 @@ import { getAutomations } from '../../../lib/email/automationsStore';
 import { getSubscribers, updateAutomationState, suppressByEmail } from '../../../lib/email/subscribersStore';
 import { getSettings } from '../../../lib/email/settingsStore';
 import { daysSinceActivity, WINBACK_AFTER_DAYS } from '../../../lib/email/emailEngagement';
-import { prepareStepTemplate, sendStepToSubscriber } from '../../../lib/email/automationSend';
+import { prepareStepTemplate, sendFlowStep } from '../../../lib/email/automationSend';
 import { syncStoreLeads } from '../../../lib/email/leadsSync';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -62,10 +62,11 @@ async function trySend(flowId, email, send) {
 // it's actually needed, not once per subscriber.
 function makeStepTemplateCache(flow, settings) {
   const cache = new Map();
-  return async function getTemplate(stepIndex) {
-    if (cache.has(stepIndex)) return cache.get(stepIndex);
-    const template = await prepareStepTemplate(flow.id, flow.steps[stepIndex], stepIndex, settings);
-    cache.set(stepIndex, template);
+  return async function getTemplate(stepIndex, variant = 'a') {
+    const key = `${stepIndex}:${variant}`;
+    if (cache.has(key)) return cache.get(key);
+    const template = await prepareStepTemplate(flow.id, flow.steps[stepIndex], stepIndex, settings, variant);
+    cache.set(key, template);
     return template;
   };
 }
@@ -85,8 +86,7 @@ async function runWelcomeSeries(flow, subscribers, settings) {
     const dueAt = sub.confirmedAt + step.delayDays * DAY_MS;
     if (now < dueAt) continue;
 
-    const template = await getTemplate(state.step);
-    await sendStepToSubscriber(flow.id, state.step, template, step.subject, sub);
+    await sendFlowStep(flow, state.step, sub, getTemplate);
     await updateAutomationState(sub.email, 'welcome_series', { step: state.step + 1 });
     sent += 1;
   }
@@ -117,8 +117,7 @@ async function runSunsetWinback(flow, subscribers, settings) {
     if (idleDays < step.delayDays) continue;
 
     if (step.subject) {
-      const template = await getTemplate(state.step);
-      await sendStepToSubscriber(flow.id, state.step, template, step.subject, sub);
+      await sendFlowStep(flow, state.step, sub, getTemplate);
       sent += 1;
     } else {
       await suppressByEmail(sub.email, 'sunset');
@@ -150,8 +149,7 @@ async function runAbandonedCheckout(flow, subscribers, settings) {
     if (now < cartStepDueAt(flow, state, sub.checkoutStartedAt)) continue;
 
     const ok = await trySend(flow.id, sub.email, async () => {
-      const template = await getTemplate(state.step);
-      await sendStepToSubscriber(flow.id, state.step, template, step.subject, sub);
+      await sendFlowStep(flow, state.step, sub, getTemplate);
       await updateAutomationState(sub.email, 'abandoned_checkout', { step: state.step + 1, sentAt: Date.now() });
     });
     if (ok) sent += 1;
@@ -178,8 +176,7 @@ async function runAddToCart(flow, subscribers, settings) {
     if (now < cartStepDueAt(flow, state, sub.cartUpdatedAt)) continue;
 
     const ok = await trySend(flow.id, sub.email, async () => {
-      const template = await getTemplate(state.step);
-      await sendStepToSubscriber(flow.id, state.step, template, step.subject, sub);
+      await sendFlowStep(flow, state.step, sub, getTemplate);
       await updateAutomationState(sub.email, 'add_to_cart', { step: state.step + 1, sentAt: Date.now() });
     });
     if (ok) sent += 1;
@@ -206,8 +203,7 @@ async function runOrderReceived(flow, subscribers, settings) {
     const dueAt = sub.lastOrderAt + step.delayHours * HOUR_MS;
     if (now < dueAt) continue;
 
-    const template = await getTemplate(state.step);
-    await sendStepToSubscriber(flow.id, state.step, template, step.subject, sub);
+    await sendFlowStep(flow, state.step, sub, getTemplate);
     await updateAutomationState(sub.email, 'order_received', { step: state.step + 1 });
     sent += 1;
   }

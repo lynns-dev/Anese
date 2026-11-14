@@ -1,3 +1,4 @@
+import CheckoutDiscount from '../components/CheckoutDiscount';
 import { paymentFetch } from '../lib/paymentFetch';
 import ShopPayWallet from '../components/ShopPayWallet';
 import React from 'react';
@@ -24,7 +25,6 @@ import { trackCart } from '../lib/cartTracking';
 import { hasFreeShipping } from '../lib/shippingPerk';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import TopBanner from '../components/TopBanner';
-import SaleCallout from '../components/SaleCallout';
 import { shippingFor } from '../lib/shipping';
 
 // Live checkout — charges through Square. QuickBooks Payments is kept as a
@@ -132,31 +132,7 @@ function OrderItemsPanel({
         ))}
       </div>
 
-      <div style={{ marginTop: 6 }}>
-        <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 10 }} />
-        <div style={{ display: 'flex', gap: 10 }}>
-          <input
-            placeholder="Discount code"
-            value={discountCode}
-            onChange={(e) => {
-              setDiscountCode(e.target.value);
-              if (appliedDiscount) clearDiscount();
-              setDiscountMessage('');
-            }}
-            // Enter must apply the code, not fall through to native form submit.
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter') return;
-              e.preventDefault();
-              handleApplyDiscount();
-            }}
-            style={{ ...bigInput, height: 46, flex: 1 }}
-          />
-          <button type="button" style={{ ...smallOutlineButton, height: 46 }} onClick={handleApplyDiscount}>Apply</button>
-        </div>
-        {discountMessage && (
-          <p style={{ fontSize: 12, color: appliedDiscount ? T.ink : '#a13d2b', marginTop: 8 }}>{discountMessage}</p>
-        )}
-      </div>
+      <CheckoutDiscount discountCode={discountCode} setDiscountCode={setDiscountCode} discountMessage={discountMessage} setDiscountMessage={setDiscountMessage} appliedDiscount={appliedDiscount} clearDiscount={clearDiscount} handleApplyDiscount={handleApplyDiscount} />
 
       <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${T.line}` }}>
         <div style={summaryRow}>
@@ -242,7 +218,7 @@ function ReviewsCarousel({ reviews }) {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, total, hydrated, clear, appliedDiscount, applyDiscount, clearDiscount, codeDiscountAmount, discountedTotal } = useCart();
+  const { cart, total, hydrated, clear, appliedDiscount, applyDiscount, clearDiscount: clearCartDiscount, codeDiscountAmount, discountedTotal } = useCart();
 
   // Loaded once at mount — see lib/checkoutProgress.js. Seeds the step +
   // contact/shipping state below so a refresh mid-checkout resumes instead
@@ -317,6 +293,13 @@ export default function CheckoutPage() {
   const [orderSummaryOpen, setOrderSummaryOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
+  const clearDiscount = React.useCallback(() => {
+    clearCartDiscount();
+    setError(current => /discount|promo.*code/i.test(current) ? '' : current);
+  }, [clearCartDiscount]);
+  React.useEffect(() => {
+    if (/discount|promo.*code/i.test(error)) setDiscountMessage(error);
+  }, [error]);
   const errorRef = React.useRef(null);
   const formTopRef = React.useRef(null);
 
@@ -628,6 +611,7 @@ export default function CheckoutPage() {
     // The sale callout passes its code; the Apply button passes a click event.
     const code = typeof codeArg === 'string' ? codeArg : discountCode;
     if (!code.trim()) return null;
+    setError(current => /discount|promo.*code/i.test(current) ? '' : current);
     setDiscountMessage('Checking…');
     const data = await applyDiscount(code);
     if (data.valid) {
@@ -1089,7 +1073,7 @@ export default function CheckoutPage() {
             ))}
           </div>
 
-          <SaleCallout appliedDiscount={appliedDiscount} onApply={handleApplyDiscount} style={{ marginBottom: 16 }} />
+          <div style={{ marginBottom: 16 }}><CheckoutDiscount discountCode={discountCode} setDiscountCode={setDiscountCode} discountMessage={discountMessage} setDiscountMessage={setDiscountMessage} appliedDiscount={appliedDiscount} clearDiscount={clearDiscount} handleApplyDiscount={handleApplyDiscount} /></div>
 
           <div style={summaryRow}>
             <span style={{ color: T.soft }}>Subtotal</span>

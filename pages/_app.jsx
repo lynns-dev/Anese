@@ -19,7 +19,7 @@ import SignupPopup from '../components/SignupPopup';
 // they sign up (pages/api/email/signup.js) and sent again in the welcome
 // email (lib/email/automationsStore.js) — so that code needs to exist in
 // /admin's Discounts tab.
-const SIGNUP_POPUP_EXCLUDED_PREFIXES = ['/admin', '/checkout', '/offer', '/success', '/amazon-pay', '/unsubscribe'];
+const SIGNUP_POPUP_EXCLUDED_PREFIXES = ['/birthday', '/admin', '/checkout', '/offer', '/success', '/amazon-pay', '/unsubscribe'];
 
 const HEARTBEAT_MS = 10000;
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -40,7 +40,8 @@ function Tracking() {
   // keypress, mouse movement, coming back to the tab). The Live view counts
   // someone as on the site only while this is recent — lib/presence.js.
   const lastActivityRef = React.useRef(Date.now());
-  const isAdmin = router.pathname.startsWith('/admin');
+  // Birthday inputs stay out of page-view, field-focus and recording setup.
+  const isAdmin = router.pathname.startsWith('/admin') || router.pathname === '/birthday';
 
   React.useEffect(() => {
     const mark = () => { lastActivityRef.current = Date.now(); };

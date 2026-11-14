@@ -16,6 +16,7 @@ const COLUMNS = [
   {
     heading: 'Let’s talk',
     links: [
+      ['/birthday', 'Birthday program'],
       ['/questions', 'Ask us anything'],
       ['/rituals', 'Shower rituals'],
       ['/stories', 'Real stories'],

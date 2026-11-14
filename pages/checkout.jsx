@@ -1021,6 +1021,13 @@ export default function CheckoutPage() {
                     {squareError && (
                       <p style={{ fontSize: 12, color: '#a13d2b', marginTop: 8 }}>{squareError}</p>
                     )}
+                        <div className="card-reassurance">
+                          <span className="accepted-card-logos" role="img" aria-label="Visa, Mastercard, American Express and Discover accepted">
+                            {/* Official Square artwork; show its four major US card brands. */}
+                            <img src="/images/square-accepted-cards.png" alt="" width="6033" height="462" />
+                          </span>
+                          <p><span aria-hidden="true">🔒</span> Secure checkout powered by Square.<br />Your card details are encrypted and never stored on our servers.</p>
+                        </div>
                   </div>
                 </div>
 
@@ -1140,6 +1147,11 @@ export default function CheckoutPage() {
       </div>
 
       <style jsx>{`
+        :global(#square-card-container .sq-card-message:empty) { display: none; }
+        .card-reassurance { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-top: 14px; }
+        .accepted-card-logos { display: block; flex: 0 0 180px; width: 180px; height: 24px; overflow: hidden; }
+        .accepted-card-logos img { display: block; width: auto; max-width: none; height: 24px; }
+        .card-reassurance p { margin: 0; font-size: 11px; line-height: 1.5; color: #605750; }
         :global(.row-2) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .mobile-topbar { display: none; }
         .checkout-grid { grid-template-columns: 1.35fr 1fr; }
@@ -1234,7 +1246,7 @@ const accordionRow = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
   padding: '18px 18px', borderBottom: `1px solid ${T.line}`, background: T.white,
 };
-const accordionBody = { padding: '16px 18px 20px', background: T.white };
+const accordionBody = { padding: '16px 18px', background: T.white };
 const squareCardContainer = { minHeight: 48 };
 const orDivider = { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 0' };
 const orDividerLine = { flex: 1, height: 1, background: T.line };

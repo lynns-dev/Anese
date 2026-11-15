@@ -9,6 +9,7 @@ import { getSessionId } from '../lib/session';
 import { ensureVisitorCookie, getVisitSource } from '../lib/visitTracking';
 import { getCheckoutStage } from '../lib/checkoutStage';
 import { IDLE_LIMIT_MS } from '../lib/presence';
+import { isCatalogProbePath } from '../lib/trafficFilter';
 import AdminFonts from '../components/AdminFonts';
 import SignupPopup from '../components/SignupPopup';
 
@@ -42,6 +43,7 @@ function Tracking() {
   const lastActivityRef = React.useRef(Date.now());
   // Birthday inputs stay out of page-view, field-focus and recording setup.
   const isAdmin = router.pathname.startsWith('/admin') || router.pathname === '/birthday';
+  const isProbe = isCatalogProbePath(router.asPath);
 
   React.useEffect(() => {
     const mark = () => { lastActivityRef.current = Date.now(); };
@@ -66,10 +68,10 @@ function Tracking() {
   // order and would only pollute ad audiences. With the Pixel not loaded,
   // every fbTrack() call is a no-op.
   React.useEffect(() => {
-    if (isAdmin || !PIXEL_ID) return;
+    if (isAdmin || isProbe || !PIXEL_ID) return;
     if (/(?:^|; )anese_geo=outside(?:;|$)/.test(document.cookie)) return;
     loadPixel(PIXEL_ID);
-  }, [isAdmin]);
+  }, [isAdmin, isProbe]);
 
   // Microsoft Clarity — session recording/heatmaps, same admin exclusion.
   React.useEffect(() => {
@@ -79,15 +81,15 @@ function Tracking() {
 
   React.useEffect(() => {
     if (isAdmin) return;
-    fbTrack('PageView');
-  }, [router.asPath, isAdmin]);
+    if (!isProbe) fbTrack('PageView');
+  }, [router.asPath, isAdmin, isProbe]);
 
   // Which ad/campaign brought this visitor in — captured on every page load
   // so a landing page deep in the site (not just "/") still gets credit.
   React.useEffect(() => {
     if (isAdmin) return;
-    captureAttribution();
-  }, [router.asPath, isAdmin]);
+    if (!isProbe) captureAttribution();
+  }, [router.asPath, isAdmin, isProbe]);
 
   React.useEffect(() => {
     if (isAdmin) return;
@@ -119,14 +121,14 @@ function Tracking() {
         ...(fbc ? { fbc } : {}),
       }),
       keepalive: true,
-    }).then((r) => { if (fbc && r.ok) markFbcSynced(fbc); }).catch(() => {});
-  }, [router.asPath, isAdmin]);
+    }).then((r) => { if (!isProbe && fbc && r.ok) markFbcSynced(fbc); }).catch(() => {});
+  }, [router.asPath, isAdmin, isProbe]);
 
   React.useEffect(() => {
     // The dashboard isn't a visit: an admin tab is exactly the kind of page
     // that gets left open for days, and it used to count itself as a
     // visitor the whole time.
-    if (isAdmin) return undefined;
+    if (isAdmin || isProbe) return undefined;
 
     const currentStage = () => {
       if (router.pathname === '/success') return 'purchased';
@@ -210,7 +212,7 @@ function Tracking() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [router.pathname, cart.open, isAdmin]);
+  }, [router.pathname, router.asPath, cart.open, isAdmin, isProbe]);
 
   return null;
 }

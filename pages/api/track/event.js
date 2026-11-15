@@ -2,11 +2,13 @@
 // would surface to the visitor — a lost analytics ping shouldn't affect
 // their experience.
 
-import { incrementEvent, logEvent, logVisitor } from '../../../lib/analyticsStore';
+import { incrementEvent, logEvent, logVisitor, logCatalogProbe } from '../../../lib/analyticsStore';
 import { recordJourneyStep, pageLabel, EVENT_LABELS, visitorIdFrom } from '../../../lib/journeys';
 import { sendCapiEvent, getRequestUserData } from '../../../lib/metaCapi';
 import { isExcludedIp, isOutsideServiceArea } from '../../../lib/ipFilter';
 import { fbcSetCookieHeader } from '../../../lib/metaClickId';
+
+import { isCatalogProbePath } from '../../../lib/trafficFilter';
 
 const ALLOWED = ['pageview', 'addtocart', 'checkout_start', 'checkout_payment', 'checkout_review'];
 // Logged to the timestamped recent-events feed for the live-activity view.
@@ -47,6 +49,16 @@ export default async function handler(req, res) {
   }
 
   const { event, productName, eventId, contentId, contentIds, contents, value, url, sessionId, email, phone, source, campaign, path, visitSource, fbc, params, referrer, device } = req.body || {};
+
+  // Keep catalog probes out of shopper metrics and CAPI, but preserve a
+  // separate capped diagnostic trail. Only the current path is filtered;
+  // a later genuine product/checkout visit from this browser is unaffected.
+  if (isCatalogProbePath(path || url)) {
+    if (event === 'pageview') {
+      try { await logCatalogProbe(); } catch (err) { console.error('Probe diagnostic failed:', err); }
+    }
+    return res.status(204).end();
+  }
 
   // Re-issue the Meta click ID cookie from the server. The browser sends its
   // click ID on the first page view of a visit (pages/_app.jsx); setting the

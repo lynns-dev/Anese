@@ -57,7 +57,7 @@ const styles = {
   },
   bar: {
     display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center',
-    background: T.ink, color: T.white, padding: '9px 40px',
+    background: T.sea, color: T.ink, padding: '9px 40px',
   },
   item: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

@@ -18,6 +18,10 @@ assert.deepEqual(Array.from(selectConcernReviews(rows, 'spots'), r=>r.id), ['mar
 // Face-only matches must be excluded even when the concern is dark spots.
 assert.deepEqual(Array.from(selectConcernReviews(rows.slice(0,5), 'bumps'), r=>r.id), ['bumps']);
 assert.equal(selectConcernReviews([rows[0], rows[0]], 'spots').length, 1);
+assert.equal(selectConcernReviews([{ text: 'Bumps in between and under the girls.' }], 'bumps').length, 0);
+assert.equal(selectConcernReviews([{ text: 'Helped my dark spots.' }], 'spots').length, 0);
+assert.equal(selectConcernReviews([{ text: 'Blemishes persist but I do enjoy the booty scrub, it has far more exfoliant.' }], 'bumps').length, 0);
+assert.equal(selectConcernReviews([{ text: 'My butne is unchanged.' }], 'bumps').length, 1);
 assert.equal(CONCERN_PHOTOS.spots.src, '/images/anese-before-after-2.jpg');
 assert.equal(CONCERN_PHOTOS.bumps.src, '/images/anese-before-after-3.jpg');
 for (const photo of Object.values(CONCERN_PHOTOS)) await fs.access('public'+photo.src);

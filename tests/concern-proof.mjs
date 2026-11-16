@@ -22,9 +22,9 @@ assert.equal(selectConcernReviews([{ text: 'Bumps in between and under the girls
 assert.equal(selectConcernReviews([{ text: 'Helped my dark spots.' }], 'spots').length, 0);
 assert.equal(selectConcernReviews([{ text: 'Blemishes persist but I do enjoy the booty scrub, it has far more exfoliant.' }], 'bumps').length, 0);
 assert.equal(selectConcernReviews([{ text: 'My butne is unchanged.' }], 'bumps').length, 1);
-assert.equal(CONCERN_PHOTOS.spots.src, '/images/anese-before-after-2.jpg');
-assert.equal(CONCERN_PHOTOS.bumps.src, '/images/anese-before-after-3.jpg');
-for (const photo of Object.values(CONCERN_PHOTOS)) await fs.access('public'+photo.src);
+assert.equal(CONCERN_PHOTOS.spots[0].src, '/images/anese-proof-diana-spots.jpg');
+assert.equal(CONCERN_PHOTOS.bumps[0].src, '/images/anese-before-after-3.jpg');
+for (const photo of Object.values(CONCERN_PHOTOS).flat()) await fs.access('public'+photo.src);
 const store = new vm.SyntheticModule(['getReviews'], function() { this.setExport('getReviews', async id => id === 'that-booty-tho' ? rows : []); }, { context });
 const api = new vm.SourceTextModule(await fs.readFile('pages/api/concern-reviews.js', 'utf8'), { context });
 await api.link(spec => spec.includes('reviewsStore') ? store : proof); await api.evaluate();

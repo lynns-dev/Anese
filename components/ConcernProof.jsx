@@ -18,11 +18,17 @@ export default function ConcernProof({ concern }) {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; controller.abort(); };
   }, [concern, limit, retry]);
-  const photo = CONCERN_PHOTOS[concern];
+  const [selectedPhoto, setSelectedPhoto] = React.useState(0);
+  const photos = CONCERN_PHOTOS[concern];
+  const photo = photos[selectedPhoto];
   const subject = concern === 'spots' ? 'dark spots and marks' : 'butt acne and bumps';
   return <section className="concern-evidence" aria-labelledby="concern-evidence-title">
     <div className="concern-section-heading"><p className="concern-label">That Booty Tho. / Customer experiences</p><h2 id="concern-evidence-title">The {subject} conversation.</h2><p>Reviews mentioning this concern, pulled from our published That Booty Tho. feed. Customers’ own words, with their full context.</p></div>
-    <figure className="concern-before-after"><img src={photo.src} alt={photo.alt} loading="lazy" /><figcaption>{photo.caption}<br />Existing comparison, shown as supplied. Timing and full routine aren’t documented; lighting and pose differ. Individual experience, not clinical evidence or a promised result.</figcaption></figure>
+    <figure className="concern-before-after">
+      <img className="concern-comparison" src={photo.src} alt={photo.alt} width={photo.width} height={photo.height} loading="lazy" />
+      <div className="concern-photo-picker" role="group" aria-label="Choose a customer comparison">{photos.map((item, index) => <button type="button" className="concern-photo-choice" key={item.src} aria-pressed={selectedPhoto === index} aria-label={`Show comparison ${index + 1} of ${photos.length}: ${item.caption}`} onClick={() => setSelectedPhoto(index)}><img src={item.src} alt="" width={item.width} height={item.height} loading="lazy" /><span>Photo {index + 1}</span></button>)}</div>
+      <figcaption><strong>{photo.caption}</strong><br />Customer comparisons, shown as supplied. Timing and full routine aren’t documented; lighting and pose differ. Individual experiences, not clinical evidence or promised results.<br /><a className="concern-full-photo" href={photo.src} target="_blank" rel="noreferrer">View full-size comparison ↗</a></figcaption>
+    </figure>
     <div className="concern-review-heading"><h3>What customers shared</h3><p>Some reviewers used other products too. Their experiences don’t establish that this scrub treats acne or fades pigmentation.</p></div>
     <div aria-live="polite" aria-busy={loading}>
       {loading && data.reviews.length === 0 && <p>Loading concern-specific reviews…</p>}

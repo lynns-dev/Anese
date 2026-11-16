@@ -44,7 +44,7 @@ export default function Tests() {
       </p>
       {error && <p style={{ color: '#d93025' }}>{error}</p>}
       {!data && !error && <p>Loading…</p>}
-      {data && data.filter((t) => !t.winner).map((t) => {
+      {data && data.filter((t) => !t.winner || ['cart_checkout_cta', 'cart_trust'].includes(t.id)).map((t) => {
         const [a, b] = t.variants;
         const key = (a.purchased || 0) + (b?.purchased || 0) >= 20 ? 'purchased' : 'added';
         const conf = b ? confidence(a, b, key) : null;
@@ -85,7 +85,7 @@ export default function Tests() {
               </tbody>
             </table>
             <p style={{ fontSize: 12, color: '#5f6368', margin: '8px 0 0' }}>
-              {conf == null
+              {t.winner ? `Permanent: ${t.winner}. Historical results retained; new enrollment stopped.` : conf == null
                 ? 'Not enough visitors yet to call it.'
                 : `Leading: ${leader} · ${conf}% confidence on ${key === 'purchased' ? 'buy rate' : 'add-to-cart rate'}${conf >= 90 ? ' (ready to call)' : ''}`}
             </p>

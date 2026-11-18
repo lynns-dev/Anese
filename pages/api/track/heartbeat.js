@@ -15,6 +15,8 @@ import { isExcludedIp, isOutsideServiceArea } from '../../../lib/ipFilter';
 import { PRESENCE_TTL_SECONDS, IDLE_LIMIT_MS, SESSION_ID_RE, activitySignature } from '../../../lib/presence';
 import { visitorIdFrom } from '../../../lib/journeys';
 
+import { isCatalogProbePath } from '../../../lib/trafficFilter';
+
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 // Separate, much longer-lived record of the last page/field a visitor
@@ -70,6 +72,7 @@ export default async function handler(req, res) {
   }
 
   const { sessionId, stage, path, source, campaign, scrollPct, activeField, lastActiveAt } = req.body || {};
+  if (isCatalogProbePath(path)) return res.status(204).end();
   if (
     typeof sessionId === 'string' &&
     SESSION_ID_RE.test(sessionId) &&

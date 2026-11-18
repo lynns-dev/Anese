@@ -9,7 +9,7 @@ const mods={ './stripeServer':mock({getStripe:()=>({})}), './analyticsStore':moc
 const mod = new vm.SourceTextModule(await fs.readFile('lib/stripeCheckout.js','utf8'),{context}); await mod.link(spec=>mods[spec]); await mod.evaluate();
 const complete=mod.namespace.completeStripeSession;
 const pending={origin:'https://anese.co',stripeSessionId:'cs_test_a',amount:25,items:[{id:'p',quantity:1,price:25}],eventId:'e'};
-const session={id:'cs_test_a',client_reference_id:'r',payment_status:'paid',currency:'usd',amount_total:2500,payment_intent:'pi_a',metadata:{origin:'https://anese.co'}};
+const session={livemode:true,id:'cs_test_a',client_reference_id:'r',payment_status:'paid',currency:'usd',amount_total:2500,payment_intent:'pi_a',metadata:{origin:'https://anese.co'}};
 kv.set('stripe:pending:r',JSON.stringify(pending));
 assert.equal(await complete({...session,payment_status:'unpaid'},{}),null);assert.equal(writes,0);
 await assert.rejects(complete({...session,amount_total:1},{}),/total mismatch/);assert.equal(writes,0);
@@ -42,3 +42,5 @@ assert.equal((await call(env.STRIPE_CHECKOUT_ORIGIN,{...body,amount:0.01})).code
 count=21;assert.equal((await call(env.STRIPE_CHECKOUT_ORIGIN)).code,429);assert.equal(sessionsCreated,0);
 count=1;assert.equal((await call(env.STRIPE_CHECKOUT_ORIGIN)).code,200);assert.equal(sessionsCreated,1);assert.equal(JSON.parse(pendingWrites.at(-1)[2]).stripeSessionId,'cs_test_new');
 console.log('PASS session API forged origin, invalid amount and rate limit prevent processor calls; confirmed session bound before redirect');
+
+await assert.rejects(complete({...session,livemode:false},{}),/mode mismatch/); console.log('PASS test events rejected in live mode');

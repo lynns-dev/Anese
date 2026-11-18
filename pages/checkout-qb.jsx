@@ -254,6 +254,7 @@ function ReviewsCarousel({ reviews }) {
 // Read server-side so client-side tokenization always targets the same
 // Intuit environment lib/qbPaymentsServer.js charges against.
 export async function getServerSideProps() {
+  if (process.env.STRIPE_ONLY_ENABLED === 'true') return { redirect: { destination: '/checkout', permanent: false } };
   return { props: { qbEnvironment: process.env.QB_ENVIRONMENT === 'production' ? 'production' : 'sandbox' } };
 }
 

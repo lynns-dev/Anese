@@ -90,6 +90,7 @@ export default function CartDrawer({
   // first opened, not the discounted one, even though the code was
   // already accepted.
   React.useEffect(() => {
+    if (process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED === 'true') return;
     if (!open || cart.length === 0) return undefined;
     let cancelled = false;
     let googleClickCleanup = null;

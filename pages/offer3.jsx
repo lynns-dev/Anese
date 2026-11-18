@@ -1,3 +1,4 @@
+import StripeCheckoutButton from '../components/StripeCheckoutButton';
 import { activePromo } from '../lib/promos';
 import { paymentFetch } from '../lib/paymentFetch';
 import React from 'react';
@@ -95,6 +96,8 @@ function InfoIcon(props) {
 
 
 
+const STRIPE_ONLY = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED === 'true';
+
 export default function Offer3Page() {
   const router = useRouter();
   const { clear, applyDiscount, appliedDiscount } = useCart();
@@ -160,6 +163,7 @@ export default function Offer3Page() {
   // state to manage here; Square's element owns those fields directly and
   // only ever hands back a token via tokenize().
   React.useEffect(() => {
+    if (STRIPE_ONLY) return;
     let cancelled = false;
     (async () => {
       try {
@@ -254,6 +258,7 @@ export default function Offer3Page() {
   // page collects them on the same screen.
   const [amazonPayReady, setAmazonPayReady] = React.useState(false);
   React.useEffect(() => {
+    if (STRIPE_ONLY) return;
     let cancelled = false;
     renderAmazonPayButton('amazon-pay-button', {
       getOrder: () => {
@@ -288,6 +293,7 @@ export default function Offer3Page() {
   // button first mounted, which a shopper who applied a discount code
   // afterward would never see reflected.
   React.useEffect(() => {
+    if (STRIPE_ONLY) return;
     if (!squareReady) return;
     let cancelled = false;
     const cleanupFns = [];
@@ -430,6 +436,7 @@ export default function Offer3Page() {
     e.preventDefault();
     setError('');
 
+    if (STRIPE_ONLY) { document.getElementById('stripe-checkout-button')?.click(); return; }
     if (!email.trim()) {
       setError('Enter your email to place your order.');
       return;
@@ -586,6 +593,8 @@ export default function Offer3Page() {
                 with Safari's -apple-pay-button appearance. The whole section
                 stays hidden until at least one of them is available. Sits above Amazon Pay,
                 so shoppers see Apple/Google Pay first. */}
+            <StripeCheckoutButton onBusy={setSubmitting} disabled={submitting} onError={setError} getPayload={() => ({ amount: grandTotal, items: [{ ...product, quantity }], email, shipping: { ...shipping, name: `${shipping.firstName || ''} ${shipping.lastName || ''}`.trim() }, discountCode: discountApplied ? DISCOUNT_CODE : '', freeShipping: shippingCost === 0, shippingProtection: shippingProtectionCost || 0, eventId: generateEventId(), url: window.location.href, attribution: getStoredAttribution(), sessionId: getSessionId() })} />
+            {!STRIPE_ONLY && <>
             <div style={{ display: (appleAvailable || googleAvailable) ? 'block' : 'none', marginBottom: 10 }}>
               <div style={{ display: 'grid', gap: 10 }}>
                 <div style={{ display: appleAvailable ? 'block' : 'none' }}>
@@ -628,18 +637,19 @@ export default function Offer3Page() {
                 )}
               </div>
             </div>
+            </>}
           </section>
 
           {error && <p ref={errorRef} style={errorText}>{error}</p>}
 
-          <button className="cta-3d" type="submit" disabled={submitting || !squareReady} style={{ ...ctaBtn, width: '100%', marginTop: 24, height: 58, opacity: submitting || !squareReady ? 0.6 : 1 }}>
+          {!STRIPE_ONLY && (          <button className="cta-3d" type="submit" disabled={submitting || !squareReady} style={{ ...ctaBtn, width: '100%', marginTop: 24, height: 58, opacity: submitting || !squareReady ? 0.6 : 1 }}>
             {submitting ? 'Processing…' : `Complete Order — $${grandTotal.toFixed(2)}`}
-          </button>
+          </button>)}
           <div style={secureNote}>
             <LockIcon />
             <span>256-bit SSL encrypted &middot; your card details never touch our servers</span>
           </div>
-          <p style={{ fontSize: 11, color: T.soft, textAlign: 'center', marginTop: 8 }}>Payments securely processed by Square</p>
+          <p style={{ fontSize: 11, color: T.soft, textAlign: 'center', marginTop: 8 }}>Payments securely processed by {STRIPE_ONLY ? 'Stripe' : 'Square'}</p>
         </form>
 
         <aside style={summaryCol}>

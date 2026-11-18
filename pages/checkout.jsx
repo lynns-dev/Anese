@@ -54,6 +54,7 @@ import { shippingFor } from '../lib/shipping';
 // separate billing-address toggle; Step 2 just displays it as a read-only
 // recap.
 
+const STRIPE_ONLY = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED === 'true';
 const EMPTY_ADDRESS = { name: '', address: '', apt: '', city: '', state: '', zip: '', phone: '' };
 
 // Social proof shown near the order summary — static copy, not pulled from
@@ -400,6 +401,7 @@ export default function CheckoutPage() {
   // the container along with the rest of that step's JSX, which would
   // otherwise leave the old Card instance attached to a now-detached node.
   React.useEffect(() => {
+    if (STRIPE_ONLY) return;
     if (step !== 2) return;
     let cancelled = false;
     (async () => {
@@ -449,6 +451,7 @@ export default function CheckoutPage() {
   // the real total changes, at the cost of the button briefly
   // disappearing and re-rendering on those (infrequent) changes.
   React.useEffect(() => {
+    if (STRIPE_ONLY) return;
     if (!squareReady) return;
     let cancelled = false;
     const cleanupFns = [];
@@ -503,6 +506,7 @@ export default function CheckoutPage() {
   // there too) needs these buttons to re-declare their total, not keep
   // showing/authorizing whatever was true before the code was entered.
   React.useEffect(() => {
+    if (STRIPE_ONLY) return;
     if (step !== 1) return;
     let cancelled = false;
     const cleanupFns = [];
@@ -590,6 +594,7 @@ export default function CheckoutPage() {
   amazonOrderRef.current = { email, shipping, cart, grandTotal };
   const [amazonPayReady, setAmazonPayReady] = React.useState(false);
   React.useEffect(() => {
+    if (STRIPE_ONLY) return;
     if (step !== 2) return undefined;
     let cancelled = false;
     renderAmazonPayButton('amazon-pay-button', {
@@ -745,6 +750,8 @@ export default function CheckoutPage() {
       goToStep(2);
       return;
     }
+
+    if (STRIPE_ONLY) { document.getElementById('stripe-checkout-button')?.click(); return; }
 
     // Step 2 — charge via Square's Card element.
     if (!squareReady || !squareCardRef.current) {
@@ -969,6 +976,7 @@ export default function CheckoutPage() {
                     appearance. Amazon renders its own button into its
                     container once it's configured; until then it stays empty
                     and takes no space. */}
+                {!STRIPE_ONLY && <>
                 <div style={{ marginTop: 20 }}>
                   <ShopPayWallet email={email} shippingCost={shippingCost} grandTotal={grandTotal}
                     purchaseKey="anese-purchase" onBusy={setSubmitting} onError={setError} />
@@ -989,8 +997,11 @@ export default function CheckoutPage() {
                   {(appleAvailable || googleAvailable || amazonPayReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
                 </div>
 
-                <StripeCheckoutButton onBusy={setSubmitting} disabled={submitting} onError={setError} getPayload={() => ({ amount: grandTotal, items: cart, email, shipping, eventId: generateEventId(), url: window.location.href, attribution: getStoredAttribution(), sessionId: getSessionId() })} />
+                </>}
 
+                <StripeCheckoutButton onBusy={setSubmitting} disabled={submitting} onError={setError} getPayload={() => ({ amount: grandTotal, items: cart, email, shipping, discountCode: appliedDiscount?.code || '', freeShipping: shippingCost === 0, shippingProtection: 0, eventId: generateEventId(), url: window.location.href, attribution: getStoredAttribution(), sessionId: getSessionId() })} />
+
+                {!STRIPE_ONLY && <>
                 <div style={{ ...paymentList, marginTop: 20 }}>
                   <div style={accordionRow}>
                     <span style={{ fontWeight: 700, fontSize: 16 }}>Credit or Debit Card</span>
@@ -1018,6 +1029,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                </>}
                 <div style={{ marginTop: 20 }}>
                   <p style={fieldGroupLabel}>Billing address</p>
                   <div style={billingRecap}>
@@ -1039,9 +1051,9 @@ export default function CheckoutPage() {
                   <button type="button" onClick={() => goToStep(1)} style={bigButtonSecondary} disabled={submitting}>
                     Back
                   </button>
-                  <button type="submit" disabled={submitting || !squareReady} style={{ ...bigButton, flex: 1, opacity: submitting || !squareReady ? 0.6 : 1 }}>
+                  {!STRIPE_ONLY && (                  <button type="submit" disabled={submitting || !squareReady} style={{ ...bigButton, flex: 1, opacity: submitting || !squareReady ? 0.6 : 1 }}>
                     {submitting ? 'Processing…' : `Place order — $${grandTotal.toFixed(2)}`}
-                  </button>
+                  </button>)}
                 </div>
 
                 <div className="mobile-reviews-carousel">
@@ -1053,7 +1065,7 @@ export default function CheckoutPage() {
                   <span>256-bit SSL encrypted &middot; your card details never touch our servers</span>
                 </div>
                 <p style={{ fontSize: 11, color: T.soft, textAlign: 'center', marginTop: 8 }}>
-                  Payments securely processed by Square
+                  Payments securely processed by {STRIPE_ONLY ? 'Stripe' : 'Square'}
                 </p>
               </section>
             )}

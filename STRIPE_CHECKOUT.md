@@ -1,11 +1,11 @@
-# Additive Stripe hosted checkout
+# Gated Stripe-only hosted checkout
 
 This integration preserves existing payment methods and checkout totals. It is disabled until BOTH flags are deliberately enabled after configuration and testing.
 
 ## Required configuration
 - STRIPE_SECRET_KEY: existing merchant account's server-only Stripe key.
 - STRIPE_WEBHOOK_SECRET: signing secret for this site's `/api/stripe/webhook` endpoint.
-- STRIPE_CHECKOUT_ORIGIN: exact canonical HTTPS origin, e.g. `https://anese.co` (no path).
+- STRIPE_CHECKOUT_ORIGIN: exact canonical HTTPS origin, e.g. `https://aneseskin.com` (no path).
 - STRIPE_CHECKOUT_ENABLED=true: server gate.
 - NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED=true: build-time button gate (requires rebuild).
 - Existing KV_REST_API_URL / KV_REST_API_TOKEN.
@@ -22,3 +22,6 @@ The button is on `/checkout`; existing legacy `/checkout-qb` and separate offer-
 5. Confirm signed webhook retries when ledger storage is unavailable. Disable flags if any verification fails.
 
 No live purchase has been made by this implementation task. Existing fulfillment can suppress errors, so the Stripe handler explicitly reads the paid order back before acknowledging fulfillment. Atomic per-payment lock and a 180-day completion marker suppress duplicate webhook/return processing. Pending order details persist 30 days; a missing pending record fails closed for manual reconciliation.
+
+## Sole processor activation
+The public Stripe flag also hides prior payment options and skips their SDK initialization on the main checkout. Set STRIPE_ONLY_ENABLED=true only at verified cutover; this blocks new legacy processor payment initiations. Historical webhooks/completions remain available for pre-cutover orders. STRIPE_CHECKOUT_MODE defaults to live; test deployments must explicitly use test and separate test-only data stores. Live deployments reject test-mode sessions before fulfillment.

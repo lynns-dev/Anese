@@ -294,6 +294,8 @@ export default function CheckoutPage() {
   // shows it in full regardless of this.
   const [orderSummaryOpen, setOrderSummaryOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [stripeReady, setStripeReady] = React.useState(false);
+  const stripeSubmitRef = React.useRef(null);
   const [error, setError] = React.useState('');
   const clearDiscount = React.useCallback(() => {
     clearCartDiscount();
@@ -751,7 +753,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (STRIPE_ONLY) { document.getElementById('stripe-checkout-button')?.click(); return; }
+    if (STRIPE_ONLY) { await stripeSubmitRef.current?.(); return; }
 
     // Step 2 — charge via Square's Card element.
     if (!squareReady || !squareCardRef.current) {
@@ -999,7 +1001,7 @@ export default function CheckoutPage() {
 
                 </>}
 
-                <StripeCheckoutButton onBusy={setSubmitting} disabled={submitting} onError={setError} getPayload={() => ({ amount: grandTotal, items: cart, email, shipping, discountCode: appliedDiscount?.code || '', freeShipping: shippingCost === 0, shippingProtection: 0, eventId: generateEventId(), url: window.location.href, attribution: getStoredAttribution(), sessionId: getSessionId() })} />
+                <StripeCheckoutButton submitRef={stripeSubmitRef} onReady={setStripeReady} onBusy={setSubmitting} disabled={submitting} onError={setError} getPayload={() => ({ amount: grandTotal, items: cart, email, shipping, discountCode: appliedDiscount?.code || '', freeShipping: shippingCost === 0, shippingProtection: 0, eventId: generateEventId(), url: window.location.href, attribution: getStoredAttribution(), sessionId: getSessionId() })} />
 
                 {!STRIPE_ONLY && <>
                 <div style={{ ...paymentList, marginTop: 20 }}>
@@ -1051,9 +1053,9 @@ export default function CheckoutPage() {
                   <button type="button" onClick={() => goToStep(1)} style={bigButtonSecondary} disabled={submitting}>
                     Back
                   </button>
-                  {!STRIPE_ONLY && (                  <button type="submit" disabled={submitting || !squareReady} style={{ ...bigButton, flex: 1, opacity: submitting || !squareReady ? 0.6 : 1 }}>
+                  <button type="submit" disabled={submitting || !(STRIPE_ONLY ? stripeReady : squareReady)} style={{ ...bigButton, flex: 1, opacity: submitting || !(STRIPE_ONLY ? stripeReady : squareReady) ? 0.6 : 1 }}>
                     {submitting ? 'Processing…' : `Place order — $${grandTotal.toFixed(2)}`}
-                  </button>)}
+                  </button>
                 </div>
 
                 <div className="mobile-reviews-carousel">

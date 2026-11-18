@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   try {
     await recordCartEvent({ visitorId: id, kind, detail: safeDetail, context: { path, source, device } });
     // Split tests this visitor has seen (lib/experiments.js).
-    try { await recordExperimentStep(exps, kind, id, safeDetail); } catch (err) { console.error('Experiment step failed:', err.message); }
+    try { await recordExperimentStep(kind === 'purchased' && process.env.STRIPE_ONLY_ENABLED === 'true' ? {} : (exps), kind, id, safeDetail); } catch (err) { console.error('Experiment step failed:', err.message); }
   } catch (err) {
     console.error('Cart step tracking failed:', err.message);
   }

@@ -1,3 +1,4 @@
+import StripeCheckoutButton from '../components/StripeCheckoutButton';
 import CheckoutDiscount from '../components/CheckoutDiscount';
 import { paymentFetch } from '../lib/paymentFetch';
 import ShopPayWallet from '../components/ShopPayWallet';
@@ -987,6 +988,8 @@ export default function CheckoutPage() {
                   <div id="amazon-pay-button" />
                   {(appleAvailable || googleAvailable || amazonPayReady) && <p style={{ fontSize: 12, color: T.soft, textAlign: 'center', margin: '12px 0 0' }}>or pay by card</p>}
                 </div>
+
+                <StripeCheckoutButton onBusy={setSubmitting} disabled={submitting} onError={setError} getPayload={() => ({ amount: grandTotal, items: cart, email, shipping, eventId: generateEventId(), url: window.location.href, attribution: getStoredAttribution(), sessionId: getSessionId() })} />
 
                 <div style={{ ...paymentList, marginTop: 20 }}>
                   <div style={accordionRow}>

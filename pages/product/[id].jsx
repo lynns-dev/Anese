@@ -410,7 +410,7 @@ export default function ProductPage({ product }) {
             </div>
 
             <p style={badgeRow}>
-              Free shipping on every order{isScrub ? ' · Butt · thighs · hips · Use 2–3x a week' : ''} · Cruelty-free
+              Free shipping on orders of $50+{isScrub ? ' · Butt · thighs · hips · Use 2–3x a week' : ''} · Cruelty-free
             </p>
 
             {upsell && (
@@ -695,7 +695,7 @@ export default function ProductPage({ product }) {
         </p>
         <button onClick={handleAdd} style={{ ...S.btnFill, padding: '0 52px' }}>Add to shower — ${unitPrice}</button>
         <p style={{ marginTop: 18, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>
-          Free shipping on every order
+          Free shipping on orders of $50+
         </p>
       </section>
 

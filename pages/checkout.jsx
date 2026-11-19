@@ -23,7 +23,6 @@ import { setCheckoutStep } from '../lib/checkoutStage';
 import { getIdentity, rememberIdentity } from '../lib/identity';
 import { T, S } from '../lib/theme';
 import { trackCart } from '../lib/cartTracking';
-import { hasFreeShipping } from '../lib/shippingPerk';
 import { renderAmazonPayButton } from '../lib/amazonPayClient';
 import TopBanner from '../components/TopBanner';
 import { shippingFor } from '../lib/shipping';
@@ -434,10 +433,7 @@ export default function CheckoutPage() {
   // Computed here (rather than down with subtotal/discountTotal below) so
   // it's in scope for the wallet-mount effects right after, which now
   // depend on it — see those effects' comments for why.
-  // Free shipping offered by the cart exit popup (lib/shippingPerk.js).
-  const [shipPerk, setShipPerk] = React.useState(false);
-  React.useEffect(() => { setShipPerk(hasFreeShipping()); }, []);
-  const shippingCost = !addressEntered || cart.length === 0 ? 0 : (shipPerk ? 0 : shippingFor(total));
+  const shippingCost = !addressEntered || cart.length === 0 ? 0 : shippingFor(total);
   const grandTotal = discountedTotal + shippingCost;
 
   // Mounts Apple Pay / Google Pay as soon as the Square SDK is ready (which
@@ -1124,7 +1120,7 @@ export default function CheckoutPage() {
       <div style={reassuranceWrap}>
         <div className="reassurance-grid" style={reassuranceGrid}>
           {[
-            [ShipIcon, 'Free shipping on every order', 'Ships within 1 business day.'],
+            [ShipIcon, 'Free shipping on orders of $50+', 'Ships within 1 business day.'],
             [ReturnIcon, '30-day returns', 'Not the right fit? Send it back for a full refund.'],
             [LockIcon, 'Secure checkout', `Payments encrypted and processed by ${STRIPE_ONLY ? 'Stripe' : 'Square'}.`],
             [LeafIcon, 'Vegan & cruelty-free', 'Every formula, always.'],

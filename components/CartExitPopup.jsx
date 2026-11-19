@@ -2,7 +2,7 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { T, S } from '../lib/theme';
 import { trackCart } from '../lib/cartTracking';
-import { grantFreeShipping } from '../lib/shippingPerk';
+import { STANDARD_SHIPPING as rate } from '../lib/shipping';
 
 // Shown once (per device, every few days) when a shopper closes their cart
 // without checking out: "What's holding you back?" with quick answers, then
@@ -68,20 +68,14 @@ export default function CartExitPopup({ open, onClose, cart, applyDiscount, disc
     setAnswer(key);
     if (key === 'other') return; // waits for their text
     trackCart('exit_answer', { answer: key });
-    if (key === 'shipping' && shippingAlwaysFree) {
-      setResult({ title: 'Good news — shipping’s free', body: 'Every order ships free, no minimum. It’s already off your total.', primary: true });
-    } else if (key === 'shipping') {
-      grantFreeShipping();
-      setResult({ title: 'Done — shipping’s on us', body: `Free shipping is on for your order for the next 24 hours${freeShipAt ? `, no $${freeShipAt} minimum` : ''}.`, primary: true });
+    if (key === 'shipping') {
+      setResult({ title: 'Standard shipping', body: `Shipping is $${rate} and free on orders of $${freeShipAt} or more before discounts.`, primary: true });
     } else if (key === 'price') {
       const data = discountCode ? await applyDiscount(discountCode).catch(() => null) : null;
       if (data?.valid) {
         setResult({ title: `${discountLabel || 'A discount'} is yours`, body: `Code ${data.code} is applied to your bag.`, primary: true });
-      } else if (shippingAlwaysFree) {
-        setResult({ title: 'Here’s something to help', body: 'Shipping is always free here, so the price you see is the price you pay.', primary: true });
       } else {
-        grantFreeShipping();
-        setResult({ title: 'Here’s something to help', body: 'Free shipping is on for your order for the next 24 hours.', primary: true });
+        setResult({ title: 'No rush', body: 'Your bag is saved on this device.' });
       }
     } else if (key === 'reviews') {
       setResult({ title: 'See what customers say', body: 'Real reviews from verified buyers are on the product page.', link: { href: reviewsHref, label: 'Read reviews' }, primary: true });

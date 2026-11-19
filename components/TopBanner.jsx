@@ -36,7 +36,7 @@ export default function TopBanner({ forcePromo = false } = {}) {
     <>
     {promo && (forcePromo || pathname !== '/') && <div style={styles.promo}>{promo.banner}</div>}
     <div className="top-banner" style={styles.bar}>
-      <div className="top-banner-item" style={styles.item}><ShipIcon /><span>Free Shipping</span></div>
+      <div className="top-banner-item" style={styles.item}><ShipIcon /><span>Free Shipping $50+</span></div>
       <div className="top-banner-item" style={styles.item}><ReturnIcon /><span>30-Day Money-Back Guarantee</span></div>
       <style jsx>{`
         @media (max-width: 680px) {

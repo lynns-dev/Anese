@@ -831,7 +831,7 @@ export default function CheckoutPage({ qbEnvironment }) {
       <div style={reassuranceWrap}>
         <div className="reassurance-grid" style={reassuranceGrid}>
           {[
-            [ShipIcon, 'Free shipping on every order', 'Ships within 1 business day.'],
+            [ShipIcon, 'Free shipping on orders of $50+', 'Ships within 1 business day.'],
             [ReturnIcon, '30-day returns', 'Not the right fit? Send it back for a full refund.'],
             [LockIcon, 'Secure checkout', 'Payments encrypted and processed by QuickBooks.'],
             [LeafIcon, 'Vegan & cruelty-free', 'Every formula, always.'],

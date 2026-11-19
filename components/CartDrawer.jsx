@@ -13,13 +13,12 @@ import { getStoredAttribution } from '../lib/attribution';
 import { getSessionId } from '../lib/session';
 import { getIdentity } from '../lib/identity';
 import { trackCart } from '../lib/cartTracking';
-import { hasFreeShipping } from '../lib/shippingPerk';
 import TopBanner from './TopBanner';
 import { useVariant, exposeExperiment } from '../lib/experiments';
 import { useAllReviews } from '../lib/useReviews';
 import SaleCallout, { useActivePromo } from './SaleCallout';
 import CartExitPopup, { shouldAskCartExit } from './CartExitPopup';
-import { shippingFor, FREE_SHIPPING_THRESHOLD, SHIPPING_ALWAYS_FREE } from '../lib/shipping';
+import { shippingFor, FREE_SHIPPING_THRESHOLD } from '../lib/shipping';
 
 const SHOP_PAY_CONTAINER_ID = 'cart-shop-pay-button';
 const GOOGLE_PAY_CONTAINER_ID = 'cart-google-pay-button';
@@ -60,24 +59,14 @@ export default function CartDrawer({
 
   const subtotal = cart.reduce((sum, item) => sum + (item.originalPrice ?? item.price) * item.quantity, 0);
   const discountTotal = subtotal - total;
-  // Shipping follows lib/shipping.js (free on every order). The progress
-  // bar tracks the free gift, which still unlocks at its own threshold.
-  const freeShipping = shippingFor(total) === 0;
   const giftUnlocked = total >= FREE_GIFT_AT;
   const progressPct = Math.min(100, (total / FREE_GIFT_AT) * 100);
   const progressMessage = giftUnlocked
-    ? `Free shipping, and you've unlocked a free ${FREE_GIFT.name}.`
-    : `Free shipping on every order. Add $${(FREE_GIFT_AT - total).toFixed(2)} more for a free ${FREE_GIFT.name}.`;
+    ? `You've unlocked a free ${FREE_GIFT.name}.`
+    : `Add $${(FREE_GIFT_AT - total).toFixed(2)} more for a free ${FREE_GIFT.name}.`;
 
-  // Same $0/$5 rule pages/checkout.jsx charges — this drawer has no address
-  // yet, so like checkout before one's entered, an empty cart charges
-  // nothing and everything else falls back to the flat rate.
-  // Free shipping from the exit popup's offer (lib/shippingPerk.js) waives
-  // shipping only — the free gift still needs its own threshold.
-  const [shipPerk, setShipPerk] = React.useState(false);
-  React.useEffect(() => { if (open) setShipPerk(hasFreeShipping()); }, [open]);
-  const shipsFree = freeShipping || shipPerk;
-  const shippingCost = cart.length === 0 || shipsFree ? 0 : shippingFor(total);
+  const shippingCost = cart.length ? shippingFor(total) : 0;
+  const shipsFree = shippingCost === 0;
   const [exitOpen, setExitOpen] = React.useState(false);
   const grandTotal = discountedTotal + shippingCost;
 
@@ -468,18 +457,18 @@ export default function CartDrawer({
               <span>−${codeDiscountAmount.toFixed(2)}</span>
             </div>
           )}
-          {totalReassuranceVariant === 'shipping' && shipsFree && <div style={summaryRow}><span style={{ color: T.soft }}>Shipping</span><span>Free</span></div>}
-          <p style={shippingNote}>{shipsFree ? (totalReassuranceVariant === 'shipping' ? 'Taxes calculated at checkout' : 'Free shipping') : 'Shipping and taxes calculated at checkout'}</p>
+          {(totalReassuranceVariant === 'shipping' || !shipsFree) && cart.length > 0 && <div style={summaryRow}><span style={{ color: T.soft }}>Shipping</span><span>{shipsFree ? 'Free' : `$${shippingCost.toFixed(2)}`}</span></div>}
+          <p style={shippingNote}>{shipsFree ? (totalReassuranceVariant === 'shipping' ? 'Taxes calculated at checkout' : 'Free shipping') : 'Taxes calculated at checkout'}</p>
           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '14px 0 18px' }}>
             <span style={S.label}>Total</span>
-            <span style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 20 }}>${discountedTotal.toFixed(2)}</span>
+            <span style={{ fontFamily: T.serif, fontWeight: 300, fontSize: 20 }}>${grandTotal.toFixed(2)}</span>
           </div>
           {trustVariant === 'trust' && cart.length > 0 && (
             <div style={trustBox}>
               {reviewTotals.count > 0 && (
                 <div><span style={{ color: T.honey, letterSpacing: '1px' }}>★★★★★</span> {reviewTotals.average.toFixed(1)} from {reviewTotals.count}+ reviews</div>
               )}
-              <div>30-day money-back guarantee · Free shipping on every order</div>
+              <div>30-day money-back guarantee · Free shipping on orders of $50+</div>
             </div>
           )}
           <Link
@@ -579,7 +568,6 @@ export default function CartDrawer({
         discountLabel={salePromo ? `${salePromo.value}% off` : '10% off'}
         payments="card, Apple Pay, Google Pay, Shop Pay or Amazon Pay"
         freeShipAt={FREE_SHIPPING_THRESHOLD || null}
-        shippingAlwaysFree={SHIPPING_ALWAYS_FREE}
       />
     </>
   );

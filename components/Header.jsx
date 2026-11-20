@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { T } from '../lib/theme';
 import TopBanner from './TopBanner';
-import { getFeaturedProducts } from '../lib/products';
+import { getFeaturedProducts, getProductById } from '../lib/products';
 
 const megaProducts = getFeaturedProducts().slice(0, 4);
 
@@ -45,7 +45,7 @@ export default function Header({ cartCount = 0, onCartClick, overlay = false, sc
                     <div style={styles.megaHeading}>Shop</div>
                     <Link href="/shop" style={styles.megaLink}>All products</Link>
                     <Link href="/product/that-booty-tho" style={styles.megaLink}>Bestseller: That Booty Tho.</Link>
-                    <Link href="/product/glazed-set" style={styles.megaLink}>Sets &amp; bundles</Link>
+                    {getProductById('glazed-set') && <Link href="/product/glazed-set" style={styles.megaLink}>Sets &amp; bundles</Link>}
                     <div style={{ ...styles.megaHeading, marginTop: 18 }}>Not sure?</div>
                     <Link href="/quiz" style={styles.megaLink}>Find my routine</Link>
                     <Link href="/questions" style={styles.megaLink}>Ask us anything</Link>

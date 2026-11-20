@@ -16,13 +16,14 @@ import { QUESTION_TOPICS, RITUALS, MYTHS, DEMO_STEPS } from '../lib/brandContent
 
 export function ConcernExplorer({ onAdd }) {
   const [active, setActive] = React.useState(0);
-  const topic = QUESTION_TOPICS[active];
+  const availableTopics = QUESTION_TOPICS.filter((t) => getProductById(t.product));
+  const topic = availableTopics[active] || availableTopics[0];
   const product = getProductById(topic.product);
 
   return (
     <div>
       <div className="concern-tabs" role="tablist" aria-label="Questions people ask" style={concernTabs}>
-        {QUESTION_TOPICS.map((t, i) => (
+        {availableTopics.map((t, i) => (
           <button
             key={t.tab}
             role="tab"

@@ -48,7 +48,7 @@ export default function ShopPage() {
         {concernVariant === 'concerns' && <div style={{ ...S.wrap, marginBottom: 28 }}>
           <p style={{ ...S.label, marginBottom: 12 }}>Shop by concern</p>
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-            {[['all','Shop all'],['texture','Rough texture'],['bumps','Bumps'],['spots','Dark spots'],['dryness','Dryness']].map(([id,label]) =>
+            {[['all','Shop all'],['texture','Rough texture'],['bumps','Bumps'],['spots','Dark spots'],['dryness','Dryness']].filter(([id]) => id === 'all' || products.some(p => concerns[id]?.includes(p.id))).map(([id,label]) =>
               <button key={id} type="button" aria-pressed={concern === id} onClick={() => setConcern(id)} style={{ cursor:'pointer', border:'1px solid #d9c8bd', borderRadius:30, padding:'10px 16px', background:concern===id?'#29201d':'transparent', color:concern===id?'#fff':'#29201d' }}>{label}</button>
             )}
           </div>

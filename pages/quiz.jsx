@@ -67,7 +67,7 @@ export default function QuizPage() {
           <div style={{ marginTop: 44 }}>
             <p style={{ fontSize: 15, color: T.soft, marginBottom: 28 }}>{GOAL_STEP.question}</p>
             <div style={optionGrid}>
-              {GOAL_STEP.options.map((o) => (
+              {GOAL_STEP.options.filter((o) => getProductById(GOAL_TO_PRODUCT[o.value])).map((o) => (
                 <button key={o.value} style={optionBtn} onClick={() => handleGoal(o.value)}>
                   {o.label}
                 </button>
